@@ -1,0 +1,28 @@
+graph {
+  node_0 ;
+  node_1 ;
+  node_2 ;
+  node_3 ;
+  node_4 ;
+  node_5 ;
+  node_6 ;
+  node_7 ;
+  node_8 ;
+  node_9 ;
+
+  node_0 -- node_1 [color="blue"];
+  node_0 -- node_3 [color="green"];
+  node_0 -- node_5 [color="red"];
+  node_1 -- node_2 [color="green"];
+  node_1 -- node_4 [color="red"];
+  node_2 -- node_3 [color="red"];
+  node_2 -- node_6 [color="blue"];
+  node_3 -- node_8 [color="blue"];
+  node_4 -- node_5 [color="blue"];
+  node_4 -- node_7 [color="green"];
+  node_5 -- node_8 [color="green"];
+  node_6 -- node_7 [color="red"];
+  node_6 -- node_9 [color="green"];
+  node_7 -- node_9 [color="blue"];
+  node_8 -- node_9 [color="red"];
+}

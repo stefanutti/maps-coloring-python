@@ -1,0 +1,119 @@
+06/Lug/2016
+    Grafo a fine riduzione:
+        2016-07-06 07:25:42,872 - DEBUG --- Face: [(35, 20), (20, 24), (24, 35)]
+        2016-07-06 07:25:42,872 - DEBUG --- Face: [(8, 24), (24, 20), (20, 8)]
+        2016-07-06 07:25:42,872 - DEBUG --- Face: [(35, 8), (8, 20), (20, 35)]
+        2016-07-06 07:25:42,872 - DEBUG --- Face: [(8, 35), (35, 24), (24, 8)]
+    Grafo appena ricreato - Step 0 della ricostruzione:
+        2016-07-06 07:25:42,895 - DEBUG --- Face: [(35, 24), (24, 20), (20, 35)]
+        2016-07-06 07:25:42,895 - DEBUG --- Face: [(8, 35), (35, 20), (20, 8)]
+        2016-07-06 07:25:42,896 - DEBUG --- Face: [(35, 8), (8, 24), (24, 35)]
+        2016-07-06 07:25:42,896 - DEBUG --- Face: [(20, 24), (24, 8), (8, 20)]
+
+    Domanda: Lo ricostruisco con la stessa rappresentazione di faces()?
+    Risposta: Per ora lascio tutto così. E' infatti lo stesso grafo
+
+06/Lug/2016 - Perfect at first shoot??????????
+    Original graph:
+        2016-07-06 09:34:07,717 - DEBUG --- Face: [(30, 28), (28, 29), (29, 30)]
+        2016-07-06 09:34:07,718 - DEBUG --- Face: [(44, 43), (43, 47), (47, 44)]
+        2016-07-06 09:34:07,718 - DEBUG --- Face: [(2, 8), (8, 4), (4, 2)]
+        2016-07-06 09:34:07,718 - DEBUG --- Face: [(14, 13), (13, 31), (31, 14)]
+        2016-07-06 09:34:07,718 - DEBUG --- Face: [(18, 16), (16, 46), (46, 18)]
+        2016-07-06 09:34:07,718 - DEBUG --- Face: [(0, 6), (6, 1), (1, 0)]
+        2016-07-06 09:34:07,718 - DEBUG --- Face: [(35, 22), (22, 21), (21, 34), (34, 35)]
+        2016-07-06 09:34:07,718 - DEBUG --- Face: [(52, 51), (51, 48), (48, 49), (49, 52)]
+        2016-07-06 09:34:07,719 - DEBUG --- Face: [(34, 21), (21, 20), (20, 32), (32, 34)]
+        2016-07-06 09:34:07,719 - DEBUG --- Face: [(24, 37), (37, 38), (38, 23), (23, 24)]
+        2016-07-06 09:34:07,719 - DEBUG --- Face: [(27, 33), (33, 32), (32, 20), (20, 27)]
+        2016-07-06 09:34:07,719 - DEBUG --- Face: [(42, 48), (48, 51), (51, 45), (45, 42)]
+        2016-07-06 09:34:07,719 - DEBUG --- Face: [(33, 36), (36, 35), (35, 34), (34, 32), (32, 33)]
+        2016-07-06 09:34:07,719 - DEBUG --- Face: [(43, 17), (17, 18), (18, 46), (46, 47), (47, 43)]
+        2016-07-06 09:34:07,719 - DEBUG --- Face: [(1, 3), (3, 2), (2, 4), (4, 0), (0, 1)]
+        2016-07-06 09:34:07,719 - DEBUG --- Face: [(31, 13), (13, 12), (12, 28), (28, 30), (30, 31)]
+        2016-07-06 09:34:07,720 - DEBUG --- Face: [(52, 40), (40, 39), (39, 45), (45, 51), (51, 52)]
+        2016-07-06 09:34:07,720 - DEBUG --- Face: [(29, 28), (28, 12), (12, 11), (11, 26), (26, 29)]
+        2016-07-06 09:34:07,720 - DEBUG --- Face: [(37, 41), (41, 53), (53, 55), (55, 38), (38, 37)]
+        2016-07-06 09:34:07,720 - DEBUG --- Face: [(40, 41), (41, 37), (37, 24), (24, 25), (25, 39), (39, 40)]
+        2016-07-06 09:34:07,720 - DEBUG --- Face: [(55, 36), (36, 33), (33, 27), (27, 23), (23, 38), (38, 55)]
+        2016-07-06 09:34:07,721 - DEBUG --- Face: [(4, 8), (8, 5), (5, 7), (7, 6), (6, 0), (0, 4)]
+        2016-07-06 09:34:07,721 - DEBUG --- Face: [(5, 9), (9, 19), (19, 54), (54, 50), (50, 7), (7, 5)]
+        2016-07-06 09:34:07,721 - DEBUG --- Face: [(9, 5), (5, 8), (8, 2), (2, 3), (3, 10), (10, 9)]
+        2016-07-06 09:34:07,721 - DEBUG --- Face: [(41, 40), (40, 52), (52, 49), (49, 50), (50, 54), (54, 53), (53, 41)]
+        2016-07-06 09:34:07,721 - DEBUG --- Face: [(17, 43), (43, 44), (44, 42), (42, 45), (45, 39), (39, 25), (25, 15), (15, 17)]
+        2016-07-06 09:34:07,721 - DEBUG --- Face: [(26, 11), (11, 15), (15, 25), (25, 24), (24, 23), (23, 27), (27, 20), (20, 21), (21, 22), (22, 26)]
+        2016-07-06 09:34:07,722 - DEBUG --- Face: [(14, 19), (19, 9), (9, 10), (10, 16), (16, 18), (18, 17), (17, 15), (15, 11), (11, 12), (12, 13), (13, 14)]
+        2016-07-06 09:34:07,722 - DEBUG --- Face: [(31, 30), (30, 29), (29, 26), (26, 22), (22, 35), (35, 36), (36, 55), (55, 53), (53, 54), (54, 19), (19, 14), (14, 31)]
+        2016-07-06 09:34:07,722 - DEBUG --- Face: [(50, 49), (49, 48), (48, 42), (42, 44), (44, 47), (47, 46), (46, 16), (16, 10), (10, 3), (3, 1), (1, 6), (6, 7), (7, 50)]
+
+    Recreated graph:
+        2016-07-06 09:34:08,359 - DEBUG --- Face: [(30, 28), (28, 29), (29, 30)]
+        2016-07-06 09:34:08,359 - DEBUG --- Face: [(44, 43), (43, 47), (47, 44)]
+        2016-07-06 09:34:08,359 - DEBUG --- Face: [(2, 8), (8, 4), (4, 2)]
+        2016-07-06 09:34:08,360 - DEBUG --- Face: [(14, 13), (13, 31), (31, 14)]
+        2016-07-06 09:34:08,360 - DEBUG --- Face: [(18, 16), (16, 46), (46, 18)]
+        2016-07-06 09:34:08,360 - DEBUG --- Face: [(0, 6), (6, 1), (1, 0)]
+        2016-07-06 09:34:08,361 - DEBUG --- Face: [(35, 22), (22, 21), (21, 34), (34, 35)]
+        2016-07-06 09:34:08,361 - DEBUG --- Face: [(52, 51), (51, 48), (48, 49), (49, 52)]
+        2016-07-06 09:34:08,361 - DEBUG --- Face: [(34, 21), (21, 20), (20, 32), (32, 34)]
+        2016-07-06 09:34:08,361 - DEBUG --- Face: [(24, 37), (37, 38), (38, 23), (23, 24)]
+        2016-07-06 09:34:08,361 - DEBUG --- Face: [(27, 33), (33, 32), (32, 20), (20, 27)]
+        2016-07-06 09:34:08,362 - DEBUG --- Face: [(42, 48), (48, 51), (51, 45), (45, 42)]
+        2016-07-06 09:34:08,362 - DEBUG --- Face: [(33, 36), (36, 35), (35, 34), (34, 32), (32, 33)]
+        2016-07-06 09:34:08,362 - DEBUG --- Face: [(43, 17), (17, 18), (18, 46), (46, 47), (47, 43)]
+        2016-07-06 09:34:08,363 - DEBUG --- Face: [(1, 3), (3, 2), (2, 4), (4, 0), (0, 1)]
+        2016-07-06 09:34:08,363 - DEBUG --- Face: [(31, 13), (13, 12), (12, 28), (28, 30), (30, 31)]
+        2016-07-06 09:34:08,363 - DEBUG --- Face: [(52, 40), (40, 39), (39, 45), (45, 51), (51, 52)]
+        2016-07-06 09:34:08,363 - DEBUG --- Face: [(29, 28), (28, 12), (12, 11), (11, 26), (26, 29)]
+        2016-07-06 09:34:08,363 - DEBUG --- Face: [(37, 41), (41, 53), (53, 55), (55, 38), (38, 37)]
+        2016-07-06 09:34:08,363 - DEBUG --- Face: [(40, 41), (41, 37), (37, 24), (24, 25), (25, 39), (39, 40)]
+        2016-07-06 09:34:08,364 - DEBUG --- Face: [(55, 36), (36, 33), (33, 27), (27, 23), (23, 38), (38, 55)]
+        2016-07-06 09:34:08,364 - DEBUG --- Face: [(4, 8), (8, 5), (5, 7), (7, 6), (6, 0), (0, 4)]
+        2016-07-06 09:34:08,364 - DEBUG --- Face: [(5, 9), (9, 19), (19, 54), (54, 50), (50, 7), (7, 5)]
+        2016-07-06 09:34:08,364 - DEBUG --- Face: [(9, 5), (5, 8), (8, 2), (2, 3), (3, 10), (10, 9)]
+        2016-07-06 09:34:08,364 - DEBUG --- Face: [(41, 40), (40, 52), (52, 49), (49, 50), (50, 54), (54, 53), (53, 41)]
+        2016-07-06 09:34:08,364 - DEBUG --- Face: [(17, 43), (43, 44), (44, 42), (42, 45), (45, 39), (39, 25), (25, 15), (15, 17)]
+        2016-07-06 09:34:08,364 - DEBUG --- Face: [(26, 11), (11, 15), (15, 25), (25, 24), (24, 23), (23, 27), (27, 20), (20, 21), (21, 22), (22, 26)]
+        2016-07-06 09:34:08,365 - DEBUG --- Face: [(14, 19), (19, 9), (9, 10), (10, 16), (16, 18), (18, 17), (17, 15), (15, 11), (11, 12), (12, 13), (13, 14)]
+        2016-07-06 09:34:08,365 - DEBUG --- Face: [(31, 30), (30, 29), (29, 26), (26, 22), (22, 35), (35, 36), (36, 55), (55, 53), (53, 54), (54, 19), (19, 14), (14, 31)]
+        2016-07-06 09:34:08,365 - DEBUG --- Face: [(50, 49), (49, 48), (48, 42), (42, 44), (44, 47), (47, 46), (46, 16), (16, 10), (10, 3), (3, 1), (1, 6), (6, 7), (7, 50)]
+
+07/Lug/2016 - Kempe chain color switching
+
+    # PSEUDOCODE:
+    # Handle the different cases
+    #
+    # if previous_edge_color_at_v1 == previous_edge_color_at_v2:
+    #
+    #     # CASE-001: Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
+    #     #
+    #     delete edge at v1 + edge at v2
+    #     insert edge (vertex_to_join_near_v1_on_the_face, v1, previous_edge_color_at_v1)
+    #     insert edge (vertex_to_join_near_v2_on_the_face, v2, previous_edge_color_at_v2)
+    #     kempe_chain_color_swapping(edge (vertex_to_join_near_v1_on_the_face, v1), swap previous_edge_color_at_v1 with edge_color_of_top_edge)
+    #     insert edge (v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+    #     insert edge (v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+    #     insert edge (v1, v2, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
+    #
+    # else:
+    #
+    #     # In this case I have to check if the edges at v1 and v2 are on the same Kempe cycle
+    #     #
+    #     if are_edges_to_join_on_the_same_cycle(previous_edge_color_at_v1, previous_edge_color_at_v2) is True:
+    #
+    #         # CASE-002: Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
+    #         #
+    #         delete edge at v1 + edge at v2
+    #         insert edge (vertex_to_join_near_v1_on_the_face, v1, previous_edge_color_at_v1)
+    #         insert edge (vertex_to_join_near_v2_on_the_face, v2, previous_edge_color_at_v2)
+    #         kempe_chain_color_swapping(edge (vertex_to_join_near_v1_on_the_face, v1), swap previous_edge_color_at_v1 with previous_edge_color_at_v2)
+    #         insert edge (v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+    #         insert edge (v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+    #         insert edge (v1, v2, get_the_other_colors([previous_edge_color_at_v1, previous_edge_color_at_v2])[0])
+    #     else:
+    #
+    #         # CASE-003: Worst case: the two edges at v1 and v2 are on different Kempe cycles
+    #         #
+    #         kempe_chain_color_swapping(edge at v1, swap previous_edge_color_at_v1 with get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
+    #         At this point ... Since previous_edge_color_at_v1 == previous_edge_color_at_v2, apply CASE-001
+    #

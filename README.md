@@ -7,8 +7,8 @@ The Homepage where you can read the whole story is here: https://4coloring.wordp
 An example of graph colored with the Python program:
 
 <p>
-  <a href="https://4coloring.files.wordpress.com/2016/10/test-1996-vertices-2994-edges.png">
-    <img src="https://4coloring.files.wordpress.com/2016/10/test-1996-vertices-2994-edges.png?w=1024">
+  <a href="https://github.com/stefanutti/maps-coloring-python/blob/master/graphs_created_and_colored/Test-1996-Vertices-2994-Edges.png">
+    <img src="https://github.com/stefanutti/maps-coloring-python/blob/master/graphs_created_and_colored/Test-1996-Vertices-2994-Edges.png?w=1024">
   </a>
 </p>
 

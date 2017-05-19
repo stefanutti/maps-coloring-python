@@ -2,6 +2,8 @@ Hi all,
 
 the Homepage where you can read the whole story is here: https://4coloring.wordpress.com
 
+## Example
+
 This is an example of graph colored with the Python program:
 <p>
   <a href="https://github.com/stefanutti/maps-coloring-python/blob/master/graphs_created_and_colored/Test-1996-Vertices-2994-Edges.png">
@@ -24,9 +26,7 @@ Example:
 And some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos
 
-# Installation
 ## Installation
-### Installation
 
 For the installation using Docker, read this page:
 - https://github.com/stefanutti/docker-utils/tree/master/dockerization/4ct

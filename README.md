@@ -24,7 +24,7 @@ Example:
 And some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos
 
-*** Installation ***
+** Installation **
 
 For the installation using Docker, read this page:
 - https://github.com/stefanutti/docker-utils/tree/master/dockerization/4ct

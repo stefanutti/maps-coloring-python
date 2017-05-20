@@ -15,7 +15,7 @@ The graph has 1996 vertices and 2994 edges and, starting from the planar represe
 - https://4coloring.wordpress.com/2016/10/16/four-color-theorem-a-fast-algorithm/
 
 The input .dot file used can be downloaded here: <a href="https://github.com/stefanutti/maps-coloring-python/blob/master/graphs_created_and_colored/Test-1996-Vertices-2994-Edges.dot">Test-1996-Vertices-2994-Edges.dot</a>
-- From a .edgelist graph (<a href="https://networkx.github.io/documentation/networkx-1.9.1/reference/readwrite.edgelist.html">networkx</a>) I generated an embedding of the graph on the plane. I used the Sage function is_planar(set_embedding = True)) 
+- From an .edgelist graph (<a href="https://networkx.github.io/documentation/networkx-1.9.1/reference/readwrite.edgelist.html">networkx</a>) I generated an embedding of the graph on the plane. I used the Sage function is_planar(set_embedding = True)) 
 - Then, from the planar representation of the original graph I use my algorithm
 
 Definition of "planar embedding":

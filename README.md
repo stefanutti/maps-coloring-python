@@ -24,7 +24,7 @@ Definition of "planar embedding":
     - graphs.TetrahedralGraph().faces()
       - [[(0, 1), (1, 2), (2, 0)], [(3, 2), (2, 1), (1, 3)], [(2, 3), (3, 0), (0, 2)], [(0, 3), (3, 1), (1, 0)]]
 
-## Youtube videos
+## YouTube videos
 
 Some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos

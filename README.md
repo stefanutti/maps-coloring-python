@@ -33,26 +33,24 @@ Some videos of the running Python and Java programs:
 
 For the installation (docker version) of the environment to run the python 4ct program, read next.
 
-Note: I used from tensorflow becouse I'm planning to use (now is the 05/2017) it to analyze the graph during the edge reduction phase.
-
-## I started from the ubuntu docker container:
+## Install - ubuntu docker container:
 - docker run -it --name ai-temp ubuntu:16.04 bash
 - docker commit ai-temp stefanutti/ai:1.0 (commit the container to create a personal new image to work with)
 - docker rm ai-temp
 - docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai:1.0 bash
 
-## Install some utilities
+## Install - utilities
 - apt-get update
 - apt-get install vim
 - apt-get install git
 - apt-get upgrade
 
-## Tensorflow
+## Install - Tensorflow
 - apt-get install python-pip python-dev
 - pip install tensorflow
 - pip install --upgrade pip
 
-## DQN installation & run
+## Install - DQN + tests
 - Read the installation info from here: https://github.com/devsisters/DQN-tensorflow
   - mkdir /dqn
   - cd /dqn
@@ -77,7 +75,7 @@ Note: I used from tensorflow becouse I'm planning to use (now is the 05/2017) it
       - pip install atari-py==0.0.21
     - Now the command runs OK
 
-## Sage installation (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)
+## Install - Sage (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)
 - Note: Sage is needed by the python project that needs sage to make the embedding of a graph
 - Read the installation info from here: http://www.sagemath.org/
   - ^D (return to the root user of your machine)
@@ -98,19 +96,17 @@ Note: I used from tensorflow becouse I'm planning to use (now is the 05/2017) it
   - ./sage to test it
 
 ## Username settings
-- adduser stefanutti
+- adduser <your_name>
 
 ## Download personal repos
-- su - stefanutti
+- su - <your_name>
 - mkdir prj
-- cd prj (/home/stefanutti/prj)
-- git clone https://github.com/stefanutti/docker-utils.git
-- cp ./docker-utils/dockerization/4ct/inside-the-container/set_environment.sh ..
+- cd prj (/home/<your_name>/prj)
 - git clone https://github.com/stefanutti/maps-coloring-python.git
 
 ## Run 4ct.py
-- cd (return to home)
-- source set_environment.sh
+- su - <your_name>
+- source ./prj/maps-coloring-python/set_environment.sh
 - cd prj
 - cd maps-coloring-python
 - sage 4ct.py --help

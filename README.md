@@ -35,19 +35,22 @@ For the installation (docker version) of the environment to run the python 4ct p
 
 Note: I used from tensorflow becouse I'm planning to use (now is the 05/2017) it to analyze the graph during the edge reduction phase.
 
-I started from the official tensorflow installation guide for Docker:
-- From: https://www.tensorflow.org/install/install_linux#InstallingDocker
-  - docker run -it --name ai-temp gcr.io/tensorflow/tensorflow:1.1.0 bash
-  - quit the containter
-  - docker commit ai-temp stefanutti/ai:1.0 (commit the container to create a personal new image to work with)
-  - docker rm ai-temp
-  - docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai:1.0 bash
+## I started from the ubuntu docker container:
+- docker run -it --name ai-temp ubuntu:16.04 bash
+- docker commit ai-temp stefanutti/ai:1.0 (commit the container to create a personal new image to work with)
+- docker rm ai-temp
+- docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai:1.0 bash
 
 ## Install some utilities
 - apt-get update
 - apt-get install vim
 - apt-get install git
 - apt-get upgrade
+
+## Tensorflow
+- apt-get install python-pip python-dev
+- pip install tensorflow
+- pip install --upgrade pip
 
 ## DQN installation & run
 - Read the installation info from here: https://github.com/devsisters/DQN-tensorflow
@@ -70,6 +73,8 @@ I started from the official tensorflow installation guide for Docker:
     - Error: pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"
       - Set these params to docker
         - "docker run ... -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd ..."
+    - Error: Visualization problem - https://github.com/devsisters/DQN-tensorflow/issues/35
+      - pip install atari-py==0.0.21
     - Now the command runs OK
 
 ## Sage installation (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)

@@ -31,11 +31,14 @@ Definition of "planar embedding":
 Some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos
 
-# Installation:
+## Installation:
 - For the installation (docker version) of the environment to run the python 4ct program, read next.
 
-## Download it already install and configured - docker container (skip all next steps up to "Run 4ct.py")
+## Pre-configured docker container (skip all next steps up to "Run 4ct.py")
 - https://hub.docker.com/r/stefanutti/ai/
+
+## Prepare a docker machine (if not yet done)
+- https://github.com/stefanutti/docker-utils
 
 ## Install - ubuntu docker container
 - docker run -it --name ai-temp ubuntu:16.04 bash

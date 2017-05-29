@@ -33,7 +33,7 @@ Some videos of the running Python and Java programs:
 
 For the installation (docker version) of the environment to run the python 4ct program, read next.
 
-## Install - ubuntu docker container:
+## Install - ubuntu docker container
 - docker run -it --name ai-temp ubuntu:16.04 bash
 - docker commit ai-temp stefanutti/ai:1.0 (commit the container to create a personal new image to work with)
 - docker rm ai-temp
@@ -50,7 +50,7 @@ For the installation (docker version) of the environment to run the python 4ct p
 - pip install tensorflow
 - pip install --upgrade pip
 
-## Install - DQN + tests
+## Install - DQN
 - Read the installation info from here: https://github.com/devsisters/DQN-tensorflow
   - mkdir /dqn
   - cd /dqn
@@ -98,7 +98,7 @@ For the installation (docker version) of the environment to run the python 4ct p
 ## Username settings
 - adduser <your_name>
 
-## Download personal repos
+## Download personal repo
 - su - <your_name>
 - mkdir prj
 - cd prj (/home/<your_name>/prj)

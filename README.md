@@ -44,7 +44,9 @@ Some videos of the running Python and Java programs:
 - docker run -it --name ai-temp ubuntu:16.04 bash
 - docker commit ai-temp stefanutti/ai:1.0 (commit the container to create a personal new image to work with)
 - docker rm ai-temp
-- docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai:1.0 bash
+- docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/docker_mounts/sage/SageMath:/sage -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai bash
+  - $HOME/docker_mounts/sage/SageMath is a dir in the hosting machine that contains the sage product
+    - This is done to avoid the re-installation of sage everytime I need to rebuild the docker container
 
 ## Install - utilities
 - apt-get update

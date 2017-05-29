@@ -43,6 +43,7 @@ Some videos of the running Python and Java programs:
 ## Install - ubuntu docker container
 - docker run -it --name ai-temp ubuntu:16.04 bash
 - docker commit ai-temp stefanutti/ai:1.0 (commit the container to create a personal new image to work with)
+- docker tag ai-temp stefanutti/ai:latest
 - docker rm ai-temp
 - docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/docker_mounts/sage/SageMath:/sage -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai:latest bash
   - $HOME/docker_mounts/sage/SageMath is a dir in the hosting machine that contains the sage product
@@ -74,14 +75,14 @@ Some videos of the running Python and Java programs:
     - Error: Memory
       - Change memory usage in config.py
     - Error: AttributeError: 'TimeLimit' object has no attribute 'ale'
-      - pip install gym==0.7.0 (Note: downgrade)
+      - pip install gym==0.7.3 (Note: downgrade)
     - Now the command runs OK
   - execution of "python main.py --env_name=Breakout-v0 --is_train=True --display=True"
     - Error: pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"
       - Set these params to docker
         - "docker run ... -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd ..."
     - Error: Visualization problem - https://github.com/devsisters/DQN-tensorflow/issues/35
-      - pip install atari-py==0.0.21
+      - pip install atari-py==0.0.21 (Note: downgrade)
     - Now the command runs OK
 
 ## Install - Sage (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)

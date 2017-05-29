@@ -18,6 +18,8 @@ The input .dot file used can be downloaded here: <a href="https://github.com/ste
 - From an .edgelist graph (<a href="https://networkx.github.io/documentation/networkx-1.9.1/reference/readwrite.edgelist.html">networkx</a>) I generated an embedding of the graph on the plane. I used the Sage function is_planar(set_embedding = True)) 
 - Then, from the planar representation of the original graph I use my algorithm
 
+Note: The .dot file can be used to test other algorithms.
+
 Definition of "planar embedding":
 - A combinatorial embedding of a graph is a clockwise ordering of the neighbors of each vertex. From this information one can define the faces of the embedding, which is what this method returns
   - Planar representation example:
@@ -29,9 +31,11 @@ Definition of "planar embedding":
 Some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos
 
-## Notes about setting a docker machine to play with the 4ct:
+# Installation:
+- For the installation (docker version) of the environment to run the python 4ct program, read next.
 
-For the installation (docker version) of the environment to run the python 4ct program, read next.
+## Download it already install and configured - docker container (skip all next steps up to "Run 4ct.py")
+- https://hub.docker.com/r/stefanutti/ai/
 
 ## Install - ubuntu docker container
 - docker run -it --name ai-temp ubuntu:16.04 bash
@@ -95,10 +99,8 @@ For the installation (docker version) of the environment to run the python 4ct p
   - cd /sage
   - ./sage to test it
 
-## Username settings
-- adduser <your_name>
-
 ## Download personal repo
+- adduser <your_name>
 - su - <your_name>
 - mkdir prj
 - cd prj (/home/<your_name>/prj)

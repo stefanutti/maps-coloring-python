@@ -40,6 +40,13 @@ Some videos of the running Python and Java programs:
 ## Prepare a docker machine (if not yet done)
 - https://github.com/stefanutti/docker-utils
 
+Next steps will build a container made of (+ all dependencies):
+- Ubuntu 16.04 LTS from https://store.docker.com/images/ubuntu
+- https://github.com/tensorflow/tensorflow 1.1.0
+- https://github.com/devsisters/DQN-tensorflow
+- http://www.sagemath.org (not installed because too large: read the instructions on github)
+- git clone https://github.com/stefanutti/maps-coloring-python (read the instructions on github)
+
 ## Install - ubuntu docker container
 - docker run -it --name ai-temp ubuntu:16.04 bash
 - docker commit ai-temp stefanutti/ai:1.0 (commit the container to create a personal new image to work with)

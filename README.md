@@ -96,10 +96,10 @@ Next steps will build a container made of (+ all dependencies):
 - Note: Sage is needed by the python project that needs sage to make the embedding of a graph
 - Read the installation info from here: http://www.sagemath.org/
   - ^D (return to the root user of your machine)
-  - adduser sage
+  - adduser <your_name> (sage cannot be executed as root)
   - mkdir /sage
-  - chown sage:sage /sage
-  - su - sage
+  - chown <your_name>:<your_name> /sage
+  - su - <your_name>
   - cd /sage
   - tar xvf <sage file name>.tar in . (sage needs, at least for now, the libgfortran3 ... so install it first from root)
     - ^D return to root
@@ -110,10 +110,10 @@ Next steps will build a container made of (+ all dependencies):
   - ^D (return to the root user of your machine)
   - ln -s /sage /usr/local/bin/sage
   - cd /sage
-  - ./sage to test it
+  - ./sage to test it (the first execution will configure sage)
 
 ## Download personal repo
-- adduser <your_name>
+- adduser <your_name> (if not done before)
 - su - <your_name>
 - mkdir prj
 - cd prj (/home/<your_name>/prj)

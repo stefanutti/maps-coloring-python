@@ -38,7 +38,7 @@ Some videos of the running Python and Java programs:
 - https://hub.docker.com/r/stefanutti/ai/
 
 ## Prepare a docker machine (if not yet done)
-- https://github.com/stefanutti/docker-utils
+- https://github.com/stefanutti/unix-utils
 
 Next steps will build a container made of (+ all dependencies):
 - Ubuntu 16.04 LTS from https://store.docker.com/images/ubuntu

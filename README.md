@@ -18,6 +18,8 @@ The input .dot file used can be downloaded here: <a href="https://github.com/ste
 - From an .edgelist graph (<a href="https://networkx.github.io/documentation/networkx-1.9.1/reference/readwrite.edgelist.html">networkx</a>) I generated an embedding of the graph on the plane. I used the Sage function is_planar(set_embedding = True)) 
 - Then, from the planar representation of the original graph I use my algorithm
 
+Note: The .dot file can be used to test other algorithms.
+
 Definition of "planar embedding":
 - A combinatorial embedding of a graph is a clockwise ordering of the neighbors of each vertex. From this information one can define the faces of the embedding, which is what this method returns
   - Planar representation example:
@@ -29,30 +31,43 @@ Definition of "planar embedding":
 Some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos
 
-## Notes about setting a docker machine to play with the 4ct:
+## Installation:
+- For the installation (docker version) of the environment to run the python 4ct program, read next.
 
-For the installation (docker version) of the environment to run the python 4ct program, read next.
+## Pre-configured docker container (skip all next steps up to "Run 4ct.py")
+- https://hub.docker.com/r/stefanutti/ai/
 
-Note: I used from tensorflow becouse I'm planning to use (now is the 05/2017) it to analyze the graph during the edge reduction phase.
+## Prepare a docker machine (if not yet done)
+- https://github.com/stefanutti/unix-utils
 
-## I started from the ubuntu docker container:
+Next steps will build a container made of (+ all dependencies):
+- Ubuntu 16.04 LTS from https://store.docker.com/images/ubuntu
+- https://github.com/tensorflow/tensorflow 1.1.0
+- https://github.com/devsisters/DQN-tensorflow
+- http://www.sagemath.org (not installed because too large: read the instructions on github)
+- git clone https://github.com/stefanutti/maps-coloring-python (read the instructions on github)
+
+## Install - ubuntu docker container
 - docker run -it --name ai-temp ubuntu:16.04 bash
 - docker commit ai-temp stefanutti/ai:1.0 (commit the container to create a personal new image to work with)
+- docker tag ai-temp stefanutti/ai:latest
 - docker rm ai-temp
-- docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai:1.0 bash
+- docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/docker_mounts/sage/SageMath:/sage -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai:latest bash
+  - $HOME/docker_mounts/sage/SageMath is a dir in the hosting machine that contains the sage product
+    - This is done to avoid the re-installation of sage everytime I need to rebuild the docker container
 
-## Install some utilities
+## Install - utilities
 - apt-get update
 - apt-get install vim
 - apt-get install git
 - apt-get upgrade
 
-## Tensorflow
+## Install - Tensorflow
 - apt-get install python-pip python-dev
 - pip install tensorflow
 - pip install --upgrade pip
 
-## DQN installation & run
+## Install - DQN
 - Read the installation info from here: https://github.com/devsisters/DQN-tensorflow
   - mkdir /dqn
   - cd /dqn
@@ -67,24 +82,24 @@ Note: I used from tensorflow becouse I'm planning to use (now is the 05/2017) it
     - Error: Memory
       - Change memory usage in config.py
     - Error: AttributeError: 'TimeLimit' object has no attribute 'ale'
-      - pip install gym==0.7.0 (Note: downgrade)
+      - pip install gym==0.7.3 (Note: downgrade)
     - Now the command runs OK
   - execution of "python main.py --env_name=Breakout-v0 --is_train=True --display=True"
     - Error: pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"
       - Set these params to docker
         - "docker run ... -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd ..."
     - Error: Visualization problem - https://github.com/devsisters/DQN-tensorflow/issues/35
-      - pip install atari-py==0.0.21
+      - pip install atari-py==0.0.21 (Note: downgrade)
     - Now the command runs OK
 
-## Sage installation (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)
+## Install - Sage (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)
 - Note: Sage is needed by the python project that needs sage to make the embedding of a graph
 - Read the installation info from here: http://www.sagemath.org/
   - ^D (return to the root user of your machine)
-  - adduser sage
+  - adduser <your_name> (sage cannot be executed as root)
   - mkdir /sage
-  - chown sage:sage /sage
-  - su - sage
+  - chown <your_name>:<your_name> /sage
+  - su - <your_name>
   - cd /sage
   - tar xvf <sage file name>.tar in . (sage needs, at least for now, the libgfortran3 ... so install it first from root)
     - ^D return to root
@@ -95,22 +110,18 @@ Note: I used from tensorflow becouse I'm planning to use (now is the 05/2017) it
   - ^D (return to the root user of your machine)
   - ln -s /sage /usr/local/bin/sage
   - cd /sage
-  - ./sage to test it
+  - ./sage to test it (the first execution will configure sage)
 
-## Username settings
-- adduser stefanutti
-
-## Download personal repos
-- su - stefanutti
+## Download personal repo
+- adduser <your_name> (if not done before)
+- su - <your_name>
 - mkdir prj
-- cd prj (/home/stefanutti/prj)
-- git clone https://github.com/stefanutti/docker-utils.git
-- cp ./docker-utils/dockerization/4ct/inside-the-container/set_environment.sh ..
+- cd prj (/home/<your_name>/prj)
 - git clone https://github.com/stefanutti/maps-coloring-python.git
 
 ## Run 4ct.py
-- cd (return to home)
-- source set_environment.sh
+- su - <your_name>
+- source ./prj/maps-coloring-python/set_environment.sh
 - cd prj
 - cd maps-coloring-python
 - sage 4ct.py --help

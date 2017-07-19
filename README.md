@@ -11,7 +11,7 @@ This is an example of graph colored with the Python program:
   </a>
 </p>
 
-The graph has 1996 vertices and 2994 edges and, starting from the planar representation of it, it took about 20 seconds to be colored:
+The graph has 1996 vertices and 2994 edges and, starting from the planar representation of it, it took about 10 seconds to be colored:
 - https://4coloring.wordpress.com/2016/10/16/four-color-theorem-a-fast-algorithm/
 
 The input .dot file used can be downloaded here: <a href="https://github.com/stefanutti/maps-coloring-python/blob/master/graphs_created_and_colored/Test-1996-Vertices-2994-Edges.dot">Test-1996-Vertices-2994-Edges.dot</a>

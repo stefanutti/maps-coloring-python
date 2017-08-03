@@ -64,8 +64,9 @@ Next steps will build a container made of (+ all dependencies):
 
 ## Install - Tensorflow
 - apt-get install python-pip python-dev
-- pip install tensorflow
+- apt-get install libcupti-dev (for GPU: https://www.tensorflow.org/install/install_linux)
 - pip install --upgrade pip
+- pip install tensorflow or pip install tensorflow-gpu (for GPU)
 
 ## Install - DQN
 - Read the installation info from here: https://github.com/devsisters/DQN-tensorflow
@@ -75,6 +76,7 @@ Next steps will build a container made of (+ all dependencies):
   - pip install tqdm gym[all] --> ERROR
     - https://github.com/openai/gym/issues/218
       - apt-get install xvfb libav-tools xorg-dev libsdl2-dev swig cmake
+      - re-run: pip install tqdm gym[all]
   - execution of "python main.py --env_name=Breakout-v0 --is_train=True --display=False"
     - Error: GPU
       - Disable GPU in main.py

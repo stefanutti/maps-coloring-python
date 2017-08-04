@@ -2,7 +2,7 @@ Hi all,
 
 the Homepage where you can read the whole story is here: https://4coloring.wordpress.com
 
-## Example
+## Example of what the program does
 
 This is an example of graph colored with the Python program:
 <p>
@@ -40,10 +40,9 @@ Some videos of the running Python and Java programs:
 ## Prepare a docker machine (if not yet done)
 - https://github.com/stefanutti/unix-utils
 
-Next steps will build a container made of (+ all dependencies):
+## Next steps will build a container made of (+ all dependencies):
 - Ubuntu 16.04 LTS from https://store.docker.com/images/ubuntu
 - https://github.com/tensorflow/tensorflow 1.1.0
-- https://github.com/devsisters/DQN-tensorflow
 - http://www.sagemath.org (not installed because too large: read the instructions on github)
 - git clone https://github.com/stefanutti/maps-coloring-python (read the instructions on github)
 
@@ -52,7 +51,7 @@ Next steps will build a container made of (+ all dependencies):
 - docker commit ai-temp stefanutti/ai:1.0 (commit the container to create a personal new image to work with)
 - docker tag ai-temp stefanutti/ai:latest
 - docker rm ai-temp
-- docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/docker_mounts/sage/SageMath:/sage -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai:latest bash
+- docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -v /docker-mounts:/docker-mounts -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai:latest bash
   - $HOME/docker_mounts/sage/SageMath is a dir in the hosting machine that contains the sage product
     - This is done to avoid the re-installation of sage everytime I need to rebuild the docker container
 

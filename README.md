@@ -62,37 +62,8 @@ Next steps will build a container made of (+ all dependencies):
 - apt-get install git
 - apt-get upgrade
 
-## Install - Tensorflow
+## Install - Python
 - apt-get install python-pip python-dev
-- apt-get install libcupti-dev (for GPU: https://www.tensorflow.org/install/install_linux)
-- pip install --upgrade pip
-- pip install tensorflow or pip install tensorflow-gpu (for GPU)
-
-## Install - DQN
-- Read the installation info from here: https://github.com/devsisters/DQN-tensorflow
-  - mkdir /dqn
-  - cd /dqn
-  - git clone https://github.com/devsisters/DQN-tensorflow.git
-  - pip install tqdm gym[all] --> ERROR
-    - https://github.com/openai/gym/issues/218
-      - apt-get install xvfb libav-tools xorg-dev libsdl2-dev swig cmake
-      - re-run: pip install tqdm gym[all]
-  - execution of "python main.py --env_name=Breakout-v0 --is_train=True --display=False"
-    - Error: GPU
-      - Disable GPU in main.py
-        - flags.DEFINE_boolean('use_gpu', False, 'Whether to use gpu or not')
-    - Error: Memory
-      - Change memory usage in config.py
-    - Error: AttributeError: 'TimeLimit' object has no attribute 'ale'
-      - pip install gym==0.7.3 (Note: downgrade)
-    - Now the command runs OK
-  - execution of "python main.py --env_name=Breakout-v0 --is_train=True --display=True"
-    - Error: pyglet.canvas.xlib.NoSuchDisplayException: Cannot connect to "None"
-      - Set these params to docker
-        - "docker run ... -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd ..."
-    - Error: Visualization problem - https://github.com/devsisters/DQN-tensorflow/issues/35
-      - pip install atari-py==0.0.21 (Note: downgrade)
-    - Now the command runs OK
 
 ## Install - Sage (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)
 - Note: Sage is needed by the python project that needs sage to make the embedding of a graph

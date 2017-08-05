@@ -35,7 +35,7 @@ Some videos of the running Python and Java programs:
 - For the installation (docker version) of the environment to run the python 4ct program, read next.
 
 ## Pre-configured docker container (skip all next steps up to "Run 4ct.py")
-- https://hub.docker.com/r/stefanutti/ai/
+- https://hub.docker.com/r/stefanutti/4ct
 
 ## Prepare a docker machine (if not yet done)
 - https://github.com/stefanutti/unix-utils
@@ -47,11 +47,11 @@ Some videos of the running Python and Java programs:
 - git clone https://github.com/stefanutti/maps-coloring-python (read the instructions on github)
 
 ## Install - ubuntu docker container
-- docker run -it --name ai-temp ubuntu:16.04 bash
-- docker commit ai-temp stefanutti/ai:1.0 (commit the container to create a personal new image to work with)
-- docker tag ai-temp stefanutti/ai:latest
-- docker rm ai-temp
-- docker run -it -p 8888:8888 -p 6006:6006 --name ai -e PASSWORD=ai -v /tmp/.X11-unix:/tmp/.X11-unix -v /docker-mounts:/docker-mounts -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/ai:latest bash
+- docker run -it --name 4ct-temp ubuntu:16.04 bash
+- docker commit 4ct-temp stefanutti/4ct:1.0 (commit the container to create a personal new image to work with)
+- docker tag 4ct-temp stefanutti/4ct:latest
+- docker rm 4ct-temp
+- docker run -it -p 8888:8888 -p 6006:6006 --name 4ct -e PASSWORD=4ct -v /tmp/.X11-unix:/tmp/.X11-unix -v /docker-mounts:/docker-mounts -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/4ct:latest bash
   - $HOME/docker_mounts/sage/SageMath is a dir in the hosting machine that contains the sage product
     - This is done to avoid the re-installation of sage everytime I need to rebuild the docker container
 

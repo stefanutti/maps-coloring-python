@@ -4,7 +4,7 @@ the Homepage where you can read the whole story is here: https://4coloring.wordp
 
 ## Example of what the program does
 
-This is an example of graph colored with the Python program:
+This is an example of a graph colored with the Python program:
 <p>
   <a href="https://github.com/stefanutti/maps-coloring-python/blob/master/graphs_created_and_colored/Test-1996-Vertices-2994-Edges.png">
     <img src="https://github.com/stefanutti/maps-coloring-python/blob/master/graphs_created_and_colored/Test-1996-Vertices-2994-Edges-small.png">
@@ -12,13 +12,14 @@ This is an example of graph colored with the Python program:
 </p>
 
 The graph has 1996 vertices and 2994 edges and, starting from the planar representation of it, it took about 10 seconds to be colored:
-- https://4coloring.wordpress.com/2016/10/16/four-color-theorem-a-fast-algorithm/
+- https://4coloring.wordpress.com/2016/10/16/four-color-theorem-a-fast-algorithm-2/
 
 The input .dot file used can be downloaded here: <a href="https://github.com/stefanutti/maps-coloring-python/blob/master/graphs_created_and_colored/Test-1996-Vertices-2994-Edges.dot">Test-1996-Vertices-2994-Edges.dot</a>
 - From an .edgelist graph (<a href="https://networkx.github.io/documentation/networkx-1.9.1/reference/readwrite.edgelist.html">networkx</a>) I generated an embedding of the graph on the plane. I used the Sage function is_planar(set_embedding = True)) 
 - Then, from the planar representation of the original graph I use my algorithm
 
-Note: The .dot file can be used to test other algorithms.
+Note:
+- The .dot file can be used to test other algorithms. If you know faster algorithms to color it please let me know.
 
 Definition of "planar embedding":
 - A combinatorial embedding of a graph is a clockwise ordering of the neighbors of each vertex. From this information one can define the faces of the embedding, which is what this method returns
@@ -31,22 +32,23 @@ Definition of "planar embedding":
 Some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos
 
-## Installation:
-- For the installation (docker version) of the environment to run the python 4ct program, read next.
+## Installation
+
+You can decide to use a pre-configured Docke container or create a Docker container an then install the software in it or just install the software needed to execute the program.
 
 ## Pre-configured docker container (skip all next steps up to "Run 4ct.py")
 - https://hub.docker.com/r/stefanutti/4ct
 
-## Prepare a docker machine (if not yet done)
+## Prepare a docker machine
 - https://github.com/stefanutti/unix-utils
 
-## Next steps will build a container made of (+ all dependencies):
+### Next steps will build a container made of (+ all dependencies):
 - Ubuntu 16.04 LTS from https://store.docker.com/images/ubuntu
 - https://github.com/tensorflow/tensorflow 1.1.0
 - http://www.sagemath.org (not installed because too large: read the instructions on github)
 - git clone https://github.com/stefanutti/maps-coloring-python (read the instructions on github)
 
-## Install - ubuntu docker container
+### Install - ubuntu docker container
 - docker run -it --name 4ct-temp ubuntu:16.04 bash
 - docker commit 4ct-temp stefanutti/4ct:1.0 (commit the container to create a personal new image to work with)
 - docker tag 4ct-temp stefanutti/4ct:latest
@@ -55,16 +57,16 @@ Some videos of the running Python and Java programs:
   - /docker-mounts/SageMath is a dir in the hosting machine that contains the sage product
     - This is done to avoid the re-installation of sage everytime I need to rebuild the docker container
 
-## Install - utilities
+### Install - utilities
 - apt-get update
 - apt-get install vim
 - apt-get install git
 - apt-get upgrade
 
-## Install - Python
+### Install - Python
 - apt-get install python-pip python-dev
 
-## Install - Sage (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)
+### Install - Sage (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)
 - Note:
   - Sage is needed by the python project that needs sage to make the embedding of a graph. This dependency will be removed in the future
 - Read the installation info from here: http://www.sagemath.org/
@@ -78,7 +80,7 @@ Some videos of the running Python and Java programs:
       - apt-get upgrade
       - apt-get install libgfortran3
     
-## Download personal repo
+### Download personal repo
 - cd
 - mkdir prj
 - cd prj
@@ -86,7 +88,7 @@ Some videos of the running Python and Java programs:
 - git clone https://github.com/stefanutti/unix-utils.git
 
 ## Run 4ct.py
-- su - <your_name>
+- cd
 - source ./prj/maps-coloring-python/set_environment.sh
 - cd prj
 - cd maps-coloring-python

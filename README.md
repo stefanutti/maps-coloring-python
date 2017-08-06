@@ -52,7 +52,7 @@ Some videos of the running Python and Java programs:
 - docker tag 4ct-temp stefanutti/4ct:latest
 - docker rm 4ct-temp
 - docker run -it -p 8888:8888 -p 6006:6006 --name 4ct -e PASSWORD=4ct -v /tmp/.X11-unix:/tmp/.X11-unix -v /docker-mounts:/docker-mounts -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/4ct:latest bash
-  - $HOME/docker_mounts/sage/SageMath is a dir in the hosting machine that contains the sage product
+  - /docker-mounts/SageMath is a dir in the hosting machine that contains the sage product
     - This is done to avoid the re-installation of sage everytime I need to rebuild the docker container
 
 ## Install - utilities
@@ -65,31 +65,25 @@ Some videos of the running Python and Java programs:
 - apt-get install python-pip python-dev
 
 ## Install - Sage (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)
-- Note: Sage is needed by the python project that needs sage to make the embedding of a graph
+- Note:
+  - Sage is needed by the python project that needs sage to make the embedding of a graph. This dependency will be removed in the future
 - Read the installation info from here: http://www.sagemath.org/
-  - ^D (return to the root user of your machine)
-  - adduser <your_name> (sage cannot be executed as root)
-  - mkdir /sage
-  - chown <your_name>:<your_name> /sage
-  - su - <your_name>
-  - cd /sage
-  - tar xvf <sage file name>.tar in . (sage needs, at least for now, the libgfortran3 ... so install it first from root)
-    - ^D return to root
-    - apt-get update
-    - apt-get install build-essential
-    - apt-get upgrade
-    - apt-get install libgfortran3
-  - ^D (return to the root user of your machine)
-  - ln -s /sage /usr/local/bin/sage
-  - cd /sage
+  - tar xvf <sage file name>.tar in /docker-mounts
+- Into the Docker container
+  - ln -s /docker-mounts/SageMath/sage /usr/local/bin/sage
   - ./sage to test it (the first execution will configure sage)
-
+    - If ERROR: ImportError: libgfortran.so.3: cannot open shared object file: No such file or directory
+      - apt-get update
+      - apt-get install build-essential
+      - apt-get upgrade
+      - apt-get install libgfortran3
+    
 ## Download personal repo
-- adduser <your_name> (if not done before)
-- su - <your_name>
+- cd
 - mkdir prj
-- cd prj (/home/<your_name>/prj)
+- cd prj
 - git clone https://github.com/stefanutti/maps-coloring-python.git
+- git clone https://github.com/stefanutti/unix-utils.git
 
 ## Run 4ct.py
 - su - <your_name>

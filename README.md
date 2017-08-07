@@ -44,7 +44,7 @@ You can decide to use a pre-configured Docke container or create a Docker contai
 
 ### Next steps will build a container made of (+ all dependencies):
 - Ubuntu 16.04 LTS from https://store.docker.com/images/ubuntu
-- https://github.com/tensorflow/tensorflow 1.1.0
+- https://github.com/tensorflow/tensorflow 1.1.0 (needed to use ai against the 4cp)
 - http://www.sagemath.org (not installed because too large: read the instructions on github)
 - git clone https://github.com/stefanutti/maps-coloring-python (read the instructions on github)
 
@@ -68,7 +68,7 @@ You can decide to use a pre-configured Docke container or create a Docker contai
 
 ### Install - Sage (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)
 - Note:
-  - Sage is needed by the python project that needs sage to make the embedding of a graph. This dependency will be removed in the future
+  - The python project needs sage to make the embedding of a graph. This dependency will be removed in the future
 - Read the installation info from here: http://www.sagemath.org/
   - tar xvf <sage file name>.tar in /docker-mounts
 - Into the Docker container

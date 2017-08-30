@@ -34,7 +34,7 @@ Some videos of the running Python and Java programs:
 
 ## Installation
 
-You can decide to use a pre-configured Docke container or create a Docker container an then install the software in it or just install the software needed to execute the program.
+You can decide to use a pre-configured Docker container or create a Docker container and then install the software in it or just install the software needed to execute the program.
 
 ## Pre-configured docker container (skip all next steps up to "Run 4ct.py")
 - https://hub.docker.com/r/stefanutti/4ct
@@ -101,10 +101,10 @@ You can decide to use a pre-configured Docke container or create a Docker contai
 
 ## To be finished:
 - Now I have:
-  - Generate a large planar triangulation (fast)
-  - Generate the dual of the planar triangulation, which is planar too (fast)
+  - Generated a large planar triangulation using sage RandomTriangulation (fast)
+  - Generated the dual of the planar triangulation, which is planar too (fast)
   - Now, to get the list of faces() sage needs to elaborate le planarity of the graph (very slow)
-- Other approaches?
+- I need other approaches, possibly not using sage
   - Implementation of the Bowyer-Watson algorithm to compute the Delaunay triangulation and the Voronoi diagram of a set o 2D points
     - https://github.com/jmespadero/pyDelaunay2D (to substitute the safe function)
   - By hand

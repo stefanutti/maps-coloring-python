@@ -16,10 +16,10 @@ The graph has 1996 vertices and 2994 edges and, starting from the planar represe
 
 The input .dot file used can be downloaded here: <a href="https://github.com/stefanutti/maps-coloring-python/blob/master/graphs_created_and_colored/Test-1996-Vertices-2994-Edges.dot">Test-1996-Vertices-2994-Edges.dot</a>
 - From an .edgelist graph (<a href="https://networkx.github.io/documentation/networkx-1.9.1/reference/readwrite.edgelist.html">networkx</a>) I generated an embedding of the graph on the plane. I used the Sage function is_planar(set_embedding = True)) 
-- Then, from the planar representation of the original graph I use my algorithm
+- Then, from the planar representation of the original graph I used my algorithm
 
 Note:
-- The .dot file can be used to test other algorithms. If you know faster algorithms to color it please let me know.
+- The .dot file can be used to test other algorithms. If you know faster algorithms to color it please let me know
 
 Definition of "planar embedding":
 - A combinatorial embedding of a graph is a clockwise ordering of the neighbors of each vertex. From this information one can define the faces of the embedding, which is what this method returns
@@ -98,5 +98,18 @@ You can decide to use a pre-configured Docke container or create a Docker contai
   - -i <file .edgelist> (Load a .edgelist file - networkx)
   - -p <file .serialized> (Load a .serialized planar embedding of the graph)
   - -o <file name without extension> (Save a .edgelist file (networkx), plus a .dot file (networkx)
+
+## To be finished:
+- Now I have:
+  - Generate a large planar triangulation (fast)
+  - Generate the dual of the planar triangulation, which is planar too (fast)
+  - Now, to get the list of faces() sage needs to elaborate le planarity of the graph (very slow)
+- Other approaches?
+  - Implementation of the Bowyer-Watson algorithm to compute the Delaunay triangulation and the Voronoi diagram of a set o 2D points
+    - https://github.com/jmespadero/pyDelaunay2D (to substitute the safe function)
+  - By hand
+    - Generate a large planar triangulation with libs that are not sage (fast)
+    - Generate the dual of the planar triangulation, which is planar too (fast)
+    - Manually compute the faces() representation of the graph
 
 Bye

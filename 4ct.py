@@ -37,9 +37,11 @@
 #
 #
 # TODOs:
+# - Moved to: https://github.com/stefanutti/maps-coloring-python/issues
+#
+# BACKLOG to evaluate:
 # - TODO: Realize a version in which faces are made of lists of ordered vertices [1, 4, 7, 8] not edges [(1,4),(4,7),(7,8),(8,1)]. Would it be faster?
 # - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster!
-# - TODO: Read and write multiple types of file formats: dot, edgelist, etc.
 #
 # Done:
 # - Logging system

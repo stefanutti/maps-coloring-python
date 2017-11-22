@@ -55,6 +55,9 @@
 #
 ###
 
+__author__ = "Mario Stefanutti <mario.stefanutti@gmail.com>"
+__credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_like_to_help@nowhere.com"
+
 #######
 #######
 #######
@@ -97,14 +100,15 @@ import argparse
 import copy
 import sys
 import collections
-import pickle
 import timeit
-from datetime import datetime
 import logging.handlers
 import random
+import time
+from datetime import datetime
+
+import json
 
 import networkx
-import time
 
 from sage.all import *
 from sage.graphs.graph_coloring import edge_coloring
@@ -511,7 +515,7 @@ def apply_half_kempe_loop_color_switching(graph, ariadne_step, color_at_v1, colo
 #############
 # Print stats
 #############
-def print_stats():
+def print_stats(stats):
     logger.info("------------------")
     logger.info("BEGIN: Print stats")
     logger.info("------------------")
@@ -924,14 +928,14 @@ logger.addHandler(logging_stream_handler)
 ###############
 # Read options:
 ###############
-# (-r <vertices> or -i <file> or -p <planar embedding>) -o <file>
+# (-r <vertices> or -i <file> or -p <planar embedding (json file)>) -o <file>
 #
 parser = argparse.ArgumentParser(description = '4ct args')
 
 group_input = parser.add_mutually_exclusive_group(required = False)
 group_input.add_argument("-r", "--random", help = "Random graph: dual of a triangulation of N vertices", type = int, default = 100)
 group_input.add_argument("-i", "--input", help = "Load a .edgelist file (networkx)")
-group_input.add_argument("-p", "--planar", help = "Load a .serialized planar embedding of the graph G.faces() - Automatically saved at each run")
+group_input.add_argument("-p", "--planar", help = "Load a .json planar embedding of the graph G.faces() - Automatically saved at each run")
 parser.add_argument("-o", "--output", help = "Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required = False)
 
 args = parser.parse_args()
@@ -1013,7 +1017,15 @@ if args.input is not None:
 #
 if args.planar is not None:
     logger.info("BEGIN: Load the planar embedding of a graph (output of the gfaces() function): %s", args.planar)
-    with open(args.planar, 'r') as fp: g_faces = pickle.load(fp)
+    # with open(args.planar, 'r') as fp: g_faces = pickle.load(fp)
+    with open(args.planar, 'r') as fp: g_faces = json.load(fp)
+
+    # Cast back to tuples. json.dump write the "list of list of tuples" as "list of list of list"
+    #
+    # Original: [[(3,2),(3,5)],[(2,4),(1,3),(1,3)], ... ,[(1,2),(3,4),(6,7)]]
+    # Saved as: [[[3,2],[3,5]],[[2,4],[1,3],[1,3]], ... ,[[1,2],[3,4],[6,7]]]
+    #
+    g_faces = [[tuple(l) for l in L] for L in g_faces]
 
     # Create the graph from the list of faces
     #
@@ -1084,8 +1096,9 @@ if args.planar is None:
 
     # Save the face representation for later executions (if needed)
     #
-    with open("debug.input_planar_g_faces.serialized", 'wb') as fp: pickle.dump(g_faces, fp)
-    with open("debug.input_planar_g_faces.embedding_list", 'wb') as fp: fp.writelines(str(line) + '\n' for line in g_faces)
+    # OLD: with open("debug.input_planar_g_faces.serialized", 'wb') as fp: pickle.dump(g_faces, fp)
+    # OLD: with open("debug.input_planar_g_faces.embedding_list", 'wb') as fp: fp.writelines(str(line) + '\n' for line in g_faces)
+    with open("debug.input_planar_g_faces.json", 'wb') as fp: json.dump(g_faces, fp)
 
 # Override creation (mainly to debug previously elaborated maps)
 #
@@ -1199,7 +1212,6 @@ while is_the_end_of_the_reduction_process is False:
     f2 = []
     edge_to_remove = ()
     rotated_edge_to_remove = ()
-    len_of_the_face_to_reduce = 0
     f1_plus_f2_temp = []  # It is used to speed up computation. At the beginning is used to see it the graph is_the_graph_one_edge_connected() and then reused
 
     # Select a face < F6
@@ -2055,6 +2067,6 @@ if args.output is not None:
 
 # Print statistics
 #
-print_stats()
+print_stats(stats)
 
 exit(0)

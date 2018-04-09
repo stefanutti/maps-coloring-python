@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: ascii -*-
 """
 Simple structured Delaunay triangulation in 2D with Bowyer-Watson algorithm.
@@ -11,6 +12,34 @@ Robust checks disabled by default. May not work in degenerate set of points.
 
 import numpy as np
 from math import sqrt
+import networkx as nx
+
+#################################################################################################
+# Return the dual of a graph. Used to create random graphs
+# Taken on the internet: to make a dual of a triangulation (http://trac.sagemath.org/ticket/6236)
+#################################################################################################
+def graph_dual(faces_by_vertices):
+    print("faces_by_vertices: ", faces_by_vertices)
+    f = [tuple(face) for face in faces_by_vertices]
+    f_edges = [tuple(zip(i, i[1:] + (i[0],))) for i in f]
+    print ("f_edges: ", f_edges)
+    xxx = [f_edges, lambda f1, f2: set(f1).intersection([(e[1], e[0]) for e in f2])]
+
+
+    print ("xxx: ", xxx)
+
+    g = lambda x, y: x ** 2 + y
+    print ("xxx: ", g(8, 3))
+
+    nums = range(2, 50)
+    for i in range(2, 8):
+        nums = filter(lambda x: x == i or x % i, nums)
+        print ("nums: ", nums(8))
+
+    # dual = nx.Graph()
+
+    return xxx
+
 
 
 class Delaunay2D:
@@ -164,70 +193,21 @@ class Delaunay2D:
         """Export the current list of Delaunay triangles
         """
         # Filter out triangles with any vertex in the extended BBox
-        return [(a-4, b-4, c-4)
-                for (a, b, c) in self.triangles if a > 3 and b > 3 and c > 3]
+        # return [[(a-4, b-4), (b-4, c-4), (c-4, a-4)] for (a, b, c) in self.triangles if a > 3 and b > 3 and c > 3]
+        aaa = [[a-4, b-4, c-4] for (a, b, c) in self.triangles if a > 3 and b > 3 and c > 3]
+        return aaa
 
-    def exportCircles(self):
-        """Export the circumcircles as a list of (center, radius)
-        """
-        # Remember to compute circumcircles if not done before
-        # for t in self.triangles:
-        #     self.circles[t] = self.circumcenter(t)
 
-        # Filter out triangles with any vertex in the extended BBox
-        # Do sqrt of radius before of return
-        return [(self.circles[(a, b, c)][0], sqrt(self.circles[(a, b, c)][1]))
-                for (a, b, c) in self.triangles if a > 3 and b > 3 and c > 3]
 
-    def exportDT(self):
-        """Export the current set of Delaunay coordinates and triangles.
-        """
-        # Filter out coordinates in the extended BBox
-        coord = self.coords[4:]
+# Create a random set of 2D points
+seeds = np.random.random((10, 2))
 
-        # Filter out triangles with any vertex in the extended BBox
-        tris = [(a-4, b-4, c-4)
-                for (a, b, c) in self.triangles if a > 3 and b > 3 and c > 3]
-        return coord, tris
+# Create delaunay Triangulation
+dt = Delaunay2D()
+for s in seeds:
+    dt.addPoint(s)
 
-    def exportExtendedDT(self):
-        """Export the Extended Delaunay Triangulation (with the frame vertex).
-        """
-        return self.coords, list(self.triangles)
+# Dump triangles
+bbb = dt.exportTriangles()
 
-    def exportVoronoiRegions(self):
-        """Export coordinates and regions of Voronoi diagram as indexed data.
-        """
-        # Remember to compute circumcircles if not done before
-        # for t in self.triangles:
-        #     self.circles[t] = self.circumcenter(t)
-        useVertex = {i: [] for i in range(len(self.coords))}
-        vor_coors = []
-        index = {}
-        # Build a list of coordinates and a index per triangle/region
-        for tidx, (a, b, c) in enumerate(self.triangles):
-            vor_coors.append(self.circles[(a, b, c)][0])
-            # Insert triangle, rotating it so the key is the "last" vertex
-            useVertex[a] += [(b, c, a)]
-            useVertex[b] += [(c, a, b)]
-            useVertex[c] += [(a, b, c)]
-            # Set tidx as the index to use with this triangles
-            index[(a, b, c)] = tidx
-            index[(c, a, b)] = tidx
-            index[(b, c, a)] = tidx
-
-        # init regions per coordinate dictionary
-        regions = {}
-        # Sort each region in a coherent order, and substitude each triangle
-        # by its index
-        for i in range(4, len(self.coords)):
-            v = useVertex[i][0][0]  # Get a vertex of a triangle
-            r = []
-            for _ in range(len(useVertex[i])):
-                # Search the triangle beginning with vertex v
-                t = [t for t in useVertex[i] if t[0] == v][0]
-                r.append(index[t])  # Add the index of this triangle to region
-                v = t[1]            # Choose the next vertex to search
-            regions[i-4] = r        # Store region.
-
-        return vor_coors, regions
+ccc = graph_dual(bbb)

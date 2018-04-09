@@ -3,10 +3,10 @@
 ###
 ###
 # 4CT: This program uses these approaches together
-#      - It consider Tait edge coloring and the equivalency of the 3-edge-coloring (known as Tait coloring) and 4-face-coloring (the original four color theorem for maps)
+#      - It consider Tait edge coloring and the equivalency of the 3-edge-coloring (known as Tait coloring) with the 4-face-coloring (the original four color theorem for maps)
 #      - Uses a modified Kempe reduction method: it does not shrink a face (faces <= F5) down to a point, but removes a single edge from it (from faces <= F5)
 #      - Uses a modified Kempe chain edge color switching: when restoring edges from the reduced graph, it will swap Half of the cycle of a color chain
-#        - !!! While rebuilding a map, all chains are actually loops!!!
+#        - !!! This can be done because while rebuilding a map all chains are actually loops!!!
 #
 ###
 #
@@ -33,15 +33,16 @@
 # - 06/Oct/2016 - The new algorithm to threat F5 cases in in place. It works verifying if the color at v1 and the color at c2 are on the same Kempe loop and, if not, trying a random switch
 # - 06/Oct/2016 - Something new (bad and good at the same time) happened
 #   - Bad: Using this method You can encounter maps for which the method loops indefinitely
-#   - Good: Now that I know, at least I won't spend more time on this aspect. The other good thing is the this case is very rare, the the program can color almost all maps
+#   - Good: Now that I know, at least I won't spend more time on this aspect. The other good thing is that this case is very rare, and the program can color almost all maps
 #
 #
 # TODOs:
 # - Moved to: https://github.com/stefanutti/maps-coloring-python/issues
 #
 # BACKLOG to evaluate:
-# - TODO: Realize a version in which faces are made of lists of ordered vertices [1, 4, 7, 8] not edges [(1,4),(4,7),(7,8),(8,1)]. Would it be faster?
+# - TODO: Realize a version in which faces are made of lists of ordered vertices [1, 4, 7, 8] not edges [(1,4),(4,7),(7,8),(8,1)]. Would'nt it be faster?
 # - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster!
+# - TODO: Get rid of sage
 #
 # Done:
 # - Logging system
@@ -113,8 +114,8 @@ import networkx
 from sage.all import *
 from sage.graphs.graph_coloring import edge_coloring
 
-# This solves this issue: http://ask.sagemath.org/question/33727/logging-failing-after-a-while/
-# Only when running the code in the cloud: https://cloud.sagemath.com/
+# Next instructions MAX_OUTPUT_MESSAGES) solves this issue: http://ask.sagemath.org/question/33727/logging-failing-after-a-while/
+# Only when running the code in the cloud: https://cloud.sagemath.com
 # sage_server.MAX_OUTPUT_MESSAGES = 100000 # Needed for the cloud version of Sage
 
 #######
@@ -195,6 +196,7 @@ def graph_dual(g):
 # Check if I can work with this graph: has to be planar and 3 regular (planar cubic graph)
 ##########################################################################################
 def check_graph_at_beginning(graph):
+
     # Check 3-regularity
     #
     if graph.is_regular(3) is False:
@@ -585,6 +587,7 @@ def rotate(l, n):
 # Remove a vertex from a face
 #############################
 def remove_vertex_from_face(face, vertex):
+
     # Search the edge that contains the vertex as the second element of the tuple
     # new vA = first element of the edge found
     # Search the edge that contains the vertex as the first element of the tuple
@@ -601,11 +604,11 @@ def remove_vertex_from_face(face, vertex):
     return face
 
 
-##########################
+###########################################################################################################################################################
 # Get the color of an edge
 # In case of multiedge it will return one of the two edges
 # This is not a problem because when I'll rebuild the graph the deletes will be done namely using the three attributes (v1, v2, label) (label is the color)
-##########################
+###########################################################################################################################################################
 def get_edge_color(graph, edge):
     v1 = edge[0]
     v2 = edge[1]
@@ -891,7 +894,7 @@ def export_graph(graph_to_export, name_of_file_without_extension):
 # 4CT : Constants and variables initialization
 ##############################################
 
-# General plot options
+# General plot options (used by the Cloud version of sage)
 #
 plot_options = {'vertex_size': 150,
                 'vertex_labels': True,
@@ -1249,7 +1252,7 @@ while is_the_end_of_the_reduction_process is False:
         # The edge to remove can be found in the list of faces as (v1, v2) or (v2, v1)
         # TODO: Instead of getting the edges in sequence, I should use a random selector (without repetitions)
         #
-        i_edge = randint(0, len(f1) - 1)  # When stuck it you re-execute the program it should work
+        i_edge = randint(0, len(f1) - 1)  # When stuck it you re-execute the program (with this random) it should work
         edge_to_remove = f1[i_edge]
         rotated_edge_to_remove = rotate(edge_to_remove, 1)
 

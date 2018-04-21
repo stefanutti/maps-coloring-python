@@ -75,7 +75,7 @@ def split_face(selected_face, index_of_the_first_selected_edge, index_of_the_sec
     #
     new_first_face = selected_face[:index_of_the_first_selected_edge] + [(selected_face[index_of_the_first_selected_edge][0], i_vertex)] + [(i_vertex, i_vertex + 1)] + [(i_vertex + 1, selected_face[index_of_the_second_selected_edge][1])] + selected_face[index_of_the_second_selected_edge + 1:]
 
-    # For the second face you need to check for limit case 
+    # For the second face you need to check for limit case
     #
     if (index_of_the_first_selected_edge != index_of_the_second_selected_edge):
         new_second_face = [(i_vertex, selected_face[index_of_the_first_selected_edge][1])] + selected_face[index_of_the_first_selected_edge + 1:index_of_the_second_selected_edge] + [(selected_face[index_of_the_second_selected_edge][0], i_vertex + 1)] + [(i_vertex + 1, i_vertex)]
@@ -114,7 +114,18 @@ def add_vertex_to_face(face_to_update, edge_to_search, vertex_to_insert):
     return new_face_to_return
 
 
-
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
 ######
 ######
 ######
@@ -122,11 +133,24 @@ def add_vertex_to_face(face_to_update, edge_to_search, vertex_to_insert):
 ######
 ######
 ######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+
 
 # Set logging facilities: LEVEL XXX
 #
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 logging_stream_handler = logging.StreamHandler(sys.stdout)
 logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))
 logger.addHandler(logging_stream_handler)
@@ -136,12 +160,9 @@ logger.addHandler(logging_stream_handler)
 ###############
 # -f <faces> -o <file>
 #
-parser = argparse.ArgumentParser(description = '4ct args')
-
-group_input = parser.add_mutually_exclusive_group(required = False)
-group_input.add_argument("-f", "--faces", help = "Stop at f faces", type = int, default = 1000)
-parser.add_argument("-o", "--output", help = "Save a json", required = False)
-
+parser = argparse.ArgumentParser(description='4ct args')
+parser.add_argument("-f", "--faces", help="Stop at f faces", type=int, default=10)
+parser.add_argument("-o", "--output", help="Save a json", required=False)
 args = parser.parse_args()
 
 # This is the base map - See drawing: 07/Apr/2018, pag 0/n
@@ -193,8 +214,7 @@ while i_vertex < number_of_faces_to_generate:
     first_selected_edge = selected_face[index_of_the_first_selected_edge]
     index_of_the_second_selected_edge = random.randint(index_of_the_first_selected_edge, len(selected_face) - 1)
     second_selected_edge = selected_face[index_of_the_second_selected_edge]
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected edges: %s at index = %s, %s at index = %s",
-                                                        first_selected_edge, index_of_the_first_selected_edge, second_selected_edge, index_of_the_second_selected_edge)
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected edges: %s at index = %s, %s at index = %s", first_selected_edge, index_of_the_first_selected_edge, second_selected_edge, index_of_the_second_selected_edge)
 
     # Add the new edge from the first_selected_edge to the second_selected_edge (may be the same edge)
     #
@@ -202,7 +222,7 @@ while i_vertex < number_of_faces_to_generate:
     if logger.isEnabledFor(logging.DEBUG): logger.debug("the_two_new_faces = %s", the_two_new_faces)
 
     ####
-    #### STEP: Start adjusting the two faces (may be also just one) touched by the new edge that has been created
+    # STEP: Start adjusting the two faces (may be also just one) touched by the new edge that has been created
     ####
     #
     # Depending on the situation, one or two faces may be found (touched)
@@ -223,10 +243,10 @@ while i_vertex < number_of_faces_to_generate:
 
     # Depending on the situation, some checks need to be done
     #
-    if (len (faces_that_have_been_found) == 1):
+    if (len(faces_that_have_been_found) == 1):
         face_to_adjust = faces_that_have_been_found[0]
         adjusted_face = add_vertex_to_face(faces_that_have_been_found[0], edge_to_find, i_vertex)
-    elif (len (faces_that_have_been_found) == 2):
+    elif (len(faces_that_have_been_found) == 2):
         if (len(faces_that_have_been_found[0]) == 2):
             face_to_adjust = faces_that_have_been_found[0]
             adjusted_face = add_vertex_to_face(faces_that_have_been_found[0], edge_to_find, i_vertex)
@@ -235,11 +255,11 @@ while i_vertex < number_of_faces_to_generate:
             adjusted_face = add_vertex_to_face(faces_that_have_been_found[1], edge_to_find, i_vertex)
     else:
         logger.error("Unexpected condition. Mario you'd better go back to paper (1)")
-        exit (-1)
+        exit(-1)
 
     # Adjust the list of faces
     #
-    if (g_faces.index(face_to_adjust) == len(g_faces)):
+    if (g_faces.index(face_to_adjust) == (len(g_faces) - 1)):
         g_faces.remove(face_to_adjust)
         g_faces.append(adjusted_face)
     else:
@@ -247,7 +267,7 @@ while i_vertex < number_of_faces_to_generate:
         g_faces.insert(-1, adjusted_face)
 
     ####
-    #### STEP: Adjust the second face. See drawing: 07/Apr/2018, pag 1/n
+    # STEP: Adjust the second face. See drawing: 07/Apr/2018, pag 1/n
     ####
     #
     # Edge to find: in case of the new edge starts and ends at the same edge ... and since I've already updated the face, I'll adjust the search accordingly
@@ -268,14 +288,16 @@ while i_vertex < number_of_faces_to_generate:
     if ((len(selected_face) == 2) and (index_of_the_first_selected_edge != index_of_the_second_selected_edge)):
         faces_that_have_been_found.remove(selected_face)
 
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("edge_to_find = %s, faces_that_have_been_found = %s", edge_to_find, faces_that_have_been_found)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("edge_to_find = %s, faces_that_have_been_found = %s", edge_to_find, faces_that_have_been_found)
 
     # Depending on the situation, some checks need to be done: same as above, but with vertex number = (i_vertex + 1)
     #
-    if (len (faces_that_have_been_found) == 1):
+    if (len(faces_that_have_been_found) == 1):
         face_to_adjust = faces_that_have_been_found[0]
-        adjusted_face = add_vertex_to_face(faces_that_have_been_found[0], edge_to_find, i_vertex + 1)
-    elif (len (faces_that_have_been_found) == 2):
+        adjusted_face = add_vertex_to_face(
+            faces_that_have_been_found[0], edge_to_find, i_vertex + 1)
+    elif (len(faces_that_have_been_found) == 2):
         if (len(faces_that_have_been_found[0]) == 2):
             face_to_adjust = faces_that_have_been_found[0]
             adjusted_face = add_vertex_to_face(faces_that_have_been_found[0], edge_to_find, i_vertex + 1)
@@ -284,11 +306,11 @@ while i_vertex < number_of_faces_to_generate:
             adjusted_face = add_vertex_to_face(faces_that_have_been_found[1], edge_to_find, i_vertex + 1)
     else:
         logger.error("Unexpected condition. Mario you'd better go back to paper (2)")
-        exit (-1)
+        exit(-1)
 
     # Adjust the list of faces
     #
-    if (g_faces.index(face_to_adjust) == len(g_faces)):
+    if (g_faces.index(face_to_adjust) == (len(g_faces) - 1)):
         g_faces.remove(face_to_adjust)
         g_faces.append(adjusted_face)
     else:
@@ -296,7 +318,7 @@ while i_vertex < number_of_faces_to_generate:
         g_faces.insert(-1, adjusted_face)
 
     # Adjust the list of all faces
-    # insert is used to leave the ocean as the last face
+    # Insert is used to leave the ocean as the last face
     #
     if logger.isEnabledFor(logging.DEBUG): logger.debug("remove the selected face = %s", selected_face)
     if logger.isEnabledFor(logging.DEBUG): logger.debug("new fases = %s, %s", the_two_new_faces[0], the_two_new_faces[1])
@@ -312,4 +334,5 @@ while i_vertex < number_of_faces_to_generate:
 
 # Save the graph
 #
-with open(args.output, 'w', encoding="utf8") as fp: json.dump(g_faces, fp)
+with open(args.output, 'w', encoding="utf8") as fp:
+    json.dump(g_faces, fp)

@@ -111,13 +111,6 @@ import json
 
 import networkx
 
-from sage.all import *
-from sage.graphs.graph_coloring import edge_coloring
-
-# Next instructions MAX_OUTPUT_MESSAGES) solves this issue: http://ask.sagemath.org/question/33727/logging-failing-after-a-while/
-# Only when running the code in the cloud: https://cloud.sagemath.com
-# sage_server.MAX_OUTPUT_MESSAGES = 100000 # Needed for the cloud version of Sage
-
 #######
 #######
 #######
@@ -214,7 +207,6 @@ def check_graph_at_beginning(graph):
         logger.info("OK. The graph does not have loops. Consider that this program will avoid their creation during the reduction process")
 
     # Check multiple edges
-    # It maybe important becouse many sofrware do not work with planarity algorithms when multiple edhes are present 
     #
     if graph.has_multiple_edges() is True:
         logger.error("ERROR: The graph has multiple edges. At the beginning multiple edges are not permitted")
@@ -937,8 +929,6 @@ logger.addHandler(logging_stream_handler)
 parser = argparse.ArgumentParser(description = '4ct args')
 
 group_input = parser.add_mutually_exclusive_group(required = False)
-group_input.add_argument("-r", "--random", help = "Random graph: dual of a triangulation of N vertices", type = int, default = 100)
-group_input.add_argument("-i", "--input", help = "Load a .edgelist file (networkx)")
 group_input.add_argument("-p", "--planar", help = "Load a .json planar embedding of the graph G.faces() - Automatically saved at each run")
 parser.add_argument("-o", "--output", help = "Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required = False)
 
@@ -953,65 +943,6 @@ logger.info("--------------------------------")
 logger.info("BEGIN: Create the graph to color")
 logger.info("--------------------------------")
 stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
-
-# 1) Handmade
-#
-# the_graph = Graph(sparse = True)
-# the_graph.allow_loops(False)
-# the_graph.allow_multiple_edges(True)
-# the_graph.add_edge(1,2)
-# the_graph.add_edge(2,3)
-# the_graph.add_edge(3,4)
-# the_graph.add_edge(4,5)
-# the_graph.add_edge(5,1)
-# the_graph.add_edge(1,6)
-# the_graph.add_edge(2,10)
-# the_graph.add_edge(3,12)
-# the_graph.add_edge(4,11)
-# the_graph.add_edge(5,7)
-# the_graph.add_edge(6,7)
-# the_graph.add_edge(6,8)
-# the_graph.add_edge(8,10)
-# the_graph.add_edge(10,12)
-# the_graph.add_edge(12,11)
-# the_graph.add_edge(7,9)
-# the_graph.add_edge(8,9)
-# the_graph.add_edge(9,11)
-# the_graph.relabel()
-
-# Random - Dual of a triangulation
-#
-if args.random is not None:
-    logger.info("BEGIN: Create a random planar graph from the dual of a RandomTriangulation (Sage function) of %s vertices. It may take very long time depending on the number of vertices", args.random)
-    number_of_vertices_for_the_random_triangulation = args.random
-    tmp_g = graphs.RandomTriangulation(number_of_vertices_for_the_random_triangulation)  # Random triangulation on the surface of a sphere
-    void = tmp_g.is_planar(set_embedding = True, set_pos = True)  # Cannot calculate the dual if the graph has not been embedded
-    the_graph = graph_dual(tmp_g)  # The dual of a triangulation is a 3-regular planar graph
-    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
-    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
-    the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
-
-    # I need this (export + import) to be able to reproduce this test exactly in the same condition in a future run
-    # I cannot use the output file because it has different ordering of edges and vertices, and the execution would run differently (I experimented it on my skin)
-    # The export function saves the graph using a different order for the edges (even if the graph are exactly the same graph)
-    #
-    the_graph.export_to_file("debug.temp.edgelist", format = "edgelist")
-    the_graph = Graph(networkx.read_edgelist("debug.temp.edgelist"))
-    the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
-    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
-    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
-
-    logger.info("END: Create a random planar graph of %s vertices, from the dual of a RandomTriangulation of %s vertices", the_graph.order(), number_of_vertices_for_the_random_triangulation)
-
-# Input - Load a graph stored in edgelist mode
-#
-if args.input is not None:
-    logger.info("BEGIN: Load the graph from the external file: %s", args.input)
-    the_graph = Graph(networkx.read_edgelist(args.input))
-    the_graph.relabel()  # I need to relabel it
-    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
-    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
-    logger.info("END: Load the graph from the external file: %s", args.input)
 
 # Planar - Load a planar embedding of the graph
 #
@@ -1087,57 +1018,6 @@ if args.planar is None:
 # List it is sorted: means faces with len less than 6 are placed at the beginning
 #
 
-# Save the face() representation only if it was non loaded with the -p (planar) parameter
-#
-if args.planar is None:
-    temp_g_faces = the_graph.faces()
-    temp_g_faces.sort(key = len)
-    g_faces = [face for face in temp_g_faces]
-
-    # Save the face representation for later executions (if needed)
-    #
-    # OLD: with open("debug.input_planar_g_faces.serialized", 'wb') as fp: pickle.dump(g_faces, fp)
-    # OLD: with open("debug.input_planar_g_faces.embedding_list", 'wb') as fp: fp.writelines(str(line) + '\n' for line in g_faces)
-    with open("debug.input_planar_g_faces.json", 'wb') as fp: json.dump(g_faces, fp)
-
-# Override creation (mainly to debug previously elaborated maps)
-#
-# g_faces = [[(27, 26), (26, 36), (36, 27)], [(11, 19), (19, 12), (12, 11)], [(38, 44), (44, 41), (41, 38)], [(3, 2), (2, 15), (15, 3)],
-#            [(48, 49), (49, 46), (46, 48)], [(32, 54), (54, 55), (55, 33), (33, 32)], [(39, 46), (46, 49), (49, 42), (42, 39)],
-#            [(33, 55), (55, 52), (52, 34), (34, 33)], [(40, 41), (41, 44), (44, 43), (43, 40)], [(26, 25), (25, 35), (35, 36), (36, 26)],
-#            [(7, 8), (8, 54), (54, 32), (32, 7)], [(2, 1), (1, 14), (14, 15), (15, 2)], [(16, 17), (17, 9), (9, 10), (10, 16)],
-#            [(5, 24), (24, 20), (20, 6), (6, 5)], [(13, 14), (14, 1), (1, 0), (0, 13)], [(34, 52), (52, 53), (53, 50), (50, 31), (31, 34)],
-#            [(10, 12), (12, 19), (19, 18), (18, 16), (16, 10)], [(31, 50), (50, 51), (51, 47), (47, 45), (45, 30), (30, 31)],
-#            [(28, 37), (37, 22), (22, 21), (21, 35), (35, 25), (25, 28)], [(21, 20), (20, 24), (24, 27), (27, 36), (36, 35), (35, 21)],
-#            [(38, 29), (29, 30), (30, 45), (45, 43), (43, 44), (44, 38)],
-#            [(23, 51), (51, 50), (50, 53), (53, 17), (17, 16), (16, 18), (18, 23)],
-#            [(39, 40), (40, 43), (43, 45), (45, 47), (47, 48), (48, 46), (46, 39)],
-#            [(9, 13), (13, 0), (0, 4), (4, 11), (11, 12), (12, 10), (10, 9)],
-#            [(28, 29), (29, 38), (38, 41), (41, 40), (40, 39), (39, 42), (42, 37), (37, 28)], [(42, 49), (49, 48), (48, 47), (47, 51), (51, 23), (23, 22), (22, 37), (37, 42)],
-#            [(8, 7), (7, 5), (5, 6), (6, 4), (4, 0), (0, 1), (1, 2), (2, 3), (3, 8)], [(18, 19), (19, 11), (11, 4), (4, 6), (6, 20), (20, 21), (21, 22), (22, 23), (23, 18)],
-#            [(55, 54), (54, 8), (8, 3), (3, 15), (15, 14), (14, 13), (13, 9), (9, 17), (17, 53), (53, 52), (52, 55)],
-#            [(31, 30), (30, 29), (29, 28), (28, 25), (25, 26), (26, 27), (27, 24), (24, 5), (5, 7), (7, 32), (32, 33), (33, 34), (34, 31)]]
-
-# g_faces = [[(28, 26), (26, 32), (32, 28)], [(47, 46), (46, 49), (49, 47)],
-#            [(10, 3), (3, 2), (2, 10)], [(51, 55), (55, 53), (53, 51)],
-#            [(55, 54), (54, 52), (52, 53), (53, 55)], [(0, 7), (7, 9), (9, 1), (1, 0)],
-#            [(34, 35), (35, 40), (40, 39), (39, 34)], [(38, 36), (36, 49), (49, 46), (46, 38)],
-#            [(2, 1), (1, 9), (9, 10), (10, 2)], [(29, 27), (27, 34), (34, 39), (39, 29)],
-#            [(52, 54), (54, 44), (44, 42), (42, 52)], [(17, 18), (18, 20), (20, 21), (21, 17)],
-#            [(32, 26), (26, 30), (30, 23), (23, 24), (24, 32)], [(8, 7), (7, 0), (0, 4), (4, 6), (6, 8)],
-#            [(30, 31), (31, 21), (21, 20), (20, 23), (23, 30)], [(6, 4), (4, 5), (5, 11), (11, 12), (12, 6)],
-#            [(21, 31), (31, 16), (16, 15), (15, 17), (17, 21)], [(48, 37), (37, 33), (33, 43), (43, 50), (50, 48)],
-#            [(54, 55), (55, 51), (51, 50), (50, 43), (43, 44), (44, 54)], [(36, 37), (37, 48), (48, 45), (45, 47), (47, 49), (49, 36)],
-#            [(5, 4), (4, 0), (0, 1), (1, 2), (2, 3), (3, 5)], [(13, 8), (8, 6), (6, 12), (12, 15), (15, 16), (16, 13)],
-#            [(18, 19), (19, 22), (22, 25), (25, 24), (24, 23), (23, 20), (20, 18)],
-#            [(46, 47), (47, 45), (45, 41), (41, 40), (40, 35), (35, 38), (38, 46)],
-#            [(11, 14), (14, 19), (19, 18), (18, 17), (17, 15), (15, 12), (12, 11)],
-#            [(53, 52), (52, 42), (42, 41), (41, 45), (45, 48), (48, 50), (50, 51), (51, 53)],
-#            [(8, 13), (13, 14), (14, 11), (11, 5), (5, 3), (3, 10), (10, 9), (9, 7), (7, 8)],
-#            [(40, 41), (41, 42), (42, 44), (44, 43), (43, 33), (33, 25), (25, 22), (22, 29), (29, 39), (39, 40)],
-#            [(30, 26), (26, 28), (28, 27), (27, 29), (29, 22), (22, 19), (19, 14), (14, 13), (13, 16), (16, 31), (31, 30)],
-#            [(35, 34), (34, 27), (27, 28), (28, 32), (32, 24), (24, 25), (25, 33), (33, 37), (37, 36), (36, 38), (38, 35)]]
-
 # Log faces
 #
 log_faces(g_faces)
@@ -1195,16 +1075,6 @@ stats['time_ELABORATION'] = datetime.now()
 # It will contain items made of lists of values to find the way back to the original graph (Ariadne's String Myth)
 #
 ariadne_string = []
-
-# If The graph is already reduced
-# 
-if len(g_faces) == 4:
-
-    # Graph already reduced
-    #
-    is_the_end_of_the_reduction_process = True
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph is already reduced")
-    log_faces(g_faces)
 
 # Start the reduction process
 #
@@ -1550,15 +1420,13 @@ the_colored_graph.add_edge(v2, v3, "blue")
 the_colored_graph.add_edge(v3, v4, "red")
 the_colored_graph.add_edge(v4, v2, "green")
 
-# Check if I need to start the rebuilding process
+# Start the rebuilding process
 #
 if ariadne_step == []:
     is_the_end_of_the_rebuild_process = True
 else:
     is_the_end_of_the_rebuild_process = False
 
-# Start the rebuilding process
-#
 while is_the_end_of_the_rebuild_process is False:
 
     # Get the string to walk back home

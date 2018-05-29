@@ -216,11 +216,11 @@ def check_graph_at_beginning(graph):
     # Check multiple edges
     # It maybe important becouse many sofrware do not work with planarity algorithms when multiple edhes are present 
     #
-    if graph.has_multiple_edges() is True:
-        logger.error("ERROR: The graph has multiple edges. At the beginning multiple edges are not permitted")
-        exit(-1)
-    else:
-        logger.info("OK. The graph does not have multiple edges. Consider that this program will also handle multiple edges during the reduction and reconstruction process")
+    # if graph.has_multiple_edges() is True:
+    #     logger.error("ERROR: The graph has multiple edges. At the beginning multiple edges are not permitted")
+    #     exit(-1)
+    # else:
+    #     logger.info("OK. The graph does not have multiple edges. Consider that this program will also handle multiple edges during the reduction and reconstruction process")
 
     # Check if the graph is planar
     #
@@ -333,7 +333,7 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
             else:
                 graph.set_edge_label(previous_edge[0], previous_edge[1], current_color)
 
-                # Just to be sure. Is it a multiedge? I need to verify it. It should't be
+            # Just to be sure. Is it a multiedge? I need to verify it. It should't be
             #
             if is_multiedge(graph, current_edge[0], current_edge[1]):
                 the_colored_graph.delete_edge(current_edge[0], current_edge[1], current_color)
@@ -924,7 +924,7 @@ VALID_COLORS = ['red', 'green', 'blue']
 # Set logging facilities: LEVEL XXX
 #
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 logging_stream_handler = logging.StreamHandler(sys.stdout)
 logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))
 logger.addHandler(logging_stream_handler)
@@ -1214,6 +1214,7 @@ i_global_counter = 0
 while is_the_end_of_the_reduction_process is False:
 
     logger.info("BEGIN %s: Main loop", i_global_counter)
+    log_faces(g_faces)
 
     # Deep debug: Log all faces
     #
@@ -1221,7 +1222,6 @@ while is_the_end_of_the_reduction_process is False:
 
     # f1, f2, edge_to_remove, rotated_edge_to_remove, len_of_the_face_to_reduce will be valid during the rest of this "while" loop after the first block ("Select an edge") has been executed
     #
-    selected_face = []
     f1 = []
     f2 = []
     edge_to_remove = ()
@@ -1235,20 +1235,30 @@ while is_the_end_of_the_reduction_process is False:
     # - I tried to process F5 first but the problem is that you can risk to end up with particular cases like an F2 at the end
     #   f1 = next((face for face in g_faces if len(face) == 5), next((face for face in g_faces if len(face) == 2), g_faces[0]))
     #
+    # TODO:
+    # - I don't have to select an edge to remove belonging to the ocean
+    #
     if f2_exist is True:
         if len(g_faces[0]) != 2:
-            f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+            f1 = next((f for f in g_faces if len(f) == 2 if f != g_faces[-1]), next((f for f in g_faces if len(f) == 3 if f != g_faces[-1]), next((f for f in g_faces if len(f) == 4 if f != g_faces[-1]), next((f for f in g_faces if len(f) == 5 if f != g_faces[-1]), g_faces[0]))))
         else:
             f1 = g_faces[0]
     else:
         if len(g_faces[0]) != 3:
-            f1 = next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0])))
+            f1 = next((f for f in g_faces if len(f) == 3 if f != g_faces[-1]), next((f for f in g_faces if len(f) == 4 if f != g_faces[-1]), next((f for f in g_faces if len(f) == 5 if f != g_faces[-1]), g_faces[0])))
         else:
             f1 = g_faces[0]
 
     len_of_the_face_to_reduce = len(f1)
 
     logger.info("BEGIN %s: Search the right edge to remove (case: %s)", i_global_counter, len_of_the_face_to_reduce)
+
+    # Assert
+    #
+    if f1 == g_faces[-1]:
+        logger.error("Unexpected condition (ocean selected). Mario you'd better go back to paper")
+        exit(-1)
+
 
     # Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected
     #
@@ -1271,35 +1281,42 @@ while is_the_end_of_the_reduction_process is False:
         if logger.isEnabledFor(logging.DEBUG): logger.debug("edge_to_remove: %s", edge_to_remove)
         if logger.isEnabledFor(logging.DEBUG): logger.debug("rotated_edge_to_remove: %s", rotated_edge_to_remove)
 
-        # If F2, the rotated edge appears twice in the list of faces
+        # The edge does not have to be facing the ocean
         #
-        if len_of_the_face_to_reduce == 2:
-
-            # For F2 faces, edges will appear twice in all the edges lists of all faces
-            #
-            temp_f2 = [face for face in g_faces if rotated_edge_to_remove in face]
-            temp_f2.remove(f1)
-            f2 = temp_f2[0]
-            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
-        else:
-            f2 = next(face for face in g_faces if rotated_edge_to_remove in face)
-            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
-
-        # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries, but separates a portion of the same land
+        # TODO: I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
         #
-        if is_the_graph_one_edge_connected(f1_plus_f2_temp) is True:
+        # if ((len(g_faces[-1]) > 3) or ((check_if_vertex_is_in_face(g_faces[-1], edge_to_remove[0]) or check_if_vertex_is_in_face(g_faces[-1], edge_to_remove[1])) is True)):
+        if (edge_to_remove[0] not in [1, 2, 3, 4]) and (edge_to_remove[1] not in [1, 2, 3, 4]):
 
-            # Skip the next edge, this is not good
+            # If F2, the rotated edge appears twice in the list of faces
             #
-            i_edge += 1
-        else:
-            is_the_edge_to_remove_found = True
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("Edge to remove found :-) %s", edge_to_remove)
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("f1: %s", f1)
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("f2: %s", f2)
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
+            if len_of_the_face_to_reduce == 2:
 
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("END %s: test the %s edge", i_global_counter, i_edge)
+                # For F2 faces, edges will appear twice in all the edges lists of all faces
+                #
+                temp_f2 = [face for face in g_faces if rotated_edge_to_remove in face]
+                temp_f2.remove(f1)
+                f2 = temp_f2[0]
+                f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
+            else:
+                f2 = next(face for face in g_faces if rotated_edge_to_remove in face)
+                f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
+
+            # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries, but separates a portion of the same land
+            #
+            if is_the_graph_one_edge_connected(f1_plus_f2_temp) is True:
+
+                # Skip the next edge, this is not good
+                #
+                i_edge += 1
+            else:
+                is_the_edge_to_remove_found = True
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("Edge to remove found :-) %s", edge_to_remove)
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("f1: %s", f1)
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("f2: %s", f2)
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
+
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("END %s: test the %s edge", i_global_counter, i_edge)
 
     # Check if math is right :-)
     #
@@ -1334,7 +1351,7 @@ while is_the_end_of_the_reduction_process is False:
         #
         g_faces.remove(f1)
         g_faces.remove(f2)
-        g_faces.append(f1_plus_f2_temp)
+        g_faces.insert(-1, f1_plus_f2_temp)
 
         # I already prepared f1 and f2, but when these two faces are joined also the other face that has the two vertices has to be updated
         # A vertex is shared by three faces (two of these are f1 and f2). For this F2 case, the two vertices belong to only a third face
@@ -1388,7 +1405,7 @@ while is_the_end_of_the_reduction_process is False:
         #
         g_faces.remove(f1)
         g_faces.remove(f2)
-        g_faces.append(f1_plus_f2_temp)
+        g_faces.insert(-1, f1_plus_f2_temp)
 
         # I already prepared f1 and f2, but when these two faces are joined also the other faces that has the two vertices have to be updated
         # A vertex is shared by three faces (two of these are f1 and f2)
@@ -2054,11 +2071,11 @@ logger.info("------------------------------------------")
 
 # Now I can restore the multiedge flag
 #
-if the_colored_graph.has_multiple_edges():
-    logger.error("Unexpected condition (recreated graph has multiple edges at the end). Mario you'd better go back to paper")
-    exit(-1)
+# if the_colored_graph.has_multiple_edges():
+#     logger.error("Unexpected condition (recreated graph has multiple edges at the end). Mario you'd better go back to paper")
+#     exit(-1)
 
-the_colored_graph.allow_multiple_edges(False)  # At this point there are no multiple edge
+# the_colored_graph.allow_multiple_edges(False)  # At this point there are no multiple edge
 
 # Check if the recreated graph is isomorphic to the original
 #

@@ -1,7 +1,28 @@
 ###
-###
 #
-# 4CT: Generate random graphs
+# 4CT: Generate random planar graphs without using graphs library and most important without using complex algotithms, as the planarity embedding function and testing funzion
+#
+# I directly use the planar greph representation of a graph, as described here:
+#
+# http://doc.sagemath.org/html/en/reference/graphs/sage/graphs/generic_graph.html#sage.graphs.generic_graph.GenericGraph.faces
+# graphs.TetrahedralGraph().faces()
+# [[(0, 1), (1, 2), (2, 0)],
+#  [(3, 2), (2, 1), (1, 3)],
+#  [(3, 0), (0, 2), (2, 3)],
+#  [(3, 1), (1, 0), (0, 3)]]
+#
+# A combinatorial embedding of a graph is a clockwise ordering of the neighbors of each vertex.
+#
+# This is the base map
+# https://4coloring.wordpress.com/2018/04/23/large-planar-map-creation-using-python/
+#
+# g_faces = [[(1, 2), (2, 3), (3, 1)], [(1, 3), (3, 4), (4, 1)], [(1, 4), (4, 2), (2, 1)], [(2, 4), (4, 3), (3, 2)]]
+# 
+# Vertex "1" is the center of the tetrahedron
+# Vertices "2", "3". "4" are the vertices around the center (clockwise)
+# Faces are represented "clockwise"
+# Last face is alway the ocean
+# The ocean is represented "counter-clockwise"
 #
 ###
 #
@@ -30,11 +51,9 @@ __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_
 
 import argparse
 import sys
-import collections
-import logging.handlers
+import logging
 import random
 import json
-from time import sleep
 
 ######
 ######
@@ -55,8 +74,10 @@ def rotate(l, n):
 # Log faces
 ###########
 def log_faces(faces):
+    logger.debug("=======")
     for face in faces:
-        logger.info("Face: %s", face)
+        logger.debug("Face: %s", face)
+    logger.debug("=======")
 
     return
 
@@ -114,6 +135,17 @@ def add_vertex_to_face(face_to_update, edge_to_search, vertex_to_insert):
     return new_face_to_return
 
 
+########################
+# Statistics
+########################
+def map_statistics(g_faces):
+
+    # Return the new faces
+    #
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("Statistics up to F6, of the created map with %s faces:", len(g_faces))
+    for i in range(2, 7):
+        if logger.isEnabledFor(logging.INFO): logger.info("- F%s: %s", i, sum(len(face) == i for face in g_faces))
+
 ######
 ######
 ######
@@ -150,7 +182,7 @@ def add_vertex_to_face(face_to_update, edge_to_search, vertex_to_insert):
 # Set logging facilities: LEVEL XXX
 #
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logging_stream_handler = logging.StreamHandler(sys.stdout)
 logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))
 logger.addHandler(logging_stream_handler)
@@ -161,7 +193,7 @@ logger.addHandler(logging_stream_handler)
 # -f <faces> -o <file>
 #
 parser = argparse.ArgumentParser(description='4ct args')
-parser.add_argument("-f", "--faces", help="Stop at f faces", type=int, default=10)
+parser.add_argument("-v", "--vertices", help="Stop at v vertices", type=int, default=10, required=True)
 parser.add_argument("-o", "--output", help="Save a json", required=False)
 args = parser.parse_args()
 
@@ -191,13 +223,13 @@ g_faces = [[(1, 2), (2, 3), (3, 1)], [(1, 3), (3, 4), (4, 1)], [(1, 4), (4, 2), 
 
 # Aliases for args
 #
-number_of_faces_to_generate = args.faces
+number_of_vertices_to_generate = args.vertices
 
-# Main loop: up to the number of requested faces to be created (1 new face every 1 new edge)
+# Main loop: up to the number of requested vertices to be created (1 new face every 1 new edge = 2 new vertices)
 #
 i_vertex = 5
-while i_vertex < number_of_faces_to_generate:
-    if logger.isEnabledFor(logging.DEBUG): log_faces(g_faces)
+if logger.isEnabledFor(logging.DEBUG): log_faces(g_faces)
+while i_vertex <= number_of_vertices_to_generate:
 
     # Choose a random edge of a random face
     # -2 will exclude also the ocean face (the last face)
@@ -328,11 +360,18 @@ while i_vertex < number_of_faces_to_generate:
 
     # Let's move to the next face
     #
-    logger.info("Loop: %s", i_vertex)
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("Loop: %s", i_vertex)
     i_vertex += 2
     if logger.isEnabledFor(logging.DEBUG): log_faces(g_faces)
 
 # Save the graph
 #
-with open(args.output, 'w', encoding="utf8") as fp:
-    json.dump(g_faces, fp)
+if args.output is not None:
+    with open(args.output, "w") as fp:
+        json.dump(g_faces, fp)
+else:
+    print(g_faces)
+
+# Print statistics
+#
+map_statistics(g_faces)

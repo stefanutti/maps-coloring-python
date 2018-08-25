@@ -1,8 +1,8 @@
 ###
 #
-# 4CT: Generate random planar graphs without using graphs library and most important without using complex algotithms, as the planarity embedding function and testing funzion
+# 4CT: Generate random planar graphs without using graphs library and most important without using complex algotithms, as the planarity embedding or testing functions
 #
-# I directly use the planar greph representation of a graph, as described here:
+# I directly use the planar graph representation of a map, as described here:
 #
 # http://doc.sagemath.org/html/en/reference/graphs/sage/graphs/generic_graph.html#sage.graphs.generic_graph.GenericGraph.faces
 # graphs.TetrahedralGraph().faces()
@@ -142,7 +142,7 @@ def map_statistics(g_faces):
 
     # Return the new faces
     #
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("Statistics up to F6, of the created map with %s faces:", len(g_faces))
+    if logger.isEnabledFor(logging.INFO): logger.info("Statistics up to F6, of the created map with %s faces:", len(g_faces))
     for i in range(2, 7):
         if logger.isEnabledFor(logging.INFO): logger.info("- F%s: %s", i, sum(len(face) == i for face in g_faces))
 
@@ -360,9 +360,14 @@ while i_vertex <= number_of_vertices_to_generate:
 
     # Let's move to the next face
     #
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("Loop: %s", i_vertex)
     i_vertex += 2
+
+    # Logging time
+    #
     if logger.isEnabledFor(logging.DEBUG): log_faces(g_faces)
+    if ((i_vertex -1) % 1000) == 0:
+        if logger.isEnabledFor(logging.INFO): logger.info("Loop: %s", i_vertex)
+
 
 # Save the graph
 #

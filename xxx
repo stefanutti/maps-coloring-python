@@ -1,0 +1,66 @@
+http://doc.sagemath.org/html/en/reference/graphs/sage/graphs/generic_graph.html
+https://networkx.github.io/documentation/latest/reference/classes/multigraph.html
+
+the_colored_graph = Graph(sparse = True)
+    NEW: the_colored_graph = nx.MultiGraph()
+the_colored_graph.allow_loops(False)
+    NEW: It is not possible. I have to pay attention not to create them. It was used in sage only to be sure not to create them
+
+the_colored_graph.add_edge(v1, v2, "red")
+    NEW: the_colored_graph.add_edge(v1, v2, key="red")
+
+# Da sistemare: fanno la stessa cosa
+#
+the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
+the_colored_graph.delete_edge((vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1))
+    NEW: the_colored_graph.remove_edge(v1, v2, key=color)
+
+the_colored_graph.set_edge_label(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
+    NEW: def change_color(g, u, v, old_color, new_color):
+             g.remove_edge(u, v, key=old_color)
+             g.add_edge(u, v, key=new_color)
+
+the_colored_graph.edge_iterator(labels = True) # Usato solo nel logging
+
+# Da sistemare: Togliere [] nella chiamata: "[vertex_to_join_near_v2_on_the_face]" --> "vertex_to_join_near_v2_on_the_face"
+# TBV: Verify if labels = False is needed
+#
+the_colored_graph.edges_incident([vertex_to_join_near_v2_on_the_face], labels = False)
+the_colored_graph.edges_incident(vertex_to_join_near_v1_on_the_face)  # Three edges will be returned
+    NEW: the_colored_graph.edges(vertex_to_join_near_v1_on_the_face)
+
+the_colored_graph.random_edge(labels = False)
+    NEW: random.choice(list(the_colored_graph.edges))
+
+the_colored_graph.has_multiple_edges():
+    NEW: xxx
+
+the_colored_graph.allow_multiple_edges(True)  # During the process I need this set to true
+    NEW: This is already like this for MultiGraph & Networkx
+
+the_graph.is_isomorphic(the_colored_graph)
+    NEW: is_isomorphic(G1, G2)
+
+---
+---
+---
+---
+---
+---
+---
+---
+---
+---
+---
+---
+
+get_edge_color(the_colored_graph, random_edge_to_fix_the_impasse)
+kempe_chain_color_swap(the_colored_graph, random_edge_to_fix_the_impasse, color_of_the_random_edge, other_color)
+export_graph(the_colored_graph, "debug.really_bad_case")
+are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c3):
+apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c1, c1, c3)
+is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face):
+is_well_colored(the_colored_graph)
+print_graph(the_colored_graph)
+
+

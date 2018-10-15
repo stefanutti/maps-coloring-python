@@ -148,7 +148,7 @@ logger.addHandler(logging_stream_handler)
 ###############
 parser = argparse.ArgumentParser(description = 'args')
 parser.add_argument("-p", "--planar", help = "Load a .planar file (planar embedding)", required = True)
-parser.add_argument("-o", "--output", help = "Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required = True)
+parser.add_argument("-o", "--output", help = "Save a .dot file (networkx). Specify the file without extension", required = True)
 args = parser.parse_args()
 
 # Open the file

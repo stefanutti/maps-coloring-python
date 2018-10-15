@@ -40,9 +40,13 @@
 # - Moved to: https://github.com/stefanutti/maps-coloring-python/issues
 #
 # BACKLOG to evaluate:
-# - TODO: Realize a version in which faces are made of lists of ordered vertices [1, 4, 7, 8] not edges [(1,4),(4,7),(7,8),(8,1)]. Would'nt it be faster?
-# - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster!
 # - TODO: Get rid of sage
+# - TODO: Get rid of sage
+# - TODO: Get rid of sage
+# - TODO: Get rid of sage
+# - TODO: Get rid of sage
+# - TODO: Realize a version in which faces are made of lists of ordered vertices [1, 4, 7, 8] not edges [(1,4),(4,7),(7,8),(8,1)]. Would'nt it be faster?
+# - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster, and won't need sage!
 #
 # Done:
 # - Logging system
@@ -100,12 +104,12 @@ __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_
 import argparse
 import copy
 import sys
+import random
 import collections
 import timeit
-import logging.handlers
-import random
 import time
 from datetime import datetime
+import logging.handlers
 
 import json
 
@@ -198,7 +202,6 @@ def graph_dual(g):
 def check_graph_at_beginning(graph):
 
     # Check 3-regularity
-    #
     if graph.is_regular(3) is False:
         logger.error("Error: The graph is not 3-regular")
         exit(-1)
@@ -206,7 +209,6 @@ def check_graph_at_beginning(graph):
         logger.info("OK. The graph is 3-regular")
 
     # Check loops
-    #
     if graph.has_loops() is True:
         logger.error("ERROR: It seems that loops are difficult to handle during reduction and recoloring, so I'll start without them and avoid their creation during the reduction process")
         exit(-1)
@@ -223,7 +225,6 @@ def check_graph_at_beginning(graph):
     #     logger.info("OK. The graph does not have multiple edges. Consider that this program will also handle multiple edges during the reduction and reconstruction process")
 
     # Check if the graph is planar
-    #
     if graph.is_planar() is False:
         logger.error("ERROR: The graph is not planar")
         exit(-1)
@@ -231,7 +232,6 @@ def check_graph_at_beginning(graph):
         logger.info("OK. The graph is planar")
 
     # Additional info
-    #
     logger.info("The graph has %s vertices and %s edges", graph.order(), graph.size())
 
     return
@@ -258,7 +258,6 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: kempe_chain_color_swap: %s, %s, %s", starting_edge, c1, c2)
 
     # Start the loop at e1
-    #
     current_edge = starting_edge
     previous_color = "none"  # Not important here, will be used later
     current_color = c1
@@ -266,7 +265,6 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
 
     # From current edge, I'll search incident edges in one direction
     # The check is important to recognize the half cycle color switching to an entire cycle color switching
-    #
     direction = 1
     if logger.isEnabledFor(logging.DEBUG): logger.debug("degree: %s", graph.degree(current_edge[direction]))
     if graph.degree(current_edge[direction]) != 3:
@@ -276,32 +274,27 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
     while is_the_end_of_switch_process is False:
 
         # Debug
-        #
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Loop: current_edge: %s, current_color: %s, next_color: %s", current_edge, current_color, next_color)
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Vertex at direction: %s", current_edge[direction])
 
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(graph.edge_iterator(labels = True)), graph.is_regular(3))
 
         # From current edge, I'll search incident edges in one direction [0 or 1] - current_edge[direction] is a vertex
-        #
         tmp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
         if logger.isEnabledFor(logging.DEBUG): logger.debug("tmp_next_edges_to_check: %s", tmp_next_edges_to_check)
         edges_to_check = [(v1, v2, l) for (v1, v2, l) in tmp_next_edges_to_check if (v1, v2) != (current_edge[0], current_edge[1]) and (v2, v1) != (current_edge[0], current_edge[1])]
         if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex: %s, edges_to_check: %s", current_edge[direction], edges_to_check)
 
         # Save current edge and vertex direction
-        #
         previous_edge = current_edge
         previous_vertex = current_edge[direction]
 
         # Check if I've looped an entire cycle
-        #
         if are_the_same_edge(starting_edge, edges_to_check[0]) or are_the_same_edge(starting_edge, edges_to_check[1]):
             is_the_end_of_switch_process = True
         else:
 
             # Check the color of the two edges and find the next chain
-            #
             next_e1_color = edges_to_check[0][2]
             next_e2_color = edges_to_check[1][2]
             if next_e1_color == next_color:
@@ -313,7 +306,6 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
                 exit(-1)
 
             # Update current and next color
-            #
             previous_color = current_color
             current_color = next_color
             next_color = previous_color
@@ -324,7 +316,6 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
             # graph.set_edge_label(current_edge[0], current_edge[1], previous_color)
 
             # Just to be sure. Is it a multiedge? I need to verify it. It should't be
-            #
             if is_multiedge(graph, previous_edge[0], previous_edge[1]):
                 the_colored_graph.delete_edge(previous_edge[0], previous_edge[1], previous_color)
                 the_colored_graph.add_edge(previous_edge[0], previous_edge[1], current_color)
@@ -334,7 +325,6 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
                 graph.set_edge_label(previous_edge[0], previous_edge[1], current_color)
 
             # Just to be sure. Is it a multiedge? I need to verify it. It should't be
-            #
             if is_multiedge(graph, current_edge[0], current_edge[1]):
                 the_colored_graph.delete_edge(current_edge[0], current_edge[1], current_color)
                 the_colored_graph.add_edge(current_edge[0], current_edge[1], previous_color)
@@ -344,14 +334,12 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
                 graph.set_edge_label(current_edge[0], current_edge[1], previous_color)
 
             # Update direction
-            #
             if current_edge[0] == previous_vertex:
                 direction = 1
             else:
                 direction = 0
 
             # Check if I've reached the end of a chain
-            #
             if logger.isEnabledFor(logging.DEBUG): logger.debug("degree: %s", graph.degree(current_edge[direction]))
             if graph.degree(current_edge[direction]) != 3:
                 is_the_end_of_switch_process = True
@@ -410,14 +398,12 @@ def are_edges_on_the_same_kempe_cycle(graph, e1, e2, c1, c2):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: are_edges_on_the_same_kempe_cycle: %s, %s, %s, %s", e1, e2, c1, c2)
 
     # Flag to return
-    #
     are_edges_on_the_same_kempe_cycle_flag = False
 
     out_of_scope_color = get_the_other_colors([c1, c2])[0]
     if logger.isEnabledFor(logging.DEBUG): logger.debug("out_of_scope_color: %s", out_of_scope_color)
 
     # Start the loop at e1
-    #
     current_edge = e1
     current_color = c1
     next_color = get_the_other_colors([out_of_scope_color, current_color])[0]
@@ -425,24 +411,20 @@ def are_edges_on_the_same_kempe_cycle(graph, e1, e2, c1, c2):
 
     # From current edge, I'll search incident edges in one direction: 1 for the first edge, and then will decide the graph
     # (v1, v2) if a search all incident edges to v2 I'll have (v2, vx) and (v2, vy). Next vertex to choose will be vx or vy ... depending on the next chain color
-    #
     direction = 1
     is_the_end_of_search_process = False
     while is_the_end_of_search_process is False:
 
         # Debug
-        #
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Loop: current_edge: %s, current_color: %s, next_color: %s", current_edge, current_color, next_color)
 
         # From current edge, I'll search incident edges in one direction [0 or 1] - current_edge[direction] is a vertex
-        #
         tmp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
         if logger.isEnabledFor(logging.DEBUG): logger.debug("tmp_next_edges_to_check: %s", tmp_next_edges_to_check)
         edges_to_check = [(v1, v2, l) for (v1, v2, l) in tmp_next_edges_to_check if (v1, v2) != (current_edge[0], current_edge[1]) and (v2, v1) != (current_edge[0], current_edge[1])]
         if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex: %s, edges_to_check: %s", current_edge[direction], edges_to_check)
 
         # Check the color of the two edges and find the next chain
-        #
         next_e1_color = edges_to_check[0][2]
         next_e2_color = edges_to_check[1][2]
         previous_vertex = current_edge[direction]
@@ -455,30 +437,25 @@ def are_edges_on_the_same_kempe_cycle(graph, e1, e2, c1, c2):
             exit(-1)
 
         # Update current and next color
-        #
         current_color = next_color
         next_color = get_the_other_colors([out_of_scope_color, current_color])[0]
 
         # Update direction
-        #
         if current_edge[0] == previous_vertex:
             direction = 1
         else:
             direction = 0
 
         # Check if I've reached e2
-        #
         if are_the_same_edge(current_edge, e2):
             are_edges_on_the_same_kempe_cycle_flag = True
             is_the_end_of_search_process = True
 
         # Check if I've looped an entire cycle (of course without walking on e2 - previous check)
-        #
         if are_the_same_edge(current_edge, e1):
             is_the_end_of_search_process = True
 
         # Debug info for this loop
-        #
         if logger.isEnabledFor(logging.DEBUG): logger.debug("current_color: %s, next_color: %s, current_edge: %s, are_edges_on_the_same_kempe_cycle_flag: %s, is_the_end_of_search_process: %s", current_color, next_color, current_edge, are_edges_on_the_same_kempe_cycle, is_the_end_of_search_process)
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: are_edges_on_the_same_kempe_cycle_flag: %s", are_edges_on_the_same_kempe_cycle_flag)
@@ -498,18 +475,15 @@ def apply_half_kempe_loop_color_switching(graph, ariadne_step, color_at_v1, colo
     v2_not_on_the_face = ariadne_step[6]
 
     # I broke the cycle to apply the half Kempe chain color swapping
-    #
     graph.delete_edge((v1_on_the_face, v1_not_on_the_face, color_at_v1))
     graph.delete_edge((v2_on_the_face, v2_not_on_the_face, color_at_v2))
     graph.add_edge(v1, v1_on_the_face, color_at_v1)
     graph.add_edge(v2, v2_on_the_face, color_at_v2)
 
     # Half Kempe chain color swapping
-    #
     kempe_chain_color_swap(graph, (v1, v1_on_the_face), swap_c1, swap_c2)
 
     # Restore the other edges
-    #
     graph.add_edge(v1, v1_not_on_the_face, color_at_v1)
     graph.add_edge(v2, v2_not_on_the_face, color_at_v2)
     graph.add_edge(v1, v2, get_the_other_colors([color_at_v1, swap_c2])[0])
@@ -593,7 +567,6 @@ def remove_vertex_from_face(face, vertex):
     # new vA = first element of the edge found
     # Search the edge that contains the vertex as the first element of the tuple
     # new vB = second element of the edge found
-    #
     tuple_a = next((v1a, v2a) for v1a, v2a in face if v2a == vertex)
     tuple_b = next((v1b, v2b) for v1b, v2b in face if v1b == vertex)
     new_edge = (tuple_a[0], tuple_b[1])
@@ -667,23 +640,19 @@ def join_faces(f1, f2, edge_to_remove_on_f1):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: join_faces")
 
     # You can only use this function if at least one face has length > 2
-    #
     if len(f1) == 2 and len(f2) == 2:
         logger.error("Unexpected condition (f2 + f2 would generate a single edge face). Mario you'd better go back to paper")
         exit(-1)
 
     # The edge (v1, v2) on f1 is (v2, v1) on the f2 face
-    #
     edge_to_remove_on_f2 = rotate(edge_to_remove_on_f1, 1)
     index_of_edge_to_remove_on_f1 = f1.index(edge_to_remove_on_f1)
     index_of_edge_to_remove_on_f2 = f2.index(edge_to_remove_on_f2)
 
     # Join the face - After this there will still be vertices to remove
-    #
     f1_plus_f2 = f1[:index_of_edge_to_remove_on_f1] + f2[index_of_edge_to_remove_on_f2 + 1:] + f2[:index_of_edge_to_remove_on_f2] + f1[index_of_edge_to_remove_on_f1 + 1:]
 
     # Debug
-    #
     if logger.isEnabledFor(logging.DEBUG): logger.debug("f1: %s", f1)
     if logger.isEnabledFor(logging.DEBUG): logger.debug("f2: %s", f2)
     if logger.isEnabledFor(logging.DEBUG): logger.debug("edge_to_remove_on_f1: %s", edge_to_remove_on_f1)
@@ -697,7 +666,6 @@ def join_faces(f1, f2, edge_to_remove_on_f1):
     # new vA = first element of the edge found
     # Search the edge that contains v1 (edge_to_remove_on_f1[0]) as the first element of the tuple
     # new vB = second element of the edge found
-    #
     tuple_a = next((v1a, v2a) for v1a, v2a in f1_plus_f2 if v2a == edge_to_remove_on_f1[0])
     tuple_b = next((v1b, v2b) for v1b, v2b in f1_plus_f2 if v1b == edge_to_remove_on_f1[0])
     new_edge = (tuple_a[0], tuple_b[1])
@@ -712,7 +680,6 @@ def join_faces(f1, f2, edge_to_remove_on_f1):
     # new vA = first element of the edge found
     # Search the edge that contains v2 (edge_to_remove_on_f1[1]) as the first element of the tuple
     # new vB = second element of the edge found
-    #
     tuple_a = next((v1a, v2a) for v1a, v2a in f1_plus_f2 if v2a == edge_to_remove_on_f1[1])
     tuple_b = next((v1b, v2b) for v1b, v2b in f1_plus_f2 if v1b == edge_to_remove_on_f1[1])
     new_edge = (tuple_a[0], tuple_b[1])
@@ -744,23 +711,19 @@ def is_the_graph_one_edge_connected(face):
 
     # This is true only for faces != F2
     # NOTE: F2 faces have this representation: [(v1, v2), (v2, v1)] that is correct
-    #
     if len(face) != 2:
 
         # Search the list [(),(),...,()]
-        #
         i_edge = 0
         while is_the_graph_one_edge_connected is False and i_edge < len(face):
             reverse_edge = rotate(face[i_edge], 1)
 
             # Start the search
-            #
             if reverse_edge in face[i_edge + 1:]:
                 is_the_graph_one_edge_connected = True
             else:
 
                 # Move to the next edge
-                #
                 i_edge += 1
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: is_the_graph_one_edge_connected: %s", is_the_graph_one_edge_connected)
@@ -784,7 +747,6 @@ def check_regularity(faces):
     is_three_regular = True
 
     # get all vertices
-    #
     vertices = [element for face in faces for edge in face for element in edge]
     vertices = sorted(set(vertices))
 
@@ -829,7 +791,6 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     #
     # Additional note (17/Oct/2016): I decided to save the graph also as a .dot file
     # The problem with dot file is that you can write .dot files directly, but you cannot read them back if you don't install an additional package
-    #
     logger.info("------------------------------------------------")
     logger.info("BEGIN: Save the 4 colored map in edgelist format")
     logger.info("------------------------------------------------")
@@ -838,7 +799,6 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     logger.info("File saved: %s", name_of_file_without_extension)
 
     # Replace label with color
-    #
     filedata = None
     with open(name_of_file_without_extension + ".dot", 'r') as file:
         filedata = file.read()
@@ -896,7 +856,6 @@ def export_graph(graph_to_export, name_of_file_without_extension):
 ##############################################
 
 # General plot options (used by the Cloud version of sage)
-#
 plot_options = {'vertex_size': 150,
                 'vertex_labels': True,
                 'layout': "spring",
@@ -918,11 +877,9 @@ plot_options = {'vertex_size': 150,
 EDGE_COLOR_BY_LABEL = {'red': 'red', 'green': 'green', 'blue': 'blue'}
 
 # Valid colors
-#
 VALID_COLORS = ['red', 'green', 'blue']
 
 # Set logging facilities: LEVEL XXX
-#
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 logging_stream_handler = logging.StreamHandler(sys.stdout)
@@ -933,7 +890,6 @@ logger.addHandler(logging_stream_handler)
 # Read options:
 ###############
 # (-r <vertices> or -i <file> or -p <planar embedding (json file)>) -o <file>
-#
 parser = argparse.ArgumentParser(description = '4ct args')
 
 group_input = parser.add_mutually_exclusive_group(required = False)
@@ -945,7 +901,6 @@ parser.add_argument("-o", "--output", help = "Save a .edgelist file (networkx), 
 args = parser.parse_args()
 
 # Initialize statistics
-#
 stats = {}
 initialize_statistics(stats)
 
@@ -980,7 +935,6 @@ stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
 # the_graph.relabel()
 
 # Random - Dual of a triangulation
-#
 if args.random is not None:
     logger.info("BEGIN: Create a random planar graph from the dual of a RandomTriangulation (Sage function) of %s vertices. It may take very long time depending on the number of vertices", args.random)
     number_of_vertices_for_the_random_triangulation = args.random
@@ -994,7 +948,6 @@ if args.random is not None:
     # I need this (export + import) to be able to reproduce this test exactly in the same condition in a future run
     # I cannot use the output file because it has different ordering of edges and vertices, and the execution would run differently (I experimented it on my skin)
     # The export function saves the graph using a different order for the edges (even if the graph are exactly the same graph)
-    #
     the_graph.export_to_file("debug.temp.edgelist", format = "edgelist")
     the_graph = Graph(networkx.read_edgelist("debug.temp.edgelist"))
     the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
@@ -1004,7 +957,6 @@ if args.random is not None:
     logger.info("END: Create a random planar graph of %s vertices, from the dual of a RandomTriangulation of %s vertices", the_graph.order(), number_of_vertices_for_the_random_triangulation)
 
 # Input - Load a graph stored in edgelist mode
-#
 if args.input is not None:
     logger.info("BEGIN: Load the graph from the external file: %s", args.input)
     the_graph = Graph(networkx.read_edgelist(args.input))
@@ -1014,7 +966,6 @@ if args.input is not None:
     logger.info("END: Load the graph from the external file: %s", args.input)
 
 # Planar - Load a planar embedding of the graph
-#
 if args.planar is not None:
     logger.info("BEGIN: Load the planar embedding of a graph (output of the gfaces() function): %s", args.planar)
     # with open(args.planar, 'r') as fp: g_faces = pickle.load(fp)
@@ -1024,11 +975,9 @@ if args.planar is not None:
     #
     # Original: [[(3,2),(3,5)],[(2,4),(1,3),(1,3)], ... ,[(1,2),(3,4),(6,7)]]
     # Saved as: [[[3,2],[3,5]],[[2,4],[1,3],[1,3]], ... ,[[1,2],[3,4],[6,7]]]
-    #
     g_faces = [[tuple(l) for l in L] for L in g_faces]
 
     # Create the graph from the list of faces
-    #
     flattened_egdes = [edge for face in g_faces for edge in face]
     for edge in flattened_egdes:
         reverse_edge = (edge[1], edge[0])
@@ -1064,7 +1013,6 @@ logger.info("------------------------")
 check_graph_at_beginning(the_graph)
 
 # Compute the embedding only if it was non loaded withe the -p (planar) parameter
-#
 if args.planar is None:
     logger.info("BEGIN: Embed the graph into the plane (Sage function is_planar(set_embedding = True)). It may take very long time depending on the number of vertices")
     stats['time_PLANAR_EMBEDDING_BEGIN'] = time.ctime()
@@ -1079,16 +1027,13 @@ if args.planar is None:
 # edge_coloring(the_graph)
 # logger.info("END: Coloring")
 # Tests starting from triangulations with 100 vertices: 7, 73, 54, 65, 216, 142, 15, 14, 21, 73, 24, 15, 32, 72, 232 seconds
-#
 
 # Get the faces representation of the graph
 # From now on, 'till the end of the reduction process, I'll use only this representation (join_faces, remove vertices, etc.) instead of the Graph object
 # This is because the elaboration is faster and I don't have to deal with the limit of sage about multiple edges and loops
 # List it is sorted: means faces with len less than 6 are placed at the beginning
-#
 
 # Save the face() representation only if it was non loaded with the -p (planar) parameter
-#
 if args.planar is None:
     temp_g_faces = the_graph.faces()
     temp_g_faces.sort(key = len)
@@ -1139,7 +1084,6 @@ if args.planar is None:
 #            [(35, 34), (34, 27), (27, 28), (28, 32), (32, 24), (24, 25), (25, 33), (33, 37), (37, 36), (36, 38), (38, 35)]]
 
 # Log faces
-#
 log_faces(g_faces)
 
 logger.info("----------------------")
@@ -1193,7 +1137,6 @@ stats['time_ELABORATION_BEGIN'] = time.ctime()
 stats['time_ELABORATION'] = datetime.now()
 
 # It will contain items made of lists of values to find the way back to the original graph (Ariadne's String Myth)
-#
 ariadne_string = []
 
 # If The graph is already reduced
@@ -1201,13 +1144,11 @@ ariadne_string = []
 if len(g_faces) == 4:
 
     # Graph already reduced
-    #
     is_the_end_of_the_reduction_process = True
     if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph is already reduced")
     log_faces(g_faces)
 
 # Start the reduction process
-#
 is_the_end_of_the_reduction_process = False
 f2_exist = True  # It is set to true only to force the search of F2 at the beginning of the algorithm
 i_global_counter = 0
@@ -1217,11 +1158,9 @@ while is_the_end_of_the_reduction_process is False:
     log_faces(g_faces)
 
     # Deep debug: Log all faces
-    #
     # log_faces(g_faces)
 
     # f1, f2, edge_to_remove, rotated_edge_to_remove, len_of_the_face_to_reduce will be valid during the rest of this "while" loop after the first block ("Select an edge") has been executed
-    #
     f1 = []
     f2 = []
     edge_to_remove = ()
@@ -1236,16 +1175,22 @@ while is_the_end_of_the_reduction_process is False:
     #   f1 = next((face for face in g_faces if len(face) == 5), next((face for face in g_faces if len(face) == 2), g_faces[0]))
     #
     # TODO:
-    # - I don't have to select an edge to remove belonging to the ocean
-    #
+    # - I don't have to select an edge to remove if it belongs to the ocean
     if f2_exist is True:
         if len(g_faces[0]) != 2:
-            f1 = next((f for f in g_faces if len(f) == 2 if f != g_faces[-1]), next((f for f in g_faces if len(f) == 3 if f != g_faces[-1]), next((f for f in g_faces if len(f) == 4 if f != g_faces[-1]), next((f for f in g_faces if len(f) == 5 if f != g_faces[-1]), g_faces[0]))))
+            f1 = next((f for f in g_faces if len(f) == 2 if f != g_faces[-1]),
+                      next((f for f in g_faces if len(f) == 3 if f != g_faces[-1]),
+                           next((f for f in g_faces if len(f) == 4 if f != g_faces[-1]),
+                                next((f for f in g_faces if len(f) == 5 if f != g_faces[-1]),
+                                     g_faces[0]))))
         else:
             f1 = g_faces[0]
     else:
         if len(g_faces[0]) != 3:
-            f1 = next((f for f in g_faces if len(f) == 3 if f != g_faces[-1]), next((f for f in g_faces if len(f) == 4 if f != g_faces[-1]), next((f for f in g_faces if len(f) == 5 if f != g_faces[-1]), g_faces[0])))
+            f1 = next((f for f in g_faces if len(f) == 3 if f != g_faces[-1]),
+                      next((f for f in g_faces if len(f) == 4 if f != g_faces[-1]),
+                           next((f for f in g_faces if len(f) == 5 if f != g_faces[-1]),
+                                g_faces[0])))
         else:
             f1 = g_faces[0]
 
@@ -1254,26 +1199,24 @@ while is_the_end_of_the_reduction_process is False:
     logger.info("BEGIN %s: Search the right edge to remove (case: %s)", i_global_counter, len_of_the_face_to_reduce)
 
     # Assert
-    #
     if f1 == g_faces[-1]:
         logger.error("Unexpected condition (ocean selected). Mario you'd better go back to paper")
         exit(-1)
 
-
     # Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected
-    #
     is_the_edge_to_remove_found = False
     i_edge = 0
-    f1_edges_enumeration = range(0, len(f1) - 1)
+    f1_edges_enumeration = range(0, len(f1) - 1)  # TBF
     while is_the_edge_to_remove_found is False and i_edge < len_of_the_face_to_reduce:
 
         if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN %s: test the %s edge", i_global_counter, i_edge)
 
         # One edge separates two faces (pay attention to multiple edges == F2)
         # The edge to remove can be found in the list of faces as (v1, v2) or (v2, v1)
+        #
         # TODO: Instead of getting the edges in sequence, I should use a random selector (without repetitions)
         #
-        i_edge = randint(0, len(f1) - 1)  # When stuck it you re-execute the program (with this random) it should work
+        # i_edge = randint(0, len(f1) - 1)  # When stuck, if you re-execute the program (with this random) it should work
         edge_to_remove = f1[i_edge]
         rotated_edge_to_remove = rotate(edge_to_remove, 1)
 
@@ -1281,19 +1224,14 @@ while is_the_end_of_the_reduction_process is False:
         if logger.isEnabledFor(logging.DEBUG): logger.debug("edge_to_remove: %s", edge_to_remove)
         if logger.isEnabledFor(logging.DEBUG): logger.debug("rotated_edge_to_remove: %s", rotated_edge_to_remove)
 
-        # The edge does not have to be facing the ocean
-        #
-        # TODO: I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
-        #
-        # if ((len(g_faces[-1]) > 3) or ((check_if_vertex_is_in_face(g_faces[-1], edge_to_remove[0]) or check_if_vertex_is_in_face(g_faces[-1], edge_to_remove[1])) is True)):
-        if (edge_to_remove[0] not in [1, 2, 3, 4]) and (edge_to_remove[1] not in [1, 2, 3, 4]):
+        # The selected edge does not have to be facing the ocean
+        # I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
+        if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
 
             # If F2, the rotated edge appears twice in the list of faces
-            #
             if len_of_the_face_to_reduce == 2:
 
                 # For F2 faces, edges will appear twice in all the edges lists of all faces
-                #
                 temp_f2 = [face for face in g_faces if rotated_edge_to_remove in face]
                 temp_f2.remove(f1)
                 f2 = temp_f2[0]
@@ -1303,11 +1241,9 @@ while is_the_end_of_the_reduction_process is False:
                 f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
 
             # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries, but separates a portion of the same land
-            #
             if is_the_graph_one_edge_connected(f1_plus_f2_temp) is True:
 
-                # Skip the next edge, this is not good
-                #
+                # Skip to the next edge, this is not good
                 i_edge += 1
             else:
                 is_the_edge_to_remove_found = True
@@ -1317,38 +1253,36 @@ while is_the_end_of_the_reduction_process is False:
                 if logger.isEnabledFor(logging.DEBUG): logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
 
             if logger.isEnabledFor(logging.DEBUG): logger.debug("END %s: test the %s edge", i_global_counter, i_edge)
+        else:
+            # Skip to the next edge, this is not good
+            i_edge += 1
 
     # Check if math is right :-)
-    #
     if is_the_edge_to_remove_found is False:
         logger.error("Unexpected condition (a suitable edge has not been found). Mario you'd better go back to paper")
-        logger.info("For now I considered only the first face < F6. I may search the right edge in other faces < F6")
-        logger.info("Should be easy to prove that among all faces < F6, an edge exist that if removed does not make the graph 1-edge-connected")
+        logger.info("TODO: For now I considered only the first selected face < F6. I may search the right edge in other faces < F6")
+        logger.info("Should be easier to prove that among all faces < F6, an edge exists that if removed does not make the graph 1-edge-connected")
         exit(-1)
 
     logger.info("END %s: Search the right edge to remove. Found: %s (case: %s)", i_global_counter, edge_to_remove, len_of_the_face_to_reduce)
 
     # Remove the edge of an F2 (multiple edge)
-    #
     if len_of_the_face_to_reduce == 2:
 
         logger.info("BEGIN %s: Remove a multiple edge (case: %s)", i_global_counter, len_of_the_face_to_reduce)
 
         # Get the two vertices to join
         # It may also happen that at the end of the process, I'll get a loop: From ---CO to ---O
-        #
         v1 = edge_to_remove[0]
         v2 = edge_to_remove[1]
 
         # >--0--<
         #
         # F2 is the zero in the center (in the drawing)
-        #
         vertex_to_join_near_v1 = next(edge for edge in f2 if edge[0] == v1)[1]
         vertex_to_join_near_v2 = next(edge for edge in f2 if edge[1] == v2)[0]
 
         # f1 and f2 have been joined before to test 1-edge-connectivity ... I can use that!
-        #
         g_faces.remove(f1)
         g_faces.remove(f2)
         g_faces.insert(-1, f1_plus_f2_temp)
@@ -1356,38 +1290,32 @@ while is_the_end_of_the_reduction_process is False:
         # I already prepared f1 and f2, but when these two faces are joined also the other face that has the two vertices has to be updated
         # A vertex is shared by three faces (two of these are f1 and f2). For this F2 case, the two vertices belong to only a third face
         # NOTE: For F3, F4, F5 ... v1 and v2 may have two different faces (other than f1 and f2)
-        #
         third_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v1))
         remove_vertex_from_face(third_face_to_update, v1)
         remove_vertex_from_face(third_face_to_update, v2)  # For this F2 case, the two vertices belong to only a third face
 
         # Ariadne ball of thread. First parameter == 2, will tell that it was a multiple edge
         # [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
-        #
         ariadne_step = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
         ariadne_string.append(ariadne_step)
         logger.info("ariadne_step: %s", ariadne_step)
 
         # Do one thing at a time and return at the beginning of the main loop
-        #
         logger.info("END %s: Remove a multiple edge (case: %s)", i_global_counter, len_of_the_face_to_reduce)
 
         # f2_exist?
-        #
         if len(f1_plus_f2_temp) == 2 or len(third_face_to_update) == 2:
             f2_exist = True
         else:
             f2_exist = False
 
     # Remove an F3 or F4 or F5
-    #
     else:
 
         logger.info("BEGIN %s: Remove an F3, F4 or F5 (case: %s)", i_global_counter, len_of_the_face_to_reduce)
 
         # Get the vertices at the ends of the edge to remove
         # And find the other four neighbors :>.---.<: (If the --- is the removed edge, the four external dots represent the vertices I'm looking for)
-        #
         v1 = edge_to_remove[0]
         v2 = edge_to_remove[1]
 
@@ -1402,7 +1330,6 @@ while is_the_end_of_the_reduction_process is False:
         if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v2_not_on_the_face: %s", vertex_to_join_near_v2_not_on_the_face)
 
         # f1 and f2 have been joined before to test 1-edge-connectivity ... I can use that!
-        #
         g_faces.remove(f1)
         g_faces.remove(f2)
         g_faces.insert(-1, f1_plus_f2_temp)
@@ -1410,7 +1337,6 @@ while is_the_end_of_the_reduction_process is False:
         # I already prepared f1 and f2, but when these two faces are joined also the other faces that has the two vertices have to be updated
         # A vertex is shared by three faces (two of these are f1 and f2)
         # NOTE: For F3, F4, F5 ... v1 and v2, most of the times will have f3 and f4 different ... but they can also be the same face
-        #
         third_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v1))
         fourth_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v2))
         if logger.isEnabledFor(logging.DEBUG): logger.debug("third_face_to_update: %s", third_face_to_update)
@@ -1422,17 +1348,14 @@ while is_the_end_of_the_reduction_process is False:
         # Ariadne ball of thread
         # First parameter == len_of_the_face_to_reduce, will tell that it was a Fx face that has been removed (x = 3, 4 or 5)
         # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        #
         ariadne_step = [len_of_the_face_to_reduce, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
         ariadne_string.append(ariadne_step)
         logger.info("ariadne_step: %s", ariadne_step)
 
         # Do one thing at a time and return at the beginning of the main loop
-        #
         logger.info("END %s: Remove an F3, F4 or F5 (case: %s)", i_global_counter, len_of_the_face_to_reduce)
 
         # f2_exist?
-        #
         if len(f1_plus_f2_temp) == 2 or len(third_face_to_update) == 2 or len(fourth_face_to_update) == 2:
             f2_exist = True
         else:
@@ -1449,22 +1372,18 @@ while is_the_end_of_the_reduction_process is False:
     # The graph is that of an island perfectly slit as a pie in 120 degree slices (just to visualize it)
     #
     # Note: With 4 faces is possible, in theory, to have other kind of maps, but since I removed always F2 faces first (multiple edge), this situation is not possible
-    #
     if len(g_faces) == 4:
 
         # Graph reduced
-        #
         is_the_end_of_the_reduction_process = True
         if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph has been reduced")
         log_faces(g_faces)
 
     # END of main loop (-1 because the counte has been just incremented)
-    #
     logger.info("END %s: Main loop", i_global_counter)
     logger.info("")
 
     # Something has been done! Plot it
-    #
     if is_the_end_of_the_reduction_process is False:
         i_global_counter += 1
 
@@ -1478,7 +1397,6 @@ logger.info("BEGIN: Print Ariadne's string information")
 logger.info("-----------------------------------------")
 
 # Log Ariadne's string information
-#
 for step in ariadne_string:
     logger.info("ariadne_string: %s", step)
 
@@ -1532,13 +1450,11 @@ logger.info("---------------------------")
 
 # At this point the graph has three faces (an island with two lands) and three edges ... easily 3-edge-colorable
 # WARNING: the color of the edges of a multiedge graph cannot be changed, so it is necessary to delete and re-insert the edge
-#
 the_colored_graph = Graph(sparse = True)
 the_colored_graph.allow_loops(False)
 the_colored_graph.allow_multiple_edges(True)  # During the process I need this set to true
 
 # Only four vertices have to be in the graph
-#
 all_vertices = [element for face in g_faces for edge in face for element in edge]
 all_vertices = sorted(set(all_vertices))
 
@@ -1559,7 +1475,6 @@ v4 = all_vertices[3]
 #
 # NOTE: It is not important to create the new graph selecting a particular order for the vertices ... they would all generate exactly the same graph
 # I'll use: v1 at the center, v2, v3, v4 clockwise order (to visualize it in the mind)
-#
 the_colored_graph.add_edge(v1, v2, "red")
 the_colored_graph.add_edge(v1, v3, "green")
 the_colored_graph.add_edge(v1, v4, "blue")
@@ -1568,28 +1483,23 @@ the_colored_graph.add_edge(v3, v4, "red")
 the_colored_graph.add_edge(v4, v2, "green")
 
 # Check if I need to start the rebuilding process
-#
 if ariadne_step == []:
     is_the_end_of_the_rebuild_process = True
 else:
     is_the_end_of_the_rebuild_process = False
 
 # Start the rebuilding process
-#
 while is_the_end_of_the_rebuild_process is False:
 
     # Get the string to walk back home
-    #
     ariadne_step = ariadne_string.pop()
     logger.info("ariadne_step: %s", ariadne_step)
 
     # F2 = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
-    #
     if ariadne_step[0] == 2:
 
         # CASE: F2
         # Update stats
-        #
         stats['CASE-F2-01'] += 1
 
         logger.info("BEGIN: restore an F2 (multiple edge)")
@@ -1601,21 +1511,17 @@ while is_the_end_of_the_rebuild_process is False:
         vertex_to_join_near_v2 = ariadne_step[4]
 
         # For F2 to compute the new colors is easy
-        #
         previous_edge_color = get_edge_color(the_colored_graph, (vertex_to_join_near_v1, vertex_to_join_near_v2))
 
         # Choose available colors
-        #
         new_multiedge_color_one = get_the_other_colors([previous_edge_color])[0]
         new_multiedge_color_two = get_the_other_colors([previous_edge_color])[1]
         if logger.isEnabledFor(logging.DEBUG): logger.debug("new_multiedge_color_one: %s, new_multiedge_color_two: %s", new_multiedge_color_one, new_multiedge_color_two)
 
         # Delete the edge
-        #
         the_colored_graph.delete_edge((vertex_to_join_near_v1, vertex_to_join_near_v2, previous_edge_color))
 
         # Restore the previous edge
-        #
         the_colored_graph.add_edge(v1, vertex_to_join_near_v1, previous_edge_color)
         the_colored_graph.add_edge(v2, vertex_to_join_near_v2, previous_edge_color)
         the_colored_graph.add_edge(v1, v2, new_multiedge_color_one)
@@ -1635,7 +1541,6 @@ while is_the_end_of_the_rebuild_process is False:
         # CASE: F3
         # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
         # Update stats
-        #
         stats['CASE-F3-01'] += 1
         logger.info("BEGIN: restore an F3")
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
@@ -1648,15 +1553,12 @@ while is_the_end_of_the_rebuild_process is False:
         vertex_to_join_near_v2_not_on_the_face = ariadne_step[6]
 
         # For F3 to compute the new colors is easy (check also if it is a multiple edges)
-        #
         if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v1_on_the_face: %s, vertex_to_join_near_v2_on_the_face: %s, vertex_to_join_near_v1_not_on_the_face: %s, vertex_to_join_near_v2_not_on_the_face: %s", vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face)
 
         # If e1 and e2 have the same vertices, they are the same multiedge
-        #
         if (vertex_to_join_near_v1_on_the_face == vertex_to_join_near_v2_on_the_face) and (vertex_to_join_near_v1_not_on_the_face == vertex_to_join_near_v2_not_on_the_face):
 
             # Get the colors of the two edges (multiedge). Select only the two multiedges (e1, e2 with same vertices)
-            #
             tmp_multiple_edges_to_check = the_colored_graph.edges_incident(vertex_to_join_near_v1_on_the_face)  # Three edges will be returned
             multiple_edges_to_check = [(va, vb, l) for (va, vb, l) in tmp_multiple_edges_to_check if (vertex_to_join_near_v1_not_on_the_face == va) or (vertex_to_join_near_v1_not_on_the_face == vb)]
             previous_edge_color_at_v1 = multiple_edges_to_check[0][2]
@@ -1668,23 +1570,19 @@ while is_the_end_of_the_rebuild_process is False:
         if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color_at_v1: %s, previous_edge_color_at_v2: %s", previous_edge_color_at_v1, previous_edge_color_at_v2)
 
         # Checkpoint
-        #
         if previous_edge_color_at_v1 == previous_edge_color_at_v2:
             logger.error("Unexpected condition (for F3 faces two edges have a vertex in common, and so colors MUST be different at this point). Mario you'd better go back to paper")
             exit(-1)
 
         # Choose a different color
-        #
         new_edge_color = get_the_other_colors([previous_edge_color_at_v1, previous_edge_color_at_v2])[0]
 
         # Delete the edges
         # Since e1 and e2 may be the same multiedge or maybe separately on different multiedge, I remove them using also the "label" parameter
-        #
         the_colored_graph.delete_edge((vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1))
         the_colored_graph.delete_edge((vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2))
 
         # Restore the previous edge
-        #
         the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, previous_edge_color_at_v2)
         the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
         the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
@@ -1704,7 +1602,6 @@ while is_the_end_of_the_rebuild_process is False:
 
         # CASE: F4
         # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        #
         logger.info("BEGIN: restore an F4")
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
 
@@ -1716,39 +1613,32 @@ while is_the_end_of_the_rebuild_process is False:
         vertex_to_join_near_v2_not_on_the_face = ariadne_step[6]
 
         # For F4 to compute the new colors is not so easy
-        #
         previous_edge_color_at_v1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
         previous_edge_color_at_v2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
         if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color_at_v1: %s, previous_edge_color_at_v2: %s", previous_edge_color_at_v1, previous_edge_color_at_v2)
 
         # For an F4, the top edge is the edge not adjacent to the edge to restore (as in a rectangular area)
-        #
         edge_color_of_top_edge = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face))
         if logger.isEnabledFor(logging.DEBUG): logger.debug("edge_color_of_top_edge: %s", edge_color_of_top_edge)
 
         # Handle the different cases
-        #
         if previous_edge_color_at_v1 == previous_edge_color_at_v2:
 
             # Update stats
-            #
             stats['CASE-F4-01'] += 1
             logger.info("BEGIN: restore an F4 - Same color at v1 and v2")
             if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
 
             # CASE: F4 SUBCASE: Same color at v1 and v2
             # Since edges at v1 and v2 are on the same Kempe cycle (with the top edge), I can also avoid the kempe chain color switching, since in this case the chain is made of three edges
-            #
             the_colored_graph.delete_edge((vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1))
             the_colored_graph.delete_edge((vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2))
 
             # Kempe chain color swap is done manually since the chain is only three edges long
-            #
             the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, edge_color_of_top_edge)
             the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
 
             # Just for sure. Is the top edge a multiedge? I need to verify it. It should't be
-            #
             if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face):
                 the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
                 the_colored_graph.add_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
@@ -1758,7 +1648,6 @@ while is_the_end_of_the_rebuild_process is False:
                 the_colored_graph.set_edge_label(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
 
             # Restore the other edges
-            #
             the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
             the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
             the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
@@ -1772,11 +1661,9 @@ while is_the_end_of_the_rebuild_process is False:
         else:
 
             # In this case I have to check if the edges at v1 and v2 are on the same Kempe cycle
-            #
             if are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face), (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face), previous_edge_color_at_v1, previous_edge_color_at_v2) is True:
 
                 # Update stats
-                #
                 stats['CASE-F4-02'] += 1
 
                 logger.info("BEGIN: restore an F4 - The two edges are on the same Kempe cycle")
@@ -1786,18 +1673,15 @@ while is_the_end_of_the_rebuild_process is False:
                 # Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
                 #
                 # I broke the cycle to apply the half Kempe chain color swapping
-                #
                 the_colored_graph.delete_edge((vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1))
                 the_colored_graph.delete_edge((vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2))
                 the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, previous_edge_color_at_v1)
                 the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v2)
 
                 # Half Kempe chain color swapping
-                #
                 kempe_chain_color_swap(the_colored_graph, (v1, vertex_to_join_near_v1_on_the_face), previous_edge_color_at_v1, previous_edge_color_at_v2)
 
                 # Restore the other edges
-                #
                 the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
                 the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
                 the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, previous_edge_color_at_v2])[0])
@@ -1812,7 +1696,6 @@ while is_the_end_of_the_rebuild_process is False:
             else:
 
                 # Update stats
-                #
                 stats['CASE-F4-03'] += 1
 
                 logger.info("BEGIN: restore an F4 - The two edges are NOT on the same Kempe cycle")
@@ -1820,22 +1703,18 @@ while is_the_end_of_the_rebuild_process is False:
 
                 # CASE: F4 SUBCASE: Worst case: The two edges are NOT on the same Kempe cycle
                 # I'll rotate the colors of the cycle for the edge at v1, and then, since edge_color_at_v1 will be == edge_color_at_v2, apply CASE-001
-                #
                 kempe_chain_color_swap(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face), previous_edge_color_at_v1, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
                 previous_edge_color_at_v1 = previous_edge_color_at_v2
 
                 # CASE: F4, SUBCASE: The two edges are now on the same Kempe cycle
-                #
                 the_colored_graph.delete_edge((vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1))
                 the_colored_graph.delete_edge((vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2))
 
                 # Kempe chain color swap is done manually since the chain is only three edges long
-                #
                 the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, edge_color_of_top_edge)
                 the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
 
                 # Just to be sure. Is the top edge a multiedge? I need to verify it. It should't be
-                #
                 if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face):
                     the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
                     the_colored_graph.add_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
@@ -1845,7 +1724,6 @@ while is_the_end_of_the_rebuild_process is False:
                     the_colored_graph.set_edge_label(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
 
                 # Restore the other edges
-                #
                 the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
                 the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
                 the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
@@ -1863,7 +1741,6 @@ while is_the_end_of_the_rebuild_process is False:
 
         # CASE: F5
         # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        #
         logger.info("BEGIN: restore an F5")
 
         v1 = ariadne_step[1]
@@ -1876,7 +1753,6 @@ while is_the_end_of_the_rebuild_process is False:
         # I have to get the two edges that are on top
         # These are two edges that have near_v1_on_the_face and near_v2_on_the_face and a shared vertex
         # First thing: I need to get the vertex_in_the_top_middle
-        #
         edges_at_vertices_near_v1_on_the_face = the_colored_graph.edges_incident([vertex_to_join_near_v1_on_the_face], labels = False)
         edges_at_vertices_near_v2_on_the_face = the_colored_graph.edges_incident([vertex_to_join_near_v2_on_the_face], labels = False)
         tmp_v1 = [item for sublist in edges_at_vertices_near_v1_on_the_face for item in sublist]
@@ -1886,7 +1762,6 @@ while is_the_end_of_the_rebuild_process is False:
         vertex_in_the_top_middle = list(set.intersection(set(tmp_v1), set(tmp_v2)))[0]
 
         # Useful to try to verify if the number of switches may be limited
-        #
         restore_random_edge_to_fix_the_impasse = (0, 0)
         restore_color_one = ""
         restore_color_two = ""
@@ -1898,21 +1773,18 @@ while is_the_end_of_the_rebuild_process is False:
         #   - First try a swap starting from an edge on the face
         #   - Then try a swap starting from a random edge of the kempe loop on v1
         #   - Then try a swap starting from a random edge of the entire graph
-        #
         end_of_f5_restore = False
         i_attempt = 0
         while end_of_f5_restore is False:
 
             # For F5 to compute the new colors is difficult (and needs to be proved if always works in all cases)
             # I need to handle the different cases
-            #
             c1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
             c3 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_in_the_top_middle))
             c4 = get_edge_color(the_colored_graph, (vertex_in_the_top_middle, vertex_to_join_near_v2_on_the_face))
             c2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
 
             # F5-C1
-            #
             if c1 == c2:
 
                 # The four edges are: c1, c3, c4, c2==c1
@@ -1920,22 +1792,18 @@ while is_the_end_of_the_rebuild_process is False:
                 # NOTE:
                 # - Next comment was not true:
                 #   - In case e1 and e2 are not on the same Kempe loop (c1, c3) or (c2, c4), the switch of the top colors (c3, c4) solves (I hope) the situation
-                #
                 if are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c3):
 
                     logger.info("BEGIN: CASE-F5-C1==C2-SameKempeLoop-C1-C3")
 
                     # Apply half Kempe loop color switching (c1, c3)
-                    #
                     apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c1, c1, c3)
                     end_of_f5_restore = True
 
                     # Save the max
-                    #
                     stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
 
                     # Update stats
-                    #
                     stats['CASE-F5-C1==C2-SameKempeLoop-C1-C3'] += 1
                     logger.info("END: CASE-F5-C1==C2-SameKempeLoop-C1-C3")
 
@@ -1944,16 +1812,13 @@ while is_the_end_of_the_rebuild_process is False:
                     logger.info("BEGIN: CASE-F5-C1==C2-SameKempeLoop-C1-C4")
 
                     # Apply half Kempe loop color switching (c2==c1, c4)
-                    #
                     apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c1, c1, c4)
                     end_of_f5_restore = True
 
                     # Save the max
-                    #
                     stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
 
                     # Update stats
-                    #
                     stats['CASE-F5-C1==C2-SameKempeLoop-C1-C4'] += 1
                     logger.info("END: CASE-F5-C1==C2-SameKempeLoop-C1-C4")
 
@@ -1962,22 +1827,18 @@ while is_the_end_of_the_rebuild_process is False:
                 # NOTE:
                 # - Next comment was true, but not useful:
                 #   - In case e1 and e2 are not on the same Kempe loop (c1, c2), the swap of c2, c1 at e2 will give the the first case
-                #
                 if are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c2):
 
                     logger.info("BEGIN: CASE-F5-C1!=C2-SameKempeLoop-C1-C4")
 
                     # Apply half Kempe loop color switching (c1, c2)
-                    #
                     apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c2, c1, c2)
                     end_of_f5_restore = True
 
                     # Save the max
-                    #
                     stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
 
                     # Update stats
-                    #
                     stats['CASE-F5-C1!=C2-SameKempeLoop-C1-C2'] += 1
 
                     logger.info("END: CASE-F5-C1!=C2-SameKempeLoop-C1-C2")
@@ -1985,16 +1846,13 @@ while is_the_end_of_the_rebuild_process is False:
             # Try random switches around the graph for a random few times
             #
             # TODO: If the switch didn't solve the problem, reset the color and try another random switch. I need to verify if a single switch may fix am impasse
-            #
             if end_of_f5_restore is False:
 
                 # Attempts to change (swap) something in the graph
-                #
                 stats['TOTAL_RANDOM_KEMPE_SWITCHES'] += 1
                 i_attempt += 1
 
                 # Useful to try to verify if the number of switches may be limited. I need to verify if a single switch may fix all impasses
-                #
                 if i_attempt > 1:
 
                     # Restore previous coloring, at the beginning of the loop to fix this impasse
@@ -2022,33 +1880,27 @@ while is_the_end_of_the_rebuild_process is False:
                 # restore_color_two = color_of_the_random_edge
 
                 # Only for debug: which map is causing this impasse?
-                #
                 if i_attempt == 1000:
                     the_colored_graph.allow_multiple_edges(False)  # At this point there are no multiple edge
                     export_graph(the_colored_graph, "debug.really_bad_case")
                     logger.error("ERROR: Infinite loop. Chech the debug.really_bad_case.* files")
 
                     # This is used as a sentinel to use the runs.bash script
-                    #
                     open("error.txt", 'a').close()
                     exit(-1)
 
         # END F5 has been restored
-        #
         logger.info("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
 
     # Separator
-    #
     logger.info("")
 
     # After all cases
-    #
     if not is_well_colored(the_colored_graph):
         logger.error("Unexpected condition (coloring is not valid). Mario you'd better go back to paper or learn to code")
         exit(-1)
 
     # If no other edges are to be restored, then I've done
-    #
     if len(ariadne_string) == 0:
         is_the_end_of_the_rebuild_process = True
 
@@ -2078,7 +1930,6 @@ logger.info("------------------------------------------")
 # the_colored_graph.allow_multiple_edges(False)  # At this point there are no multiple edge
 
 # Check if the recreated graph is isomorphic to the original
-#
 logger.info("BEGIN: Check if isomorphic")
 is_isomorphic = the_graph.is_isomorphic(the_colored_graph)
 logger.info("END: Check if isomorphic")
@@ -2098,12 +1949,10 @@ logger.info("END: Show the restored and 4 colored map")
 logger.info("----------------------------------------")
 
 # Save the output graph
-#
 if args.output is not None:
     export_graph(the_colored_graph, args.output)
 
 # Print statistics
-#
 print_stats(stats)
 
 exit(0)

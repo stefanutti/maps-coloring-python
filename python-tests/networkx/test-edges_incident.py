@@ -9,6 +9,8 @@ G.add_edge(2,1,key="green")
 G.add_edge(2,3,key="blue")
 G.add_edge(3,2,key="green")
 
+G.is_multigraph()
+
 print(G.edges(1))
 print(G.edges(data=True))
 print(G.edges(keys=True))

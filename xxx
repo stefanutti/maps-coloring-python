@@ -9,6 +9,9 @@ the_colored_graph.allow_loops(False)
 the_colored_graph.add_edge(v1, v2, "red")
     NEW: the_colored_graph.add_edge(v1, v2, key="red")
 
+graph.is_regular(3)
+    NEW: ???
+
 # Da sistemare: fanno la stessa cosa
 #
 the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
@@ -21,6 +24,7 @@ the_colored_graph.set_edge_label(vertex_to_join_near_v1_on_the_face, vertex_to_j
              g.add_edge(u, v, key=new_color)
 
 the_colored_graph.edge_iterator(labels = True) # Usato solo nel logging
+    NEW: Non necessario
 
 # Da sistemare: Togliere [] nella chiamata: "[vertex_to_join_near_v2_on_the_face]" --> "vertex_to_join_near_v2_on_the_face"
 # TBV: Verify if labels = False is needed
@@ -33,7 +37,7 @@ the_colored_graph.random_edge(labels = False)
     NEW: random.choice(list(the_colored_graph.edges))
 
 the_colored_graph.has_multiple_edges():
-    NEW: xxx
+    NEW: Not used - has been commented
 
 the_colored_graph.allow_multiple_edges(True)  # During the process I need this set to true
     NEW: This is already like this for MultiGraph & Networkx

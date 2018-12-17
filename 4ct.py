@@ -475,8 +475,9 @@ def apply_half_kempe_loop_color_switching(graph, ariadne_step, color_at_v1, colo
     v2_not_on_the_face = ariadne_step[6]
 
     # I broke the cycle to apply the half Kempe chain color swapping
-    graph.delete_edge((v1_on_the_face, v1_not_on_the_face, color_at_v1))
-    graph.delete_edge((v2_on_the_face, v2_not_on_the_face, color_at_v2))
+    # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+    graph.delete_edge(v1_on_the_face, v1_not_on_the_face, color_at_v1)
+    graph.delete_edge(v2_on_the_face, v2_not_on_the_face, color_at_v2)
     graph.add_edge(v1, v1_on_the_face, color_at_v1)
     graph.add_edge(v2, v2_on_the_face, color_at_v2)
 
@@ -1519,7 +1520,8 @@ while is_the_end_of_the_rebuild_process is False:
         if logger.isEnabledFor(logging.DEBUG): logger.debug("new_multiedge_color_one: %s, new_multiedge_color_two: %s", new_multiedge_color_one, new_multiedge_color_two)
 
         # Delete the edge
-        the_colored_graph.delete_edge((vertex_to_join_near_v1, vertex_to_join_near_v2, previous_edge_color))
+        # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+        the_colored_graph.delete_edge(vertex_to_join_near_v1, vertex_to_join_near_v2, previous_edge_color)
 
         # Restore the previous edge
         the_colored_graph.add_edge(v1, vertex_to_join_near_v1, previous_edge_color)
@@ -1579,8 +1581,9 @@ while is_the_end_of_the_rebuild_process is False:
 
         # Delete the edges
         # Since e1 and e2 may be the same multiedge or maybe separately on different multiedge, I remove them using also the "label" parameter
-        the_colored_graph.delete_edge((vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1))
-        the_colored_graph.delete_edge((vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2))
+        # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+        the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+        the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
 
         # Restore the previous edge
         the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, previous_edge_color_at_v2)
@@ -1631,8 +1634,9 @@ while is_the_end_of_the_rebuild_process is False:
 
             # CASE: F4 SUBCASE: Same color at v1 and v2
             # Since edges at v1 and v2 are on the same Kempe cycle (with the top edge), I can also avoid the kempe chain color switching, since in this case the chain is made of three edges
-            the_colored_graph.delete_edge((vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1))
-            the_colored_graph.delete_edge((vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2))
+            # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+            the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+            the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
 
             # Kempe chain color swap is done manually since the chain is only three edges long
             the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, edge_color_of_top_edge)
@@ -1673,8 +1677,9 @@ while is_the_end_of_the_rebuild_process is False:
                 # Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
                 #
                 # I broke the cycle to apply the half Kempe chain color swapping
-                the_colored_graph.delete_edge((vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1))
-                the_colored_graph.delete_edge((vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2))
+                # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+                the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+                the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
                 the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, previous_edge_color_at_v1)
                 the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v2)
 
@@ -1707,8 +1712,9 @@ while is_the_end_of_the_rebuild_process is False:
                 previous_edge_color_at_v1 = previous_edge_color_at_v2
 
                 # CASE: F4, SUBCASE: The two edges are now on the same Kempe cycle
-                the_colored_graph.delete_edge((vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1))
-                the_colored_graph.delete_edge((vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2))
+                # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+                the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+                the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
 
                 # Kempe chain color swap is done manually since the chain is only three edges long
                 the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, edge_color_of_top_edge)
@@ -1753,8 +1759,9 @@ while is_the_end_of_the_rebuild_process is False:
         # I have to get the two edges that are on top
         # These are two edges that have near_v1_on_the_face and near_v2_on_the_face and a shared vertex
         # First thing: I need to get the vertex_in_the_top_middle
-        edges_at_vertices_near_v1_on_the_face = the_colored_graph.edges_incident([vertex_to_join_near_v1_on_the_face], labels = False)
-        edges_at_vertices_near_v2_on_the_face = the_colored_graph.edges_incident([vertex_to_join_near_v2_on_the_face], labels = False)
+        # Removed the form with the [] (list) from the edges_incident() when there is only one item in the list 
+        edges_at_vertices_near_v1_on_the_face = the_colored_graph.edges_incident(vertex_to_join_near_v1_on_the_face, labels = False)
+        edges_at_vertices_near_v2_on_the_face = the_colored_graph.edges_incident(vertex_to_join_near_v2_on_the_face, labels = False)
         tmp_v1 = [item for sublist in edges_at_vertices_near_v1_on_the_face for item in sublist]
         tmp_v1.remove(vertex_to_join_near_v1_not_on_the_face)
         tmp_v2 = [item for sublist in edges_at_vertices_near_v2_on_the_face for item in sublist]

@@ -1197,7 +1197,6 @@ while is_the_end_of_the_reduction_process is False:
 
     # Select a face < F6
     # Since faces less then 6 always exist for any graph (Euler) AND faces are sorted by their length, I can take the first one
-    #
     f1 = g_faces[0]
     len_of_the_face_to_reduce = len(f1)
 
@@ -1224,8 +1223,9 @@ while is_the_end_of_the_reduction_process is False:
         if logger.isEnabledFor(logging.DEBUG): logger.debug("edge_to_remove: %s", edge_to_remove)
         if logger.isEnabledFor(logging.DEBUG): logger.debug("rotated_edge_to_remove: %s", rotated_edge_to_remove)
 
-        # The selected edge does not have to be facing the ocean
-        # I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
+        # TODO:
+        # - It would be better not to select an edge (to remove) if it belongs to the ocean
+        # - I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
         # xxx if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
 
         # If F2, the rotated edge appears twice in the list of faces

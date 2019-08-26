@@ -1177,32 +1177,31 @@ while is_the_end_of_the_reduction_process is False:
     #
     # TODO:
     # - I don't have to select an edge to remove if it belongs to the ocean
-    if f2_exist is True:
-        if len(g_faces[0]) != 2:
-            f1 = next((f for f in g_faces if len(f) == 2 if f != g_faces[-1]),
-                      next((f for f in g_faces if len(f) == 3 if f != g_faces[-1]),
-                           next((f for f in g_faces if len(f) == 4 if f != g_faces[-1]),
-                                next((f for f in g_faces if len(f) == 5 if f != g_faces[-1]),
-                                     g_faces[0]))))
-        else:
-            f1 = g_faces[0]
-    else:
-        if len(g_faces[0]) != 3:
-            f1 = next((f for f in g_faces if len(f) == 3 if f != g_faces[-1]),
-                      next((f for f in g_faces if len(f) == 4 if f != g_faces[-1]),
-                           next((f for f in g_faces if len(f) == 5 if f != g_faces[-1]),
-                                g_faces[0])))
-        else:
-            f1 = g_faces[0]
+    # if f2_exist is True:
+    #     if len(g_faces[0]) != 2:
+    #         f1 = next((f for f in g_faces if len(f) == 2 if f != g_faces[-1]),
+    #                   next((f for f in g_faces if len(f) == 3 if f != g_faces[-1]),
+    #                        next((f for f in g_faces if len(f) == 4 if f != g_faces[-1]),
+    #                             next((f for f in g_faces if len(f) == 5 if f != g_faces[-1]),
+    #                                  g_faces[0]))))
+    #     else:
+    #         f1 = g_faces[0]
+    # else:
+    #     if len(g_faces[0]) != 3:
+    #         f1 = next((f for f in g_faces if len(f) == 3 if f != g_faces[-1]),
+    #                   next((f for f in g_faces if len(f) == 4 if f != g_faces[-1]),
+    #                        next((f for f in g_faces if len(f) == 5 if f != g_faces[-1]),
+    #                             g_faces[0])))
+    #     else:
+    #         f1 = g_faces[0]
 
+    # Select a face < F6
+    # Since faces less then 6 always exist for any graph (Euler) AND faces are sorted by their length, I can take the first one
+    #
+    f1 = g_faces[0]
     len_of_the_face_to_reduce = len(f1)
 
     logger.info("BEGIN %s: Search the right edge to remove (case: %s)", i_global_counter, len_of_the_face_to_reduce)
-
-    # Assert
-    if f1 == g_faces[-1]:
-        logger.error("Unexpected condition (ocean selected). Mario you'd better go back to paper")
-        exit(-1)
 
     # Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected
     is_the_edge_to_remove_found = False
@@ -1227,7 +1226,7 @@ while is_the_end_of_the_reduction_process is False:
 
         # The selected edge does not have to be facing the ocean
         # I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
-        # if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
+        # xxx if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
 
         # If F2, the rotated edge appears twice in the list of faces
         if len_of_the_face_to_reduce == 2:
@@ -1254,7 +1253,7 @@ while is_the_end_of_the_reduction_process is False:
             if logger.isEnabledFor(logging.DEBUG): logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
 
         if logger.isEnabledFor(logging.DEBUG): logger.debug("END %s: test the %s edge", i_global_counter, i_edge)
-        # else:
+        # xxx else:
         #     # Skip to the next edge, this is not good
         #     i_edge += 1
 
@@ -1383,6 +1382,18 @@ while is_the_end_of_the_reduction_process is False:
     # END of main loop (-1 because the counte has been just incremented)
     logger.info("END %s: Main loop", i_global_counter)
     logger.info("")
+
+    # A final sort will reorder the list for the next cycle (I need to process faces with 2 or 3 edges first, to avoid bad conditions ahead)
+    if f2_exist is True:
+        if len(g_faces[0]) != 2:
+            f_temp = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+            g_faces.remove(f_temp)
+            g_faces.insert(0, f_temp)
+    else:
+        if len(g_faces[0]) != 3:
+            f_temp = next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0])))
+            g_faces.remove(f_temp)
+            g_faces.insert(0, f_temp)
 
     # If not reduced, continue
     if is_the_end_of_the_reduction_process is False:

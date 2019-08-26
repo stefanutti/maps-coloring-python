@@ -80,8 +80,8 @@ except ImportError:
         print("using package pydot")
     except ImportError:
         print()
-        print("Both pygraphviz and pydot were not found ")
-        print("see  https://networkx.github.io/documentation/latest/reference/drawing.html")
+        print("Both pygraphviz and pydot were not found")
+        print("see https://networkx.github.io/documentation/latest/reference/drawing.html")
         print()
         raise
 

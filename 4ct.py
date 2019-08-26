@@ -1227,36 +1227,36 @@ while is_the_end_of_the_reduction_process is False:
 
         # The selected edge does not have to be facing the ocean
         # I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
-        if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
+        # if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
 
-            # If F2, the rotated edge appears twice in the list of faces
-            if len_of_the_face_to_reduce == 2:
+        # If F2, the rotated edge appears twice in the list of faces
+        if len_of_the_face_to_reduce == 2:
 
-                # For F2 faces, edges will appear twice in all the edges lists of all faces
-                temp_f2 = [face for face in g_faces if rotated_edge_to_remove in face]
-                temp_f2.remove(f1)
-                f2 = temp_f2[0]
-                f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
-            else:
-                f2 = next(face for face in g_faces if rotated_edge_to_remove in face)
-                f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
-
-            # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries, but separates a portion of the same land
-            if is_the_graph_one_edge_connected(f1_plus_f2_temp) is True:
-
-                # Skip to the next edge, this is not good
-                i_edge += 1
-            else:
-                is_the_edge_to_remove_found = True
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("Edge to remove found :-) %s", edge_to_remove)
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("f1: %s", f1)
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("f2: %s", f2)
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
-
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("END %s: test the %s edge", i_global_counter, i_edge)
+            # For F2 faces, edges will appear twice in all the edges lists of all faces
+            temp_f2 = [face for face in g_faces if rotated_edge_to_remove in face]
+            temp_f2.remove(f1)
+            f2 = temp_f2[0]
+            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
         else:
+            f2 = next(face for face in g_faces if rotated_edge_to_remove in face)
+            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
+
+        # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries, but separates a portion of the same land
+        if is_the_graph_one_edge_connected(f1_plus_f2_temp) is True:
+
             # Skip to the next edge, this is not good
             i_edge += 1
+        else:
+            is_the_edge_to_remove_found = True
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("Edge to remove found :-) %s", edge_to_remove)
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("f1: %s", f1)
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("f2: %s", f2)
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
+
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("END %s: test the %s edge", i_global_counter, i_edge)
+        # else:
+        #     # Skip to the next edge, this is not good
+        #     i_edge += 1
 
     # Check if math is right :-)
     if is_the_edge_to_remove_found is False:
@@ -1384,7 +1384,7 @@ while is_the_end_of_the_reduction_process is False:
     logger.info("END %s: Main loop", i_global_counter)
     logger.info("")
 
-    # Something has been done! Plot it
+    # If not reduced, continue
     if is_the_end_of_the_reduction_process is False:
         i_global_counter += 1
 

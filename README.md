@@ -34,62 +34,30 @@ Some videos of the running Python and Java programs:
 
 ## Installation
 
-You can decide to use a pre-configured Docker container or create a Docker container and then install the software in it or just install the software needed to execute the program.
+To simplify the testing I used docker
 
-## Pre-configured docker container (skip all next steps up to "Run 4ct.py")
-- https://hub.docker.com/r/stefanutti/4ct
+## Pre-requìrements
+- python3
+- sage
+- networkx
 
-## Prepare a docker machine
-- https://github.com/stefanutti/unix-utils
+## Download a pre-configured dockerized sage docker instance
+- docker run -it sagemath/sagemath:latest bash
+  - sudo apt-get update
+  - sudo apt-get install python3
+  - sudo apt-get install git
+  - apt-get install vim
+  - ... ?
 
-### Next steps will build a container made of (+ all dependencies):
-- Ubuntu 16.04 LTS from https://store.docker.com/images/ubuntu
-- https://github.com/tensorflow/tensorflow 1.1.0 (needed to use ai against the 4cp)
-- http://www.sagemath.org (not installed because too large: read the instructions on github)
 - git clone https://github.com/stefanutti/maps-coloring-python (read the instructions on github)
 
-### Install - ubuntu docker container
-- docker run -it --name 4ct-temp ubuntu:16.04 bash
-- docker commit 4ct-temp stefanutti/4ct:1.0 (commit the container to create a personal new image to work with)
-- docker tag 4ct-temp stefanutti/4ct:latest
-- docker rm 4ct-temp
-- docker run -it -p 8888:8888 -p 6006:6006 --name 4ct -e PASSWORD=4ct -v /tmp/.X11-unix:/tmp/.X11-unix -v /docker-mounts:/docker-mounts -e DISPLAY=unix$DISPLAY --device /dev/dri --device /dev/snd stefanutti/4ct:latest bash
-  - /docker-mounts/SageMath is a dir in the hosting machine that contains the sage product
-    - This is done to avoid the re-installation of sage everytime I need to rebuild the docker container
-
-### Install - utilities
-- apt-get update
-- apt-get install vim
-- apt-get install git
-- apt-get upgrade
-
-### Install - Python
-- apt-get install python-pip python-dev
-
-### Install - Sage (sage download is about 1.3 GB compressed and more than 4 GB when uncompressed)
-- Note:
-  - The python project needs sage to make the embedding of a graph. This dependency will be removed in the future
-- Read the installation info from here: http://www.sagemath.org/
-  - tar xvf <sage file name>.tar in /docker-mounts
-- Into the Docker container
-  - ln -s /docker-mounts/SageMath/sage /usr/local/bin/sage
-  - ./sage to test it (the first execution will configure sage)
-    - If ERROR: ImportError: libgfortran.so.3: cannot open shared object file: No such file or directory
-      - apt-get update
-      - apt-get install build-essential
-      - apt-get upgrade
-      - apt-get install libgfortran3
-    
 ### Download personal repo
 - cd
 - mkdir prj
 - cd prj
 - git clone https://github.com/stefanutti/maps-coloring-python.git
-- git clone https://github.com/stefanutti/unix-utils.git
 
 ## Run 4ct.py
-- cd
-- source ./prj/maps-coloring-python/set_environment.sh
 - cd prj
 - cd maps-coloring-python
 - sage 4ct.py --help

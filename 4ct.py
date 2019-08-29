@@ -950,7 +950,7 @@ if args.random is not None:
     # I cannot use the output file because it has different ordering of edges and vertices, and the execution would run differently (I experimented it on my skin)
     # The export function saves the graph using a different order for the edges (even if the graph are exactly the same graph)
     the_graph.export_to_file("debug.temp.edgelist", format = "edgelist")
-    the_graph = Graph(networkx.read_edgelist("debug.temp.edgelist"))
+    the_graph = Graph(networkx.read_edgelist("debug.temp.edgelist", create_using=networkx.MultiGraph()), multiedges=True)
     the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
     the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
     the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
@@ -960,7 +960,7 @@ if args.random is not None:
 # Input - Load a graph stored in edgelist mode
 if args.input is not None:
     logger.info("BEGIN: Load the graph from the external file: %s", args.input)
-    the_graph = Graph(networkx.read_edgelist(args.input))
+    the_graph = Graph(networkx.read_edgelist(args.input, create_using=networkx.MultiGraph()), multiedges=True)
     the_graph.relabel()  # I need to relabel it
     the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
     the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal

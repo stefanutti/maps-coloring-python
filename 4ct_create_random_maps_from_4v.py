@@ -127,9 +127,9 @@ def add_vertex_to_face(face_to_update, edge_to_search, vertex_to_insert):
     return new_face_to_return
 
 
-########################
+############
 # Statistics
-########################
+############
 def map_statistics(g_faces):
 
     # Return the new faces
@@ -173,7 +173,7 @@ def map_statistics(g_faces):
 
 # Set logging facilities: LEVEL XXX
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 logging_stream_handler = logging.StreamHandler(sys.stdout)
 logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))
 logger.addHandler(logging_stream_handler)
@@ -183,11 +183,12 @@ logger.addHandler(logging_stream_handler)
 ###############
 # -f <faces> -o <file>
 parser = argparse.ArgumentParser(description='4ct args')
-parser.add_argument("-v", "--vertices", help="Stop at v vertices", type=int, default=10, required=True)
+parser.add_argument("-v", "--vertices", help="Stop at v vertices (min=4)", type=int, default=10, required=True)
 parser.add_argument("-o", "--output", help="Save a json", required=False)
 args = parser.parse_args()
 
 # This is the base map - See drawing: 07/Apr/2018, pag 0/n
+# https://4coloring.files.wordpress.com/2018/04/map-creation-0-n.jpg
 g_faces = [[(1, 2), (2, 3), (3, 1)], [(1, 3), (3, 4), (4, 1)], [(1, 4), (4, 2), (2, 1)], [(2, 4), (4, 3), (3, 2)]]
 
 # Basic tests

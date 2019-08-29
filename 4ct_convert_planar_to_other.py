@@ -65,18 +65,18 @@ import sys
 import logging
 import json
 import networkx as nx
+from networkx.drawing.nx_agraph import write_dot
+from networkx.readwrite.edgelist import write_edgelist
 
 # and the following code block is not needed
 # but we want to see which module is used and
 # if and why it fails
 try:
     import pygraphviz
-    from networkx.drawing.nx_agraph import write_dot
     print("using package pygraphviz")
 except ImportError:
     try:
         import pydot
-        from networkx.drawing.nx_pydot import write_dot
         print("using package pydot")
     except ImportError:
         print()
@@ -93,6 +93,8 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     # Possibilities: adjlist, dot, edgelist, gexf, gml, graphml, multiline_adjlist, pajek, yaml
     write_dot(graph_to_export, name_of_file_without_extension + ".dot")
     logger.info("File saved: %s", name_of_file_without_extension + ".dot")
+    write_edgelist(graph_to_export, name_of_file_without_extension + ".edgelist")
+    logger.info("File saved: %s", name_of_file_without_extension + ".edgelist")
 
     return
 

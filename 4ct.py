@@ -962,9 +962,9 @@ if args.input is not None:
     logger.info("BEGIN: Load the graph from the external file: %s", args.input)
     the_graph = Graph(networkx.read_edgelist(args.input, create_using=networkx.MultiGraph()), multiedges=True)
     # TODO: Why did I need to relabel them?
-    the_graph.relabel()  # I need to relabel it
-    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
-    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
+    # the_graph.relabel()  # I need to relabel it
+    # the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
+    # the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
     logger.info("END: Load the graph from the external file: %s", args.input)
 
 # Planar - Load a planar embedding of the graph
@@ -1016,7 +1016,7 @@ check_graph_at_beginning(the_graph)
 
 # Compute the embedding only if it was non loaded withe the -p (planar) parameter
 # TODO: Why did I need an embedding here?
-if args.planar is None or args.input is None:
+if args.planar is None:
     logger.info("BEGIN: Embed the graph into the plane (Sage function is_planar(set_embedding = True)). It may take very long time depending on the number of vertices")
     stats['time_PLANAR_EMBEDDING_BEGIN'] = time.ctime()
     void = the_graph.is_planar(set_embedding = True, set_pos = True)
@@ -1036,8 +1036,8 @@ if args.planar is None or args.input is None:
 # This is because the elaboration is faster and I don't have to deal with the limit of sage about multiple edges and loops
 # List it is sorted: means faces with len less than 6 are placed at the beginning
 
-# Save the face() representation only if it was non loaded with the -p (planar) parameter or -i
-if args.planar is None or args.input is None:
+# Save the face() representation only if it was non loaded with the -p (planar) parameter
+if args.planar is None:
     temp_g_faces = the_graph.faces()
     temp_g_faces.sort(key = len)
     g_faces = [face for face in temp_g_faces]

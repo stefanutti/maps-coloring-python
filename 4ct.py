@@ -961,13 +961,14 @@ if args.random is not None:
 if args.input is not None:
     logger.info("BEGIN: Load the graph from the external file: %s", args.input)
     the_graph = Graph(networkx.read_edgelist(args.input, create_using=networkx.MultiGraph()), multiedges=True)
-    # TODO: Why did I need to relabel them?
+    # TODO: Why did I need to relabel them? For now I'll commented the line
     # the_graph.relabel()  # I need to relabel it
-    # the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
-    # the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
+    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
+    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
     logger.info("END: Load the graph from the external file: %s", args.input)
 
 # Planar - Load a planar embedding of the graph
+# Warning: Sage NotImplementedError: cannot compute with embeddings of multiple-edged or looped graphs
 if args.planar is not None:
     logger.info("BEGIN: Load the planar embedding of a graph (output of the gfaces() function): %s", args.planar)
     # with open(args.planar, 'r') as fp: g_faces = pickle.load(fp)

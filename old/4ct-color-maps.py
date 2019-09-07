@@ -1081,44 +1081,10 @@ ariadne_string = []
 is_the_end_of_the_reduction_process = False
 f2_exist = True  # It is set to true only to force the search of F2 at the beginning of the algorithm
 i_global_counter = 0
-while is_the_end_of_the_reduction_process is False:
 
-    logger.info("BEGIN %s: Main loop", i_global_counter)
 
-    # Deep debug: Log all faces
-    #
-    # log_faces(g_faces)
-
-    # f1, f2, edge_to_remove, rotated_edge_to_remove, len_of_the_face_to_reduce will be valid during the rest of this "while" loop after the first block ("Select an edge") has been executed
-    #
-    selected_face = []
-    f1 = []
-    f2 = []
-    edge_to_remove = ()
-    rotated_edge_to_remove = ()
-    f1_plus_f2_temp = []  # It is used to speed up computation. At the beginning is used to see it the graph is_the_graph_one_edge_connected() and then reused
-
-    # Select a face < F6
-    # Since faces less then 6 always exist for any graph (Euler), I can take the first face that I find with that characteristics (<6)
-    #
-    # NOTE:
-    # - I tried to process F5 first but the problem is that you can risk to end up with particular cases like an F2 at the end
-    #   f1 = next((face for face in g_faces if len(face) == 5), next((face for face in g_faces if len(face) == 2), g_faces[0]))
-    #
-    if f2_exist is True:
-        if len(g_faces[0]) != 2:
-            f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
-        else:
-            f1 = g_faces[0]
-    else:
-        if len(g_faces[0]) != 3:
-            f1 = next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0])))
-        else:
-            f1 = g_faces[0]
-
-    len_of_the_face_to_reduce = len(f1)
-
-    logger.info("BEGIN %s: Search the right edge to remove (case: %s)", i_global_counter, len_of_the_face_to_reduce)
+def search_aaa():
+    global edge_to_remove, rotated_edge_to_remove, f2, f1_plus_f2_temp
 
     # Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected
     #
@@ -1170,16 +1136,58 @@ while is_the_end_of_the_reduction_process is False:
             if logger.isEnabledFor(logging.DEBUG): logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
 
         if logger.isEnabledFor(logging.DEBUG): logger.debug("END %s: test the %s edge", i_global_counter, i_edge)
-
     # Check if math is right :-)
     #
     if is_the_edge_to_remove_found is False:
         logger.error("Unexpected condition (a suitable edge has not been found). Mario you'd better go back to paper")
         logger.info("For now I considered only the first face < F6. I may search the right edge in other faces < F6")
-        logger.info("Should be easy to prove that among all faces < F6, an edge exist that if removed does not make the graph 1-edge-connected")
+        logger.info(
+            "Should be easy to prove that among all faces < F6, an edge exist that if removed does not make the graph 1-edge-connected")
         exit(-1)
+    logger.info("END %s: Search the right edge to remove. Found: %s (case: %s)", i_global_counter, edge_to_remove,
+                len_of_the_face_to_reduce)
 
-    logger.info("END %s: Search the right edge to remove. Found: %s (case: %s)", i_global_counter, edge_to_remove, len_of_the_face_to_reduce)
+
+while is_the_end_of_the_reduction_process is False:
+
+    logger.info("BEGIN %s: Main loop", i_global_counter)
+
+    # Deep debug: Log all faces
+    #
+    # log_faces(g_faces)
+
+    # f1, f2, edge_to_remove, rotated_edge_to_remove, len_of_the_face_to_reduce will be valid during the rest of this "while" loop after the first block ("Select an edge") has been executed
+    #
+    selected_face = []
+    f1 = []
+    f2 = []
+    edge_to_remove = ()
+    rotated_edge_to_remove = ()
+    f1_plus_f2_temp = []  # It is used to speed up computation. At the beginning is used to see it the graph is_the_graph_one_edge_connected() and then reused
+
+    # Select a face < F6
+    # Since faces less then 6 always exist for any graph (Euler), I can take the first face that I find with that characteristics (<6)
+    #
+    # NOTE:
+    # - I tried to process F5 first but the problem is that you can risk to end up with particular cases like an F2 at the end
+    #   f1 = next((face for face in g_faces if len(face) == 5), next((face for face in g_faces if len(face) == 2), g_faces[0]))
+    #
+    if f2_exist is True:
+        if len(g_faces[0]) != 2:
+            f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+        else:
+            f1 = g_faces[0]
+    else:
+        if len(g_faces[0]) != 3:
+            f1 = next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0])))
+        else:
+            f1 = g_faces[0]
+
+    len_of_the_face_to_reduce = len(f1)
+
+    logger.info("BEGIN %s: Search the right edge to remove (case: %s)", i_global_counter, len_of_the_face_to_reduce)
+
+    search_aaa()
 
     # Remove the edge of an F2 (multiple edge)
     #

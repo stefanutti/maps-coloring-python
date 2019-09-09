@@ -1,6 +1,10 @@
 #!/usr/bin/python
 
-def f(x,y):
+def test_fun(t):
+    t += 100  # This is local
+
+
+def f(x, y):
     z = 1
     print('You called f(x,y) with the value x = ' + str(x) + ' and y = ' + str(y))
     print('x * y = ' + str(x*y))
@@ -20,3 +24,7 @@ a = 3
 f(3, a)
 print(a)  # can reach because variable z is defined in the function
 
+t = 3
+print('t: ' + str(t))
+test_fun(t)
+print('t: ' + str(t))

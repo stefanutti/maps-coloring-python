@@ -243,7 +243,7 @@ def check_graph_at_beginning(graph):
 def print_graph(graph):
     for vertex in graph.vertex_iterator():
         edges = graph.edges_incident(vertex)
-        logger.info("vertex: %s, edges: %s, is well colored: %s", vertex, edges, are_incident_edges_well_colored(graph, vertex))
+        logger.debug("vertex: %s, edges: %s, is well colored: %s", vertex, edges, are_incident_edges_well_colored(graph, vertex))
 
     return
 
@@ -765,12 +765,34 @@ def check_regularity(faces):
     return is_three_regular
 
 
+#############################################
+# Create a graph from a planar representation
+#############################################
+def create_graph_from_planar_representation(faces):
+
+    # Create the graph from the list of faces
+    flattened_egdes = [edge for face in faces for edge in face]
+
+    # TODO: This cycle remove duplicates. Two adjacent faces list at least one edge twice
+    for edge in flattened_egdes:
+        reverse_edge = (edge[1], edge[0])
+        if reverse_edge in flattened_egdes:
+            flattened_egdes.remove(reverse_edge)
+    new_graph = Graph(sparse=True)
+    new_graph.allow_loops(False)
+    new_graph.allow_multiple_edges(True)
+    for edge_to_add in flattened_egdes:
+        new_graph.add_edge(edge_to_add)
+
+    return new_graph
+
+
 ###################
 # Log faces (DEBUG)
 ###################
 def log_faces(faces):
     for face in faces:
-        logger.info("Face: %s", face)
+        logger.debug("Face: %s", face)
 
     return
 
@@ -882,7 +904,7 @@ VALID_COLORS = ['red', 'green', 'blue']
 
 # Set logging facilities: LEVEL XXX
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logging_stream_handler = logging.StreamHandler(sys.stdout)
 logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))
 logger.addHandler(logging_stream_handler)
@@ -894,9 +916,9 @@ logger.addHandler(logging_stream_handler)
 parser = argparse.ArgumentParser(description = '4ct args')
 
 group_input = parser.add_mutually_exclusive_group(required = False)
-group_input.add_argument("-r", "--random", help = "Random graph: dual of a triangulation of N vertices", type = int, default = 100)
+group_input.add_argument("-r", "--random", help = "Random graph: dual of a triangulation of N vertices", type = int)
 group_input.add_argument("-i", "--input", help = "Load a .edgelist file (networkx)")
-group_input.add_argument("-p", "--planar", help = "Load a .json planar embedding of the graph G.faces() - Automatically saved at each run")
+group_input.add_argument("-p", "--planar", help = "Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
 parser.add_argument("-o", "--output", help = "Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required = False)
 
 args = parser.parse_args()
@@ -940,6 +962,10 @@ stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
 if args.random is not None:
     logger.info("BEGIN: Create a random planar graph from the dual of a RandomTriangulation (Sage function) of %s vertices. It may take very long time depending on the number of vertices", args.random)
     number_of_vertices_for_the_random_triangulation = args.random
+
+    if number_of_vertices_for_the_random_triangulation < 9:
+        logger.warning("RandomTriangulation sometimes fails with n < 9")
+
     tmp_g = graphs.RandomTriangulation(number_of_vertices_for_the_random_triangulation)  # Random triangulation on the surface of a sphere
     void = tmp_g.is_planar(set_embedding = True, set_pos = True)  # Cannot calculate the dual if the graph has not been embedded
     the_graph = graph_dual(tmp_g)  # The dual of a triangulation is a 3-regular planar graph
@@ -980,21 +1006,8 @@ if args.planar is not None:
     # Saved as: [[[3,2],[3,5]],[[2,4],[1,3],[1,3]], ... ,[[1,2],[3,4],[6,7]]]
     g_faces = [[tuple(l) for l in L] for L in g_faces]
 
-    # Create the graph from the list of faces
-    # I need the graph only to check_graph_at_beginning
-    flattened_egdes = [edge for face in g_faces for edge in face]
-    # TODO: This cycle remone duplicates. Two adjacent faces list at least one edge twice
-    for edge in flattened_egdes:
-        reverse_edge = (edge[1], edge[0])
-        if reverse_edge in flattened_egdes:
-            flattened_egdes.remove(reverse_edge)
-
-    the_graph = Graph(sparse = True)
-    the_graph.allow_loops(False)
-    the_graph.allow_multiple_edges(True)
-
-    for edge_to_add in flattened_egdes:
-        the_graph.add_edge(edge_to_add)
+    # I need the graph here only to check_graph_at_beginning
+    the_graph = create_graph_from_planar_representation(g_faces)
 
     print_graph(the_graph)
     logger.info("END: Load the planar embedding of a graph (output of the gfaces() function): %s", args.planar)
@@ -1053,7 +1066,7 @@ if args.planar is None:
     #
     # OLD: with open("debug.input_planar_g_faces.serialized", 'wb') as fp: pickle.dump(g_faces, fp)
     # OLD: with open("debug.input_planar_g_faces.embedding_list", 'wb') as fp: fp.writelines(str(line) + '\n' for line in g_faces)
-    with open("debug.input_planar_g_faces.json", 'wb') as fp: json.dump(g_faces, fp)
+    with open("debug.input_planar_g_faces.planar", 'wb') as fp: json.dump(g_faces, fp)
 
 # Override creation (mainly to debug previously elaborated maps)
 #
@@ -1148,20 +1161,21 @@ stats['time_ELABORATION'] = datetime.now()
 
 # It will contain items made of lists of values to find the way back to the original graph (Ariadne's String Myth)
 ariadne_string = []
+ariadne_step = []
+
+# Start the reduction process
+is_the_end_of_the_reduction_process = False
+i_global_counter = 0
 
 # If The graph is already reduced
 #
-if len(g_faces) == 4:
+if len(g_faces) == 3:
 
     # Graph already reduced
     is_the_end_of_the_reduction_process = True
     if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph is already reduced")
     log_faces(g_faces)
 
-# Start the reduction process
-is_the_end_of_the_reduction_process = False
-f2_exist = True  # It is set to true only to force the search of F2 at the beginning of the algorithm
-i_global_counter = 0
 while is_the_end_of_the_reduction_process is False:
 
     logger.info("BEGIN %s: Main loop", i_global_counter)
@@ -1191,7 +1205,8 @@ while is_the_end_of_the_reduction_process is False:
     f1 = g_faces[0]
     len_of_the_face_to_reduce = len(f1)
 
-    logger.info("BEGIN %s: Search the right edge to remove (case: %s)", i_global_counter, len_of_the_face_to_reduce)
+    logger.info("BEGIN %s: Search the right edge to remove (face len: %s)", i_global_counter, len_of_the_face_to_reduce)
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected face: %s", f1)
 
     # Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected
     is_the_edge_to_remove_found = False
@@ -1287,16 +1302,10 @@ while is_the_end_of_the_reduction_process is False:
         # [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
         ariadne_step = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
         ariadne_string.append(ariadne_step)
-        logger.info("ariadne_step: %s", ariadne_step)
+        logger.debug("ariadne_step: %s", ariadne_step)
 
         # Do one thing at a time and return at the beginning of the main loop
         logger.info("END %s: Remove a multiple edge (case: %s)", i_global_counter, len_of_the_face_to_reduce)
-
-        # f2_exist?
-        if len(f1_plus_f2_temp) == 2 or len(third_face_to_update) == 2:
-            f2_exist = True
-        else:
-            f2_exist = False
 
     # Remove an F3 or F4 or F5
     else:
@@ -1339,16 +1348,10 @@ while is_the_end_of_the_reduction_process is False:
         # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
         ariadne_step = [len_of_the_face_to_reduce, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
         ariadne_string.append(ariadne_step)
-        logger.info("ariadne_step: %s", ariadne_step)
+        logger.debug("ariadne_step: %s", ariadne_step)
 
         # Do one thing at a time and return at the beginning of the main loop
         logger.info("END %s: Remove an F3, F4 or F5 (case: %s)", i_global_counter, len_of_the_face_to_reduce)
-
-        # f2_exist? It will speed up the check later on
-        if len(f1_plus_f2_temp) == 2 or len(third_face_to_update) == 2 or len(fourth_face_to_update) == 2:
-            f2_exist = True
-        else:
-            f2_exist = False
 
     # Check 3-regularity (I commented this slow procedure: I did it run for a while, now I feel confident about this first part of the code)
     #
@@ -1360,7 +1363,7 @@ while is_the_end_of_the_reduction_process is False:
     # If the graph has been completely reduced, it will be a graph of four faces (an island with three lands) and six edges ... easily 3-edge-colorable
     # The graph is that of an island perfectly slit as a pie in 120 degree slices (just to visualize it)
     # Note: With 4 faces is possible, in theory, to have other kind of maps, but since I removed always F2 faces first (multiple edge), this situation is not possible
-    if len(g_faces) == 4:
+    if len(g_faces) == 3:
 
         # Graph reduced
         is_the_end_of_the_reduction_process = True
@@ -1368,6 +1371,7 @@ while is_the_end_of_the_reduction_process is False:
         if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph has been reduced")
         if logger.isEnabledFor(logging.DEBUG): logger.debug("--------------------------")
         log_faces(g_faces)
+        with open("end.planar", 'wb') as fp: json.dump(g_faces, fp)
 
     # END of main loop (-1 because the counte has been just incremented)
     logger.info("END %s: Main loop", i_global_counter)
@@ -1438,39 +1442,31 @@ logger.info("---------------------------")
 logger.info("BEGIN: Reconstruction phase")
 logger.info("---------------------------")
 
-# At this point the graph has three faces (an island with two lands) and three edges ... easily 3-edge-colorable
-# WARNING: the color of the edges of a multiedge graph cannot be changed, so it is necessary to delete and re-insert the edge
+# At this point the graph has 3 faces (an island with 2 lands + the ocean) and 3 edges ... easily 3-edge-colorable
+# WARNING: the color of the edges of a multiedge graph cannot be changed, so during the process it is necessary to delete and re-insert edges
 the_colored_graph = Graph(sparse = True)
 the_colored_graph.allow_loops(False)
-the_colored_graph.allow_multiple_edges(True)  # During the process I need this set to true
+the_colored_graph.allow_multiple_edges(True)  # During the process I need this to be set to true
 
-# Only four vertices have to be in the graph
+# Only 2 vertices have to be in the graph
 all_vertices = [element for face in g_faces for edge in face for element in edge]
 all_vertices = sorted(set(all_vertices))
 
-for v in all_vertices:
-    logger.info("v: %s", v)
-
-if len(all_vertices) != 4:
-    logger.error("Unexpected condition (vertices left are not 4). Mario you'd better go back to paper")
+if len(all_vertices) != 2:
+    logger.error("Unexpected condition (vertices left are not 2). Mario you'd better go back to paper")
     exit(-1)
 
+# Aliases
 v1 = all_vertices[0]
 v2 = all_vertices[1]
-v3 = all_vertices[2]
-v4 = all_vertices[3]
 
-# At this point the graph is that of an island perfectly slit as a pie in 120 degree slices (just to visualize it)
-# I decided to rebuild a new graph and, at the end of the process, to check if it is isomorphic to the original
+# At this point the graph is that of an island perfectly slit in two (just to visualize it)
+# I now rebuild a new graph and, at the end of the rebuilding process, I'll check if it is isomorphic to the original
 #
-# NOTE: It is not important to create the new graph selecting a particular order for the vertices ... they would all generate exactly the same graph
-# I'll use: v1 at the center, v2, v3, v4 clockwise order (to visualize it in the mind)
+# NOTE: It is NOT important to create the new graph selecting a particular order for the vertices ... they would all generate exactly the same graph
 the_colored_graph.add_edge(v1, v2, "red")
-the_colored_graph.add_edge(v1, v3, "green")
-the_colored_graph.add_edge(v1, v4, "blue")
-the_colored_graph.add_edge(v2, v3, "blue")
-the_colored_graph.add_edge(v3, v4, "red")
-the_colored_graph.add_edge(v4, v2, "green")
+the_colored_graph.add_edge(v1, v2, "green")
+the_colored_graph.add_edge(v1, v2, "blue")
 
 # Check if I need to start the rebuilding process
 if ariadne_step == []:
@@ -1492,7 +1488,7 @@ while is_the_end_of_the_rebuild_process is False:
         # Update stats
         stats['CASE-F2-01'] += 1
 
-        logger.info("BEGIN: restore an F2 (multiple edge)")
+        logger.debug("BEGIN: restore an F2 (multiple edge)")
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
 
         v1 = ariadne_step[1]
@@ -1525,7 +1521,7 @@ while is_the_end_of_the_rebuild_process is False:
         #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
         #     exit(-1)
 
-        logger.info("END: restore an F2 (multiple edge)")
+        logger.debug("END: restore an F2 (multiple edge)")
 
     elif ariadne_step[0] == 3:
 
@@ -1533,7 +1529,7 @@ while is_the_end_of_the_rebuild_process is False:
         # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
         # Update stats
         stats['CASE-F3-01'] += 1
-        logger.info("BEGIN: restore an F3")
+        logger.debug("BEGIN: restore an F3")
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
 
         v1 = ariadne_step[1]
@@ -1588,13 +1584,13 @@ while is_the_end_of_the_rebuild_process is False:
         #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
         #     exit(-1)
 
-        logger.info("END: restore an F3")
+        logger.debug("END: restore an F3")
 
     elif ariadne_step[0] == 4:
 
         # CASE: F4
         # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        logger.info("BEGIN: restore an F4")
+        logger.debug("BEGIN: restore an F4")
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
 
         v1 = ariadne_step[1]
@@ -1618,7 +1614,7 @@ while is_the_end_of_the_rebuild_process is False:
 
             # Update stats
             stats['CASE-F4-01'] += 1
-            logger.info("BEGIN: restore an F4 - Same color at v1 and v2")
+            logger.debug("BEGIN: restore an F4 - Same color at v1 and v2")
             if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
 
             # CASE: F4 SUBCASE: Same color at v1 and v2
@@ -1650,7 +1646,7 @@ while is_the_end_of_the_rebuild_process is False:
             #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
             #     exit(-1)
 
-            logger.info("END: restore an F4 - Same color at v1 and v2")
+            logger.debug("END: restore an F4 - Same color at v1 and v2")
         else:
 
             # In this case I have to check if the edges at v1 and v2 are on the same Kempe cycle
@@ -1659,7 +1655,7 @@ while is_the_end_of_the_rebuild_process is False:
                 # Update stats
                 stats['CASE-F4-02'] += 1
 
-                logger.info("BEGIN: restore an F4 - The two edges are on the same Kempe cycle")
+                logger.debug("BEGIN: restore an F4 - The two edges are on the same Kempe cycle")
                 if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
 
                 # CASE: F4, SUBCASE: The two edges are on the same Kempe cycle
@@ -1685,14 +1681,14 @@ while is_the_end_of_the_rebuild_process is False:
                 #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
                 #     exit(-1)
 
-                logger.info("END: restore an F4 - The two edges are on the same Kempe cycle")
+                logger.debug("END: restore an F4 - The two edges are on the same Kempe cycle")
 
             else:
 
                 # Update stats
                 stats['CASE-F4-03'] += 1
 
-                logger.info("BEGIN: restore an F4 - The two edges are NOT on the same Kempe cycle")
+                logger.debug("BEGIN: restore an F4 - The two edges are NOT on the same Kempe cycle")
                 if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
 
                 # CASE: F4 SUBCASE: Worst case: The two edges are NOT on the same Kempe cycle
@@ -1728,15 +1724,15 @@ while is_the_end_of_the_rebuild_process is False:
                 #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
                 #     exit(-1)
 
-                logger.info("END: restore an F4 - The two edges are NOT on the same Kempe cycle")
+                logger.debug("END: restore an F4 - The two edges are NOT on the same Kempe cycle")
 
-        logger.info("END: restore an F4")
+        logger.debug("END: restore an F4")
 
     elif ariadne_step[0] == 5:
 
         # CASE: F5
         # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        logger.info("BEGIN: restore an F5")
+        logger.debug("BEGIN: restore an F5")
 
         v1 = ariadne_step[1]
         v2 = ariadne_step[2]
@@ -1882,14 +1878,14 @@ while is_the_end_of_the_rebuild_process is False:
                     logger.error("ERROR: Infinite loop. Chech the debug.really_bad_case.* files")
 
                     # This is used as a sentinel to use the runs.bash script
-                    open("error.txt", 'a').close()
+                    open("error-after-1000-iterations.txt", 'a').close()
                     exit(-1)
 
         # END F5 has been restored
-        logger.info("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
+        logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
 
     # Separator
-    logger.info("")
+    logger.debug("")
 
     # After all cases
     if not is_well_colored(the_colored_graph):
@@ -1927,11 +1923,14 @@ logger.info("------------------------------------------")
 
 # Check if the recreated graph is isomorphic to the original
 logger.info("BEGIN: Check if isomorphic")
-is_isomorphic = the_graph.is_isomorphic(the_colored_graph)
+
+if the_graph.is_isomorphic(the_colored_graph) is True:
+    logger.info("Recreated graph is equal to the original")
+else:
+    logger.error("Unexpected condition (recreated graph is different from the original). Mario you'd better go back to paper")
+
 logger.info("END: Check if isomorphic")
 
-if is_isomorphic is False:
-    logger.error("Unexpected condition (recreated graph is different from the original). Mario you'd better go back to paper")
 
 logger.info("BEGIN: print_graph (Original)")
 print_graph(the_graph)

@@ -904,7 +904,7 @@ VALID_COLORS = ['red', 'green', 'blue']
 
 # Set logging facilities: LEVEL XXX
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
 logging_stream_handler = logging.StreamHandler(sys.stdout)
 logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))
 logger.addHandler(logging_stream_handler)

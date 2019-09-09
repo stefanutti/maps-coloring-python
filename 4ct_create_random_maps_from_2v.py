@@ -169,7 +169,7 @@ def map_statistics(g_faces):
 
 # Set logging facilities: LEVEL XXX
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logging_stream_handler = logging.StreamHandler(sys.stdout)
 logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))
 logger.addHandler(logging_stream_handler)

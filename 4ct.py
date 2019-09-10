@@ -243,7 +243,9 @@ def check_graph_at_beginning(graph):
 def print_graph(graph):
     for vertex in graph.vertex_iterator():
         edges = graph.edges_incident(vertex)
-        logger.debug("vertex: %s, edges: %s, is well colored: %s", vertex, edges, are_incident_edges_well_colored(graph, vertex))
+        logger.info("vertex: %s, edges: %s, is well colored: %s", vertex, edges, are_incident_edges_well_colored(graph, vertex))
+
+        # if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex: %s, edges: %s, is well colored: %s", vertex, edges, are_incident_edges_well_colored(graph, vertex))
 
     return
 
@@ -280,9 +282,9 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(graph.edge_iterator(labels = True)), graph.is_regular(3))
 
         # From current edge, I'll search incident edges in one direction [0 or 1] - current_edge[direction] is a vertex
-        tmp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("tmp_next_edges_to_check: %s", tmp_next_edges_to_check)
-        edges_to_check = [(v1, v2, l) for (v1, v2, l) in tmp_next_edges_to_check if (v1, v2) != (current_edge[0], current_edge[1]) and (v2, v1) != (current_edge[0], current_edge[1])]
+        temp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("temp_next_edges_to_check: %s", temp_next_edges_to_check)
+        edges_to_check = [(v1, v2, l) for (v1, v2, l) in temp_next_edges_to_check if (v1, v2) != (current_edge[0], current_edge[1]) and (v2, v1) != (current_edge[0], current_edge[1])]
         if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex: %s, edges_to_check: %s", current_edge[direction], edges_to_check)
 
         # Save current edge and vertex direction
@@ -419,9 +421,9 @@ def are_edges_on_the_same_kempe_cycle(graph, e1, e2, c1, c2):
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Loop: current_edge: %s, current_color: %s, next_color: %s", current_edge, current_color, next_color)
 
         # From current edge, I'll search incident edges in one direction [0 or 1] - current_edge[direction] is a vertex
-        tmp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("tmp_next_edges_to_check: %s", tmp_next_edges_to_check)
-        edges_to_check = [(v1, v2, l) for (v1, v2, l) in tmp_next_edges_to_check if (v1, v2) != (current_edge[0], current_edge[1]) and (v2, v1) != (current_edge[0], current_edge[1])]
+        temp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("temp_next_edges_to_check: %s", temp_next_edges_to_check)
+        edges_to_check = [(v1, v2, l) for (v1, v2, l) in temp_next_edges_to_check if (v1, v2) != (current_edge[0], current_edge[1]) and (v2, v1) != (current_edge[0], current_edge[1])]
         if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex: %s, edges_to_check: %s", current_edge[direction], edges_to_check)
 
         # Check the color of the two edges and find the next chain
@@ -792,7 +794,7 @@ def create_graph_from_planar_representation(faces):
 ###################
 def log_faces(faces):
     for face in faces:
-        logger.debug("Face: %s", face)
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("Face: %s", face)
 
     return
 
@@ -904,7 +906,7 @@ VALID_COLORS = ['red', 'green', 'blue']
 
 # Set logging facilities: LEVEL XXX
 logger = logging.getLogger()
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 logging_stream_handler = logging.StreamHandler(sys.stdout)
 logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))
 logger.addHandler(logging_stream_handler)
@@ -966,9 +968,9 @@ if args.random is not None:
     if number_of_vertices_for_the_random_triangulation < 9:
         logger.warning("RandomTriangulation sometimes fails with n < 9")
 
-    tmp_g = graphs.RandomTriangulation(number_of_vertices_for_the_random_triangulation)  # Random triangulation on the surface of a sphere
-    void = tmp_g.is_planar(set_embedding = True, set_pos = True)  # Cannot calculate the dual if the graph has not been embedded
-    the_graph = graph_dual(tmp_g)  # The dual of a triangulation is a 3-regular planar graph
+    temp_g = graphs.RandomTriangulation(number_of_vertices_for_the_random_triangulation)  # Random triangulation on the surface of a sphere
+    void = temp_g.is_planar(set_embedding = True, set_pos = True)  # Cannot calculate the dual if the graph has not been embedded
+    the_graph = graph_dual(temp_g)  # The dual of a triangulation is a 3-regular planar graph
     the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
     the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
     the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
@@ -1168,7 +1170,6 @@ is_the_end_of_the_reduction_process = False
 i_global_counter = 0
 
 # If The graph is already reduced
-#
 if len(g_faces) == 3:
 
     # Graph already reduced
@@ -1302,7 +1303,7 @@ while is_the_end_of_the_reduction_process is False:
         # [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
         ariadne_step = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
         ariadne_string.append(ariadne_step)
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("ariadne_step: %s", ariadne_step)
+        # if logger.isEnabledFor(logging.DEBUG): logger.debug("ariadne_step: %s", ariadne_step)
 
         # Do one thing at a time and return at the beginning of the main loop
         logger.info("END %s: Remove a multiple edge (case: %s)", i_global_counter, len_of_the_face_to_reduce)
@@ -1360,21 +1361,19 @@ while is_the_end_of_the_reduction_process is False:
     #    log_faces(g_faces)
     #    exit(-1)
 
-    # If the graph has been completely reduced, it will be a graph of four faces (an island with three lands) and six edges ... easily 3-edge-colorable
-    # The graph is that of an island perfectly slit as a pie in 120 degree slices (just to visualize it)
-    # Note: With 4 faces is possible, in theory, to have other kind of maps, but since I removed always F2 faces first (multiple edge), this situation is not possible
+    # At this point the graph has 3 faces (an island with 2 lands + the ocean) and 3 edges ... easily 3-edge-colorable
     if len(g_faces) == 3:
 
         # Graph reduced
         is_the_end_of_the_reduction_process = True
+
         if logger.isEnabledFor(logging.DEBUG): logger.debug("--------------------------")
         if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph has been reduced")
         if logger.isEnabledFor(logging.DEBUG): logger.debug("--------------------------")
         log_faces(g_faces)
-        with open("end.planar", 'wb') as fp: json.dump(g_faces, fp)
 
     # END of main loop (-1 because the counte has been just incremented)
-    logger.info("END %s: Main loop", i_global_counter)
+    logger.info("END %s: Main loop - len(ariadne_string) = %s", i_global_counter, len(ariadne_string))
     logger.info("")
 
     # If not reduced, continue
@@ -1386,18 +1385,18 @@ logger.info("END: Reduction phase")
 logger.info("--------------------")
 logger.info("")
 
-logger.info("-----------------------------------------")
-logger.info("BEGIN: Print Ariadne's string information")
-logger.info("-----------------------------------------")
-
-# Log Ariadne's string information
-for step in ariadne_string:
-    logger.info("ariadne_string: %s", step)
-
-logger.info("---------------------------------------")
-logger.info("END: Print Ariadne's string information")
-logger.info("---------------------------------------")
-logger.info("")
+# logger.info("-----------------------------------------")
+# logger.info("BEGIN: Print Ariadne's string information")
+# logger.info("-----------------------------------------")
+#
+# # Log Ariadne's string information
+# for step in ariadne_string:
+#     logger.info("ariadne_string: %s", step)
+#
+# logger.info("---------------------------------------")
+# logger.info("END: Print Ariadne's string information")
+# logger.info("---------------------------------------")
+# logger.info("")
 
 #######
 #######
@@ -1474,12 +1473,16 @@ if ariadne_step == []:
 else:
     is_the_end_of_the_rebuild_process = False
 
+i_global_rebuilding_counter = 0
+
 # Start the rebuilding process
 while is_the_end_of_the_rebuild_process is False:
 
+    i_global_rebuilding_counter +=1
+
     # Get the string to walk back home
     ariadne_step = ariadne_string.pop()
-    logger.info("ariadne_step: %s", ariadne_step)
+    logger.info("ariadne_step (%s/%s): %s", i_global_rebuilding_counter, i_global_counter, ariadne_step)
 
     # F2 = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
     if ariadne_step[0] == 2:
@@ -1514,7 +1517,7 @@ while is_the_end_of_the_rebuild_process is False:
         the_colored_graph.add_edge(v1, v2, new_multiedge_color_one)
         the_colored_graph.add_edge(v2, v1, new_multiedge_color_two)
 
-        logger.info("previous_edge_color: %s, new_multiedge_color_one: %s, new_multiedge_color_two: %s", previous_edge_color, new_multiedge_color_one, new_multiedge_color_two)
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color: %s, new_multiedge_color_one: %s, new_multiedge_color_two: %s", previous_edge_color, new_multiedge_color_one, new_multiedge_color_two)
 
         # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
         # if is_well_colored(the_colored_graph) is False:
@@ -1546,8 +1549,8 @@ while is_the_end_of_the_rebuild_process is False:
         if (vertex_to_join_near_v1_on_the_face == vertex_to_join_near_v2_on_the_face) and (vertex_to_join_near_v1_not_on_the_face == vertex_to_join_near_v2_not_on_the_face):
 
             # Get the colors of the two edges (multiedge). Select only the two multiedges (e1, e2 with same vertices)
-            tmp_multiple_edges_to_check = the_colored_graph.edges_incident(vertex_to_join_near_v1_on_the_face)  # Three edges will be returned
-            multiple_edges_to_check = [(va, vb, l) for (va, vb, l) in tmp_multiple_edges_to_check if (vertex_to_join_near_v1_not_on_the_face == va) or (vertex_to_join_near_v1_not_on_the_face == vb)]
+            temp_multiple_edges_to_check = the_colored_graph.edges_incident(vertex_to_join_near_v1_on_the_face)  # Three edges will be returned
+            multiple_edges_to_check = [(va, vb, l) for (va, vb, l) in temp_multiple_edges_to_check if (vertex_to_join_near_v1_not_on_the_face == va) or (vertex_to_join_near_v1_not_on_the_face == vb)]
             previous_edge_color_at_v1 = multiple_edges_to_check[0][2]
             previous_edge_color_at_v2 = multiple_edges_to_check[1][2]
         else:
@@ -1747,11 +1750,11 @@ while is_the_end_of_the_rebuild_process is False:
         # Removed the form with the [] (list) from the edges_incident() when there is only one item in the list
         edges_at_vertices_near_v1_on_the_face = the_colored_graph.edges_incident(vertex_to_join_near_v1_on_the_face, labels = False)
         edges_at_vertices_near_v2_on_the_face = the_colored_graph.edges_incident(vertex_to_join_near_v2_on_the_face, labels = False)
-        tmp_v1 = [item for sublist in edges_at_vertices_near_v1_on_the_face for item in sublist]
-        tmp_v1.remove(vertex_to_join_near_v1_not_on_the_face)
-        tmp_v2 = [item for sublist in edges_at_vertices_near_v2_on_the_face for item in sublist]
-        tmp_v2.remove(vertex_to_join_near_v2_not_on_the_face)
-        vertex_in_the_top_middle = list(set.intersection(set(tmp_v1), set(tmp_v2)))[0]
+        temp_v1 = [item for sublist in edges_at_vertices_near_v1_on_the_face for item in sublist]
+        temp_v1.remove(vertex_to_join_near_v1_not_on_the_face)
+        temp_v2 = [item for sublist in edges_at_vertices_near_v2_on_the_face for item in sublist]
+        temp_v2.remove(vertex_to_join_near_v2_not_on_the_face)
+        vertex_in_the_top_middle = list(set.intersection(set(temp_v1), set(temp_v2)))[0]
 
         # Useful to try to verify if the number of switches may be limited
         restore_random_edge_to_fix_the_impasse = (0, 0)
@@ -1878,7 +1881,7 @@ while is_the_end_of_the_rebuild_process is False:
                     logger.error("ERROR: Infinite loop. Chech the debug.really_bad_case.* files")
 
                     # This is used as a sentinel to use the runs.bash script
-                    open("error-after-1000-iterations.txt", 'a').close()
+                    open("error.txt", 'a').close()
                     exit(-1)
 
         # END F5 has been restored

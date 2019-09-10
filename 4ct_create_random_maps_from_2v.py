@@ -15,11 +15,10 @@
 #
 # This is the base map
 # g_faces = [[(1, 2), (2, 1)], [(1, 2), (2, 1)], [(1, 2), (2, 1)]]
-# A circle with its diameter 
+# A circle with its diameter
 #
 # Faces are represented "clockwise"
-# Last face is always the ocean
-# The ocean is represented "counter-clockwise"
+# Last face is always the ocean. The ocean is represented "counter-clockwise"
 #
 ###
 #
@@ -166,7 +165,6 @@ def map_statistics(g_faces):
 ######
 ######
 
-
 # Set logging facilities: LEVEL XXX
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -179,7 +177,7 @@ logger.addHandler(logging_stream_handler)
 ###############
 # -f <faces> -o <file>
 parser = argparse.ArgumentParser(description='4ct args')
-parser.add_argument("-v", "--vertices", help="Stop at v vertices", type=int, default=10, required=True)
+parser.add_argument("-v", "--vertices", help="Stop at v vertices", type=int, required=True)
 parser.add_argument("-o", "--output", help="Save a json", required=False)
 args = parser.parse_args()
 
@@ -215,7 +213,7 @@ if logger.isEnabledFor(logging.DEBUG): log_faces(g_faces)
 while i_vertex <= number_of_vertices_to_generate:
 
     # Choose a random edge of a random face
-    # -2 will exclude also the ocean face (the last face)
+    # -2 will exclude the ocean face (the last face)
     i_selected_face = random.randint(0, len(g_faces) - 2)
     selected_face = g_faces[i_selected_face]
     if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected face: %s", selected_face)
@@ -234,7 +232,7 @@ while i_vertex <= number_of_vertices_to_generate:
     if logger.isEnabledFor(logging.DEBUG): logger.debug("the_two_new_faces = %s", the_two_new_faces)
 
     ####
-    # STEP: Start adjusting the two faces (may be also just one) touched by the new edge that has been created
+    # STEP: Start adjusting the two faces (may be also just one face) touched by the new edge that has been created
     ####
     #
     # Depending on the situation, one or two faces may be found (touched)
@@ -328,12 +326,12 @@ while i_vertex <= number_of_vertices_to_generate:
     g_faces.insert(-1, the_two_new_faces[0])
     g_faces.insert(-1, the_two_new_faces[1])
 
-    # Let's move to the next face
+    # Let's move to the next face (a new edge introduces 2 additional vertices)
     i_vertex += 2
 
     # Logging time
     if logger.isEnabledFor(logging.DEBUG): log_faces(g_faces)
-    if ((i_vertex -1) % 1000) == 0:
+    if ((i_vertex - 1) % 1000) == 0:
         if logger.isEnabledFor(logging.INFO): logger.info("Loop: %s", i_vertex)
 
 

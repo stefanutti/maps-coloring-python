@@ -14,7 +14,7 @@ do
       rm error.txt
    fi
 
-   vertices=`awk -v min=200 -v max=400 'BEGIN {srand(); print int(min + rand() * (max - min + 1))}'`
+   vertices=`awk -v min=10 -v max=100 'BEGIN {srand(); print int(min + rand() * (max - min + 1))}'`
    sage 4ct.py -r $vertices
 
    if [ -f "error.txt" ]

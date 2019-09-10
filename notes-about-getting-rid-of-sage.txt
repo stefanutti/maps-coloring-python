@@ -59,11 +59,20 @@ the_graph.is_isomorphic(the_colored_graph)
 ---
 
 get_edge_color(the_colored_graph, random_edge_to_fix_the_impasse)
+    graph.edges()
+    NEW: ???
 kempe_chain_color_swap(the_colored_graph, random_edge_to_fix_the_impasse, color_of_the_random_edge, other_color)
+    graph.degree
+    graph.edge_iterator
+    graph.edges_incident
+    graph.set_edge_label
+
 export_graph(the_colored_graph, "debug.really_bad_case")
 are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c3):
 apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c1, c1, c3)
 is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face):
+   if len(graph.edge_boundary([v1], [v2])) > 1:
+   NEW: ???
 is_well_colored(the_colored_graph)
 print_graph(the_colored_graph)
 

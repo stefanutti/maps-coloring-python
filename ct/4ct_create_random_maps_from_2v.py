@@ -1,5 +1,10 @@
 ###
 #
+# Copyright 2017 by Mario Stefanutti, released under GPLv3.
+#
+# Author: Mario Stefanutti, Italy, Rome, 12/Feb/1969
+# Website: https://4coloring.wordpress.com/
+#
 # 4CT: Generate random planar graphs without using graphs library and most important without using complex algotithms, as the planarity embedding or testing functions
 #
 # I directly use the planar graph representation of a map, as described here:
@@ -20,15 +25,10 @@
 # Faces are represented "clockwise"
 # Last face is always the ocean. The ocean is represented "counter-clockwise"
 #
-###
-#
-# Author: Mario Stefanutti (mario.stefanutti@gmail.com)
-# Website: https://4coloring.wordpress.com
-#
 # History:
 # - 19/Mar/2018 - Creation data
 #
-# BACKLOG:
+# TODOs:
 #
 # Done:
 #

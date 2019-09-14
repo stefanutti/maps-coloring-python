@@ -1,16 +1,16 @@
 #!/usr/bin/env sage
 
 ###
-###
 #
-# Convert planar embedding to other graph files: dot, etc. 
-#
-###
+# Copyright 2017 by Mario Stefanutti, released under GPLv3.
 #
 # Author: Mario Stefanutti (mario.stefanutti@gmail.com)
 # Website: https://4coloring.wordpress.com
 #
+# Convert planar embedding to other graph files: dot, etc.
+#
 # History:
+# - 19/Mar/2018 - Creation data
 #
 # TODOs:
 #

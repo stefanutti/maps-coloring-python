@@ -74,7 +74,7 @@ To simplify the testing I used docker
   - Now, to get the list of faces() sage needs to elaborate le planarity of the graph (very slow)
 - I need other approaches, possibly not using sage
   - Implementation of the Bowyer-Watson algorithm to compute the Delaunay triangulation and the Voronoi diagram of a set o 2D points
-    - https://github.com/jmespadero/pyDelaunay2D (to substitute the safe function)
+    - https://github.com/jmespadero/pyDelaunay2D (to substitute the sage function)
   - By hand
     - Generate a large planar triangulation with libs that are not sage (fast)
     - Generate the dual of the planar triangulation, which is planar too (fast)

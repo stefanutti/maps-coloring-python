@@ -380,7 +380,7 @@ logger.info("------------------------")
 logger.info("BEGIN: Graph information")
 logger.info("------------------------")
 
-check_graph_at_beginning(the_graph)
+check_graph_planarity_3_regularity_no_loops(the_graph)
 
 # Compute the embedding only if it was non loaded withe the -p (planar) parameter
 # The embedding is needed to get the face() representation of the map

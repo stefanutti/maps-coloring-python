@@ -46,7 +46,7 @@ def echo_function(text):
 ##########################################################################################
 # Check if I can work with this graph: has to be planar and 3 regular (planar cubic graph)
 ##########################################################################################
-def check_graph_at_beginning(graph):
+def check_graph_planarity_3_regularity_no_loops(graph):
 
     # Check 3-regularity
     if graph.is_regular(3) is False:

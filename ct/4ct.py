@@ -44,7 +44,6 @@
 # - TODO: Get rid of sage
 # - TODO: Get rid of sage
 # - TODO: Get rid of sage
-# - TODO: Realize a version in which faces are made of lists of ordered vertices [1, 4, 7, 8] not edges [(1,4),(4,7),(7,8),(8,1)]. Would'nt it be faster?
 # - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster, and won't need sage!
 #
 # Done:
@@ -266,9 +265,9 @@ logging.config.fileConfig('logging.conf')
 # (-r <vertices> or -i <file> or -p <planar embedding (json file)>) -o <file>
 parser = argparse.ArgumentParser(description = '4ct args')
 
-group_input = parser.add_mutually_exclusive_group(required=False)
+group_input = parser.add_mutually_exclusive_group(required=True)
 group_input.add_argument("-r", "--rand", help = "Random graph: dual of a triangulation of N vertices", type = int)
-group_input.add_argument("-i", "--input", help = "Load a .edgelist file (networkx)")
+group_input.add_argument("-e", "--edgelist", help = "Load a .edgelist file (networkx)")
 group_input.add_argument("-p", "--planar", help = "Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
 parser.add_argument("-o", "--output", help = "Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
 
@@ -334,15 +333,15 @@ if args.rand is not None:
     the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
     logger.info("END: Create a random planar graph of %s vertices, from the dual of a RandomTriangulation of %s vertices", the_graph.order(), number_of_vertices_for_the_random_triangulation)
 
-# Input - Load a graph stored in edgelist format
-if args.input is not None:
-    logger.info("BEGIN: Load the graph from the external file: %s", args.input)
-    the_graph = Graph(networkx.read_edgelist(args.input, create_using=networkx.MultiGraph()), multiedges=True)
+# edgelist - Load a graph stored in edgelist format
+if args.edgelist is not None:
+    logger.info("BEGIN: Load the graph from the external file: %s", args.edgelist)
+    the_graph = Graph(networkx.read_edgelist(args.edgelist, create_using=networkx.MultiGraph()), multiedges=True)
     # TODO: Why did I need to relabel them? For now I'll comment the line
     # the_graph.relabel()  # I need to relabel it
     the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
     the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
-    logger.info("END: Load the graph from the external file: %s", args.input)
+    logger.info("END: Load the graph from the external file: %s", args.edgelist)
 
 # Planar - Load a planar embedding of the graph
 # Warning: Sage NotImplementedError: cannot compute with embeddings of multiple-edged or looped graphs
@@ -519,13 +518,12 @@ ariadne_step = []
 is_the_end_of_the_reduction_process = False
 i_global_counter = 0
 
-# If The graph is already reduced
+# If the graph is already reduced (2 vertices and 3 edges = 3 faces, included the ocean)
 if len(g_faces) == 3:
 
     # Graph already reduced
     is_the_end_of_the_reduction_process = True
     if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph is already reduced")
-    log_faces(g_faces)
 
 while is_the_end_of_the_reduction_process is False:
 

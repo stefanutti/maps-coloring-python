@@ -43,10 +43,18 @@ def echo_function(text):
     return text
 
 
-##########################################################################################
-# Check if I can work with this graph: has to be planar and 3 regular (planar cubic graph)
-##########################################################################################
 def check_graph_planarity_3_regularity_no_loops(graph):
+    """
+    "Check if I can work with this graph: has to be planar and 3 regular (planar cubic graph)."
+
+    Parameters
+    ----------
+    graph: The graph to check
+
+    Returns
+    -------
+    void
+    """
 
     # Check 3-regularity
     if graph.is_regular(3) is False:
@@ -84,114 +92,23 @@ def check_graph_planarity_3_regularity_no_loops(graph):
     return
 
 
-######################################
-# Execute a Kempe chain color swapping
-# Works for chains and cycles
-#
-# I considered also multiedge cases
-######################################
 def kempe_chain_color_swap(graph, starting_edge, c1, c2):
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: kempe_chain_color_swap: %s, %s, %s", starting_edge, c1, c2)
+    """
+    "Execute a Kempe chain color swapping."
+    "Works for chains and cycles and consider also multiedges cases."
 
-    # Start the loop at e1
-    current_edge = starting_edge
-    previous_color = "none"  # Not important here, will be used later
-    current_color = c1
-    next_color = c2
+    Parameters
+    ----------
+    graph: The graph
+    starting_edge: (n, m) the edge where to start the swap
+    c1: the color to switch with c2
+    c2: the color to switch with c1
 
-    # From current edge, I'll search incident edges in one direction
-    # The check is important to recognize the half cycle color switching to an entire cycle color switching
-    direction = 1
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("degree: %s", graph.degree(current_edge[direction]))
-    if graph.degree(current_edge[direction]) != 3:
-        direction = 0
+    Returns
+    -------
+    void
+    """
 
-    is_the_end_of_switch_process = False
-    while is_the_end_of_switch_process is False:
-
-        # Debug
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("Loop: current_edge: %s, current_color: %s, next_color: %s", current_edge, current_color, next_color)
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("Vertex at direction: %s", current_edge[direction])
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(graph.edge_iterator(labels = True)), graph.is_regular(3))
-
-        # From current edge, I'll search incident edges in one direction [0 or 1] - current_edge[direction] is a vertex
-        temp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("temp_next_edges_to_check: %s", temp_next_edges_to_check)
-        edges_to_check = [(v1, v2, l) for (v1, v2, l) in temp_next_edges_to_check if (v1, v2) != (current_edge[0], current_edge[1]) and (v2, v1) != (current_edge[0], current_edge[1])]
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex: %s, edges_to_check: %s", current_edge[direction], edges_to_check)
-
-        # Save current edge and vertex direction
-        previous_edge = current_edge
-        previous_vertex = current_edge[direction]
-
-        # Check if I've looped an entire cycle
-        if are_the_same_edge(starting_edge, edges_to_check[0]) or are_the_same_edge(starting_edge, edges_to_check[1]):
-            is_the_end_of_switch_process = True
-        else:
-
-            # Check the color of the two edges and find the next chain
-            next_e1_color = edges_to_check[0][2]
-            next_e2_color = edges_to_check[1][2]
-            if next_e1_color == next_color:
-                current_edge = edges_to_check[0]
-            elif next_e2_color == next_color:
-                current_edge = edges_to_check[1]
-            else:
-                logger.error("Unexpected condition (next color should exist). Mario you'd better go back to paper")
-                exit(-1)
-
-            # Update current and next color
-            previous_color = current_color
-            current_color = next_color
-            next_color = previous_color
-
-            # Now: swap colors
-            #
-            # graph.set_edge_label(previous_edge[0], previous_edge[1], current_color)
-            # graph.set_edge_label(current_edge[0], current_edge[1], previous_color)
-
-            # Just to be sure. Is it a multiedge? I need to verify it. It should't be
-            if is_multiedge(graph, previous_edge[0], previous_edge[1]):
-                the_colored_graph.delete_edge(previous_edge[0], previous_edge[1], previous_color)
-                the_colored_graph.add_edge(previous_edge[0], previous_edge[1], current_color)
-                logger.error("HERE?")  # This is only to verify if this condition is real
-                exit(-1)
-            else:
-                graph.set_edge_label(previous_edge[0], previous_edge[1], current_color)
-
-            # Just to be sure. Is it a multiedge? I need to verify it. It should't be
-            if is_multiedge(graph, current_edge[0], current_edge[1]):
-                the_colored_graph.delete_edge(current_edge[0], current_edge[1], current_color)
-                the_colored_graph.add_edge(current_edge[0], current_edge[1], previous_color)
-                logger.error("HERE?")  # This is only to verify if this condition is real
-                exit(-1)
-            else:
-                graph.set_edge_label(current_edge[0], current_edge[1], previous_color)
-
-            # Update direction
-            if current_edge[0] == previous_vertex:
-                direction = 1
-            else:
-                direction = 0
-
-            # Check if I've reached the end of a chain
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("degree: %s", graph.degree(current_edge[direction]))
-            if graph.degree(current_edge[direction]) != 3:
-                is_the_end_of_switch_process = True
-
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("END: kempe_chain_color_swap")
-
-    return
-
-
-######################################
-# Execute a Kempe chain color swapping
-# Works for chains and cycles
-#
-# I considered also multiedge cases
-######################################
-def kempe_chain_color_swap(graph, starting_edge, c1, c2):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: kempe_chain_color_swap: %s, %s, %s", starting_edge, c1, c2)
 
     # Start the loop at e1
@@ -486,23 +403,6 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     logger.info("----------------------------------------------")
 
     return
-
-def echo_function(text):
-    """
-    "A true echo is a single reflection of the sound source."
-
-    Parameters
-    ----------
-    text: text to echo
-
-    Returns
-    -------
-    text: return the input text parameter
-    """
-
-    print ("echo: " + text)
-
-    return text
 
 
 ######################################

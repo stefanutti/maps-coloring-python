@@ -21,7 +21,6 @@
 __author__ = "Mario Stefanutti <mario.stefanutti@gmail.com>"
 __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_like_to_help@nowhere.com"
 
-
 #######
 #######
 #######
@@ -64,6 +63,7 @@ import argparse
 import sys
 import logging
 import json
+
 import networkx as nx
 from networkx.drawing.nx_agraph import write_dot
 from networkx.readwrite.edgelist import write_edgelist

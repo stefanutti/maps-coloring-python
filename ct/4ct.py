@@ -119,7 +119,7 @@ import networkx
 
 from sage.all import *
 
-from ct.graph_utils import *
+from ct.ct_graph_utils import *
 
 # Next instructions MAX_OUTPUT_MESSAGES) solves this issue: http://ask.sagemath.org/question/33727/logging-failing-after-a-while/
 # Only when running the code in the cloud: https://cloud.sagemath.com
@@ -267,7 +267,7 @@ logging.config.fileConfig('logging.conf')
 parser = argparse.ArgumentParser(description = '4ct args')
 
 group_input = parser.add_mutually_exclusive_group(required=False)
-group_input.add_argument("-r", "--random", help = "Random graph: dual of a triangulation of N vertices", type = int)
+group_input.add_argument("-r", "--rand", help = "Random graph: dual of a triangulation of N vertices", type = int)
 group_input.add_argument("-i", "--input", help = "Load a .edgelist file (networkx)")
 group_input.add_argument("-p", "--planar", help = "Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
 parser.add_argument("-o", "--output", help = "Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
@@ -310,9 +310,9 @@ stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
 
 # Random - Dual of a triangulation
 #
-if args.random is not None:
-    logger.info("BEGIN: Create a random planar graph from the dual of a RandomTriangulation (Sage function) of %s vertices. It may take very long time depending on the number of vertices", args.random)
-    number_of_vertices_for_the_random_triangulation = args.random
+if args.rand is not None:
+    logger.info("BEGIN: Create a random planar graph from the dual of a RandomTriangulation (Sage function) of %s vertices. It may take very long time depending on the number of vertices", args.rand)
+    number_of_vertices_for_the_random_triangulation = args.rand
 
     if number_of_vertices_for_the_random_triangulation < 9:
         logger.warning("RandomTriangulation sometimes fails with n < 9. It is a Sage bug/limitation")

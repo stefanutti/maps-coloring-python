@@ -18,6 +18,6 @@
 __author__ = "Mario Stefanutti <mario.stefanutti@gmail.com>"
 __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_like_to_help@nowhere.com"
 
-from ct import graph_utils
+from ct import ct_graph_utils
 
 __version__ = '1.0'

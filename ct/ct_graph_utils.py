@@ -24,6 +24,9 @@ from sage.all import *
 
 from ct.settings import *
 
+# Valid colors
+VALID_COLORS = ['red', 'green', 'blue']
+
 def echo_function(text):
     """
     "A true echo is a single reflection of the sound source."

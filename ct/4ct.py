@@ -37,13 +37,10 @@
 #
 # TODOs:
 # - Moved to: https://github.com/stefanutti/maps-coloring-python/issues
+# - TODO: Get rid of sage
+# - TODO: Fix docstring for each function
 #
 # BACKLOG to evaluate:
-# - TODO: Get rid of sage
-# - TODO: Get rid of sage
-# - TODO: Get rid of sage
-# - TODO: Get rid of sage
-# - TODO: Get rid of sage
 # - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster, and won't need sage!
 #
 # Done:
@@ -105,17 +102,13 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.par
 
 import argparse
 import collections
-
 import time
 import datetime
-
 import logging
 import logging.config
-
 import json
 
 import networkx
-
 from sage.all import *
 
 from ct.ct_graph_utils import *
@@ -170,10 +163,6 @@ def initialize_statistics(stats):
     Parameters
     ----------
     stats: The statistics to initialize
-
-    Returns
-    -------
-    void
     """
 
     stats['CASE-F2-01'] = 0
@@ -211,10 +200,6 @@ def print_stats(stats):
     Parameters
     ----------
     stats: The statistics to print
-
-    Returns
-    -------
-    void
     """
 
     logger.info("------------------")
@@ -1283,14 +1268,6 @@ logger.info("")
 logger.info("------------------------------------------")
 logger.info("BEGIN: Show the restored and 4 colored map")
 logger.info("------------------------------------------")
-
-# Now I can restore the multiedge flag
-#
-# if the_colored_graph.has_multiple_edges():
-#     logger.error("Unexpected condition (recreated graph has multiple edges at the end). Mario you'd better go back to paper")
-#     exit(-1)
-
-# the_colored_graph.allow_multiple_edges(False)  # At this point there are no multiple edge
 
 # Check if the recreated graph is isomorphic to the original
 logger.info("BEGIN: Check if isomorphic")

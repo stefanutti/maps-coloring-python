@@ -4,7 +4,9 @@ https://networkx.github.io/documentation/latest/reference/classes/multigraph.htm
 the_colored_graph = Graph(sparse = True)
     NEW: the_colored_graph = nx.MultiGraph()
 the_colored_graph.allow_loops(False)
-    NEW: It is not possible. I have to pay attention not to create them. It was used in sage only to be sure not to create them
+    NEW: It is not possible.
+         I have to pay attention not to create them.
+         It was used in sage only to be sure not to create them
 
 the_colored_graph.add_edge(v1, v2, "red")
     NEW: the_colored_graph.add_edge(v1, v2, key="red")
@@ -43,7 +45,7 @@ the_colored_graph.allow_multiple_edges(True)  # During the process I need this s
     NEW: This is already like this for MultiGraph & Networkx, so I don't need it
 
 the_graph.is_isomorphic(the_colored_graph)
-    NEW: is_isomorphic(G1, G2)
+    NEW: nx.is_isomorphic(G1, G2)
 
 ---
 ---

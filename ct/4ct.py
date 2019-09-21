@@ -163,10 +163,19 @@ from ct.ct_graph_utils import *
 #######
 
 
-#######################
-# Initialize statistics
-#######################
 def initialize_statistics(stats):
+    """
+    "Initialize statistics."
+
+    Parameters
+    ----------
+    stats: The statistics to initialize
+
+    Returns
+    -------
+    void
+    """
+
     stats['CASE-F2-01'] = 0
 
     stats['CASE-F3-01'] = 0
@@ -195,10 +204,19 @@ def initialize_statistics(stats):
     return
 
 
-#############
-# Print stats
-#############
 def print_stats(stats):
+    """
+    "Print the statistics."
+
+    Parameters
+    ----------
+    stats: The statistics to print
+
+    Returns
+    -------
+    void
+    """
+
     logger.info("------------------")
     logger.info("BEGIN: Print stats")
     logger.info("------------------")
@@ -210,6 +228,8 @@ def print_stats(stats):
     logger.info("----------------")
     logger.info("END: Print stats")
     logger.info("----------------")
+
+    return
 
 
 #######
@@ -253,7 +273,7 @@ def print_stats(stats):
 
 # Set logging facilities: LEVEL XXX
 logger = logging.getLogger()
-logging.config.fileConfig('logging.conf')
+logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
 # logger.setLevel(logging.INFO)
 # logging_stream_handler = logging.StreamHandler(sys.stdout)
 # logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))

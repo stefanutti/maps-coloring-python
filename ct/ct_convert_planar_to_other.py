@@ -13,6 +13,7 @@
 # - 19/Mar/2018 - Creation data
 #
 # TODOs:
+# - Fix docstring for each function
 #
 # Done:
 #

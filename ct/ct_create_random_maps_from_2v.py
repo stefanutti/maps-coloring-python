@@ -29,6 +29,7 @@
 # - 19/Mar/2018 - Creation data
 #
 # TODOs:
+# - Fix docstring for each function
 #
 # Done:
 #
@@ -59,29 +60,53 @@ import json
 ######
 ######
 
-#############################################
-# Rotate elements (works for lists and tuple)
-#############################################
 def rotate(l, n):
+    """
+    Rotate elements (works for lists and tuple)
+
+    Parameters
+    ----------
+    l: The list to rotate
+    n: Index for rotating the list and tuple
+
+    Returns
+    -------
+    The modified list or tuple
+    """
+
     return l[n:] + l[:n]
 
 
-###########
-# Log faces
-###########
 def log_faces(faces):
-    logger.debug("=======")
-    for face in faces:
-        logger.debug("Face: %s", face)
-    logger.debug("=======")
+    """
+    Log faces (DEBUG)
+
+    Parameters
+    ----------
+    faces: The faces of the map
+    """
+
+    if logger.isEnabledFor(logging.DEBUG):
+        for face in faces:
+            logger.debug("Face: %s", face)
 
     return
 
-
-##############
-# Split a face
-##############
 def split_face(selected_face, index_of_the_first_selected_edge, index_of_the_second_selected_edge):
+    """
+    Split a face
+
+    Parameters
+    ----------
+    selected_face: The face to split
+    index_of_the_first_selected_edge: First new vertex index
+    index_of_the_second_selected_edge: Second new vertex index
+
+    Returns
+    -------
+    the_two_new_faces_to_return: Returns the two new faces (list of two lists)
+    """
+    
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: split_face")
 
     # Return the two new faces (list of two lists)
@@ -103,35 +128,55 @@ def split_face(selected_face, index_of_the_first_selected_edge, index_of_the_sec
     if logger.isEnabledFor(logging.DEBUG): logger.debug("new_first_face: %s", new_first_face)
     if logger.isEnabledFor(logging.DEBUG): logger.debug("new_second_face: %s", new_second_face)
 
-    # Return the two new faces
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: split_face")
+
+    # Return the two new faces
     return the_two_new_faces_to_return
 
 
-########################
-# Add a vertex to a face
-########################
 def add_vertex_to_face(face_to_update, edge_to_search, vertex_to_insert):
+    """
+    Add a vertex to a face
+
+    Parameters
+    ----------
+    face_to_update: The face to update
+    edge_to_search: The edge to search
+    vertex_to_insert: The vertex to insert
+
+    Returns
+    -------
+    new_face_to_return: Returns the new face
+    """
+
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: add_vertex_to_face")
 
     # Insert the new vertex
     index_where_to_insert_the_new_vertex = face_to_update.index(edge_to_search)
     new_face_to_return = face_to_update[:index_where_to_insert_the_new_vertex] + [(face_to_update[index_where_to_insert_the_new_vertex][0], vertex_to_insert)] + [(vertex_to_insert, face_to_update[index_where_to_insert_the_new_vertex][1])] + face_to_update[index_where_to_insert_the_new_vertex + 1:]
 
-    # Return the new faces
+    # Return the new face
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: add_vertex_to_face: %s", new_face_to_return)
     return new_face_to_return
 
 
-########################
-# Statistics
-########################
-def map_statistics(g_faces):
+def print_map_statistics(g_faces):
+    """
+    Print the statistics of the map
 
-    # Return the new faces
-    if logger.isEnabledFor(logging.INFO): logger.info("Statistics up to F6, of the created map with %s faces:", len(g_faces))
-    for i in range(2, 7):
-        if logger.isEnabledFor(logging.INFO): logger.info("- F%s: %s", i, sum(len(face) == i for face in g_faces))
+    Parameters
+    ----------
+    g_faces: The faces to print
+    """
+
+    # Print the statistics of the map
+    if logger.isEnabledFor(logging.INFO):
+        logger.info("Statistics up to F6, of the created map with %s faces:", len(g_faces))
+
+        for i in range(2, 7):
+            logger.info("- F%s: %s", i, sum(len(face) == i for face in g_faces))
+    
+    return
 
 ######
 ######
@@ -343,4 +388,4 @@ else:
     print(g_faces)
 
 # Print statistics
-map_statistics(g_faces)
+print_map_statistics(g_faces)

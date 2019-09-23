@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import matplotlib.pyplot as pyplot
 import networkx as nx
+from networkx.algorithms.planarity import check_planarity
 
-#######################
+########################
 # Add a vertex to a face
 ########################
 def remove_edge_with_specific_color(graph, u, v, color):
@@ -32,6 +33,11 @@ print (G.edges(data=True, keys=True))
 # Does not work G[1][2]['red']="aaa"
 
 print (G.edges(data=True, keys=True))
+
+expected, aaa = check_planarity(G)
+print("---")
+print(expected, aaa)
+print("---")
 
 nx.draw(G)
 pyplot.show()

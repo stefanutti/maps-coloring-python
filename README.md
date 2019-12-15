@@ -38,8 +38,8 @@ To simplify the testing I used docker
 
 ## Pre-requìrements
 - python3
-- sage
 - networkx
+- sage
 
 ## Download a pre-configured dockerized sage docker instance
 - docker run -it sagemath/sagemath:latest bash
@@ -49,8 +49,6 @@ To simplify the testing I used docker
   - apt-get install vim
   - ... ?
 
-- git clone https://github.com/stefanutti/maps-coloring-python (read the instructions on github)
-
 ### Download personal repo
 - cd
 - mkdir prj
@@ -58,6 +56,7 @@ To simplify the testing I used docker
 - git clone https://github.com/stefanutti/maps-coloring-python.git
 
 ## Run 4ct.py
+- cd
 - cd prj
 - cd maps-coloring-python
 - sage 4ct.py --help

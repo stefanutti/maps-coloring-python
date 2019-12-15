@@ -2,7 +2,7 @@ http://doc.sagemath.org/html/en/reference/graphs/sage/graphs/generic_graph.html
 https://networkx.github.io/documentation/latest/reference/classes/multigraph.html
 
 void = the_graph.is_planar(set_embedding = True, set_pos = True)
-
+networkx.algorithms.planarity.check_planarity(the_graph)
 
 the_colored_graph = Graph(sparse = True)
     NEW: the_colored_graph = nx.MultiGraph()

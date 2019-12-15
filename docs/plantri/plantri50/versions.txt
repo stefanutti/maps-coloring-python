@@ -1,0 +1,79 @@
+Version History for plantri
+---------------------------
+
+The original edition of plantri, which performed only a few of the
+functions of the current edition, was released in June 1996.  Here
+we will list the changes made in the functionality of recent editions
+only.  Internal changes are listed in plantri.c.
+
+Version 3.0:
+  Released on April 25, 2000.
+
+Version 3.1:
+  Released on July 3, 2000.
+
+  It was discovered by Thom Sulanke that the code for simple
+  triangulations stopped working correctly at 26 or more vertices.
+  The bug does not affect any of the calculation sizes listed in
+  Appendix D of the plantri manual, and it does not affect operation
+  at all with the -m4, -c4 or -b switches.  
+
+  We believe that the only plausible way of encountering the bug
+  with the distributed software was to use the maxdeg or allowed_deg
+  plugins for 26 or more vertices.  The min5 plugin was not affected.
+
+  Version 3.1 corrects the bug without otherwise changing program
+  behaviour.  Many thanks to Thom for his assistance.
+
+Minor update on December 15, 2000:
+
+  allowed_deg.c (source for plantri_ad) updated to permit larger
+  graphs to be generated.  plantri-guide.txt updated to contain
+  more graph counts.
+
+Version 4.0:
+  Released on April 20, 2001.
+
+  Added -q for 3-connected quadrangulations.
+  Added -pc1 and -pc2 for general planar graphs.
+  Added -m5 and variants.  The plug-in min5.c is no longer required.
+  sparse6 output now represents loops only once.
+
+Version 4.1:
+  Released on November 30, 2001.
+
+  Added -qc2, -qc4, -qm2c2 for types of quadrangulation.
+
+Version 4.2:
+  Released on August 3, 2005.
+
+  Added -V switch to select just those outputs with non-trivial group.
+
+Version 4.3:
+  Released February 21, 2008.
+
+  Added -E for edge_code output.
+  Added -bp for bipartite graphs.
+  Added general planar graphs of 2 and 3 vertices.
+  Fixed -pc1x and -pc2x
+
+Version 4.4:
+  Released May 2, 2009.
+
+  Fixed incorrect connectivity computation in -p and -pb,
+      only known problems were with -c1x, -c2x and statistics reported by -v
+
+Version 4.5:
+  Released September 2, 2011.
+
+  Also apply FAST_FILTER_* to starting graphs  (all uses need checking
+     against code as more than one filter might need defining)
+
+Version 4.6-4.7: not publicly released
+
+Version 5.0:
+  Released January 30, 2018.
+
+  Added -A for Appolonian networks
+
+  Add -pc4 (4-connected polytopes)

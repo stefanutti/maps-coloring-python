@@ -66,12 +66,12 @@ def rotate(l, n):
 
     Parameters
     ----------
-    l: The list to rotate
-    n: Index for rotating the list and tuple
+        l: The list to rotate
+        n: Index for rotating the list and tuple
 
     Returns
     -------
-    The modified list or tuple
+        The modified list or tuple
     """
 
     return l[n:] + l[:n]
@@ -83,7 +83,7 @@ def log_faces(faces):
 
     Parameters
     ----------
-    faces: The faces of the map
+        faces: The faces of the map
     """
 
     if logger.isEnabledFor(logging.DEBUG):
@@ -98,13 +98,13 @@ def split_face(selected_face, index_of_the_first_selected_edge, index_of_the_sec
 
     Parameters
     ----------
-    selected_face: The face to split
-    index_of_the_first_selected_edge: First new vertex index
-    index_of_the_second_selected_edge: Second new vertex index
+        selected_face: The face to split
+        index_of_the_first_selected_edge: First new vertex index
+        index_of_the_second_selected_edge: Second new vertex index
 
     Returns
     -------
-    the_two_new_faces_to_return: Returns the two new faces (list of two lists)
+        the_two_new_faces_to_return: Returns the two new faces (list of two lists)
     """
     
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: split_face")
@@ -140,13 +140,13 @@ def add_vertex_to_face(face_to_update, edge_to_search, vertex_to_insert):
 
     Parameters
     ----------
-    face_to_update: The face to update
-    edge_to_search: The edge to search
+        face_to_update: The face to update
+        edge_to_search: The edge to search
     vertex_to_insert: The vertex to insert
 
     Returns
     -------
-    new_face_to_return: Returns the new face
+        new_face_to_return: Returns the new face
     """
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: add_vertex_to_face")
@@ -166,7 +166,7 @@ def print_map_statistics(g_faces):
 
     Parameters
     ----------
-    g_faces: The faces to print
+        g_faces: The faces to print
     """
 
     # Print the statistics of the map

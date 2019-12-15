@@ -1,5 +1,3 @@
-#!/usr/bin/env sage
-
 ###
 #
 # Copyright 2017 by Mario Stefanutti, released under GPLv3.
@@ -86,10 +84,16 @@ except ImportError:
         print()
         raise
 
-##############
-# Export graph
-##############
+
 def export_graph(graph_to_export, name_of_file_without_extension):
+    """
+    Export the graph to file (.dot and .edgelist)
+
+    Parameters
+    ----------
+        graph_to_export: The graph to export
+        name_of_file_without_extension: The name of the file (without extension)
+    """
 
     # Possibilities: adjlist, dot, edgelist, gexf, gml, graphml, multiline_adjlist, pajek, yaml
     write_dot(graph_to_export, name_of_file_without_extension + ".dot")

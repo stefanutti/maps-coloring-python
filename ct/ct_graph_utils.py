@@ -51,7 +51,7 @@ def check_graph_planarity_3_regularity_no_loops(graph):
 
     Parameters
     ----------
-    graph: The graph to check
+        graph: The graph to check
     """
 
     # Check 3-regularity
@@ -97,10 +97,10 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
 
     Parameters
     ----------
-    graph: The graph
-    starting_edge: (n, m) the edge where to start the swap
-    c1: the color to switch with c2
-    c2: the color to switch with c1
+        graph: The graph
+        starting_edge: (n, m) the edge where to start the swap
+        c1: the color to switch with c2
+        c2: the color to switch with c1
     """
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: kempe_chain_color_swap: %s, %s, %s", starting_edge, c1, c2)
@@ -204,11 +204,11 @@ def faces_by_vertices(g):
 
     Parameters
     ----------
-    g: The graph
+        g: The graph
 
     Returns
     -------
-    list_faces: Returns a face as a list of ordered vertices
+        list_faces: Returns a face as a list of ordered vertices
     """
 
     d = {}
@@ -236,11 +236,11 @@ def graph_dual(g):
 
     Parameters
     ----------
-    g: The graph
+        g: The graph
 
     Returns
     -------
-    dual: The dual of a graph
+        dual: The dual of a graph
     """
 
     f = [tuple(face) for face in faces_by_vertices(g)]
@@ -252,11 +252,11 @@ def graph_dual(g):
 
 def print_graph(graph):
     """
-    "Print graph."
+    Print graph.
 
     Parameters
     ----------
-    graph: The graph to print
+        graph: The graph to print
     """
     for vertex in graph.vertex_iterator():
         edges = graph.edges_incident(vertex)
@@ -271,11 +271,11 @@ def is_well_colored(graph):
 
     Parameters
     ----------
-    graph: The graph to check
+        graph: The graph to check
 
     Returns
     -------
-    is_well_colored: True or False if the graph is well colored
+        is_well_colored: True or False if the graph is well colored
     """
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: is_well_colored")
@@ -309,12 +309,12 @@ def are_incident_edges_well_colored(graph, vertex):
 
     Parameters
     ----------
-    graph: The graph to check
-    vertex: The vertex to check
+        graph: The graph to check
+        vertex: The vertex to check
 
     Returns
     -------
-    are_incident_edges_well_colored: True or False if all edges of the given vertex are well colored
+        are_incident_edges_well_colored: True or False if all edges of the given vertex are well colored
     """
 
     are_incident_edges_well_colored = False
@@ -337,12 +337,12 @@ def get_edge_color(graph, edge):
 
     Parameters
     ----------
-    graph: The graph to check
-    edge: The edge you want the color
+        graph: The graph to check
+        edge: The edge you want the color
 
     Returns
     -------
-    color_to_return: The color of the given edge
+        color_to_return: The color of the given edge
     """
 
     v1 = edge[0]
@@ -359,13 +359,13 @@ def is_multiedge(graph, v1, v2):
 
     Parameters
     ----------
-    graph: The graph to check
-    v1: First vertex
-    v2: Second vertex
+        graph: The graph to check
+        v1: First vertex
+        v2: Second vertex
 
     Returns
     -------
-    is_multiedge: True or False it the two vertices are connected by more than one edge
+        is_multiedge: True or False it the two vertices are connected by more than one edge
     """
 
     is_multiedge = False
@@ -382,12 +382,12 @@ def check_if_vertex_is_in_face(face, vertex):
 
     Parameters
     ----------
-    face: The face to check
-    vertex: The vertex to check and see if it is part of the given face
+        face: The face to check
+        vertex: The vertex to check and see if it is part of the given face
 
     Returns
     -------
-    True or False if the the given vertex is in face
+        True or False if the the given vertex is in face
     """
 
     return any([edge for edge in face if edge[0] == vertex or edge[1] == vertex])
@@ -399,11 +399,11 @@ def check_regularity(faces):
 
     Parameters
     ----------
-    faces: The faces of the graph to check
+        faces: The faces of the graph to check
 
     Returns
     -------
-    is_three_regular: True or False if the graph is three regular
+        is_three_regular: True or False if the graph is three regular
     """
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: check_regularity")
@@ -434,11 +434,11 @@ def create_graph_from_planar_representation(faces):
 
     Parameters
     ----------
-    faces: The faces of the graph to create
+        faces: The faces of the graph to create
 
     Returns
     -------
-    new_graph: The graph created from its planar representation
+        new_graph: The graph created from its planar representation
     """
 
     # Create the graph from the list of faces
@@ -464,8 +464,8 @@ def export_graph(graph_to_export, name_of_file_without_extension):
 
     Parameters
     ----------
-    graph_to_export: The graph to export
-    name_of_file_without_extension: The name that will be used to export the graph
+        graph_to_export: The graph to export
+        name_of_file_without_extension: The name that will be used to export the graph
     """
 
     # Save: edgelist, dot
@@ -507,12 +507,12 @@ def are_the_same_edge(e1, e2):
 
     Parameters
     ----------
-    e1: First edge
-    e2: Second edge
+        e1: First edge
+        e2: Second edge
 
     Returns
     -------
-    True or False if it is the same edge or not
+        True or False if it is the same edge or not
     """
 
     return e1[0] in e2 and e1[1] in e2
@@ -524,15 +524,15 @@ def are_edges_on_the_same_kempe_cycle(graph, e1, e2, c1, c2):
 
     Parameters
     ----------
-    graph: The graph to check
-    e1: First edge
-    e2: Second edge
-    c1: First color
-    c2: Second color the the chain (a chain is defined by two colors)
+        graph: The graph to check
+        e1: First edge
+        e2: Second edge
+        c1: First color
+        c2: Second color the the chain (a chain is defined by two colors)
 
     Returns
     -------
-    are_edges_on_the_same_kempe_cycle_flag: True or False if the two edges are part of the same cycle
+        are_edges_on_the_same_kempe_cycle_flag: True or False if the two edges are part of the same cycle
     """
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: are_edges_on_the_same_kempe_cycle: %s, %s, %s, %s", e1, e2, c1, c2)
@@ -609,16 +609,16 @@ def apply_half_kempe_loop_color_switching(graph, ariadne_step, color_at_v1, colo
 
     Parameters
     ----------
-    graph: The graph
-    ariadne_step: This step
-    color_at_v1: Second edge
-    color_at_v2: First color
-    swap_c1: Second color the the chain (a chain is defined by two colors)
-    swap_c2: Second color the the chain (a chain is defined by two colors)
+        graph: The graph
+        ariadne_step: This step
+        color_at_v1: Second edge
+        color_at_v2: First color
+        swap_c1: Second color the the chain (a chain is defined by two colors)
+        swap_c2: Second color the the chain (a chain is defined by two colors)
 
     Returns
     -------
-    are_edges_on_the_same_kempe_cycle_flag: True or False if the two edges are part of the same cycle
+        are_edges_on_the_same_kempe_cycle_flag: True or False if the two edges are part of the same cycle
     """
 
     v1 = ariadne_step[1]
@@ -651,11 +651,11 @@ def remove_vertex_from_face(face, vertex):
     Parameters
     ----------
     face: The face
-    vertex: This vertex to remove
+        vertex: This vertex to remove
 
     Returns
     -------
-    face: The modified face
+        face: The modified face
     """
 
     # Search the edge that contains the vertex as the second element of the tuple
@@ -679,12 +679,12 @@ def rotate(l, n):
 
     Parameters
     ----------
-    l: The list to rotate
-    n: Index for rotating the list and tuple
+        l: The list to rotate
+        n: Index for rotating the list and tuple
 
     Returns
     -------
-    The modified list or tuple
+        The modified list or tuple
     """
 
     return l[n:] + l[:n]
@@ -728,13 +728,13 @@ def join_faces(f1, f2, edge_to_remove_on_f1):
 
     Parameters
     ----------
-    f1: First face
-    f2: Second face adjacent to the first face
-    edge_to_remove_on_f1: The edge to remove
+        f1: First face
+        f2: Second face adjacent to the first face
+        edge_to_remove_on_f1: The edge to remove
 
     Returns
     -------
-    f1_plus_f2: The new face as the sum of the two
+        f1_plus_f2: The new face as the sum of the two
     """
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: join_faces")
@@ -808,11 +808,11 @@ def is_the_graph_one_edge_connected(face):
 
     Parameters
     ----------
-    face: The face that has been just modified has to be check for becoming one_edge_connected
+        face: The face that has been just modified has to be check for becoming one_edge_connected
 
     Returns
     -------
-    is_the_graph_one_edge_connected: True of False
+        is_the_graph_one_edge_connected: True of False
     """
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: is_the_graph_one_edge_connected")
@@ -847,14 +847,15 @@ def get_the_other_colors(colors):
 
     Parameters
     ----------
-    colors: A list of colors
+        colors: A list of colors
 
     Returns
     -------
-    Returns a list of missing colors respect to the given colors
+        Returns a list of missing colors respect to the given colors
     """
 
-    return [x for x in ["red", "green", "blue"] if x not in colors]
+    # return [x for x in ["red", "green", "blue"] if x not in colors]
+    return [x for x in VALID_COLORS if x not in colors]
 
 
 def log_faces(faces):
@@ -863,7 +864,7 @@ def log_faces(faces):
 
     Parameters
     ----------
-    faces: The faces of the map
+        faces: The faces of the map
     """
 
     if logger.isEnabledFor(logging.DEBUG):

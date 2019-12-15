@@ -1,0 +1,330 @@
+
+fullgen is a program for generating nonisomorphic fullerenes.
+
+Author: Gunnar Brinkmann (Gunnar.Brinkmann@Ugent.be).
+
+A fullerene is a 3-connected planar cubic graph whose faces are all
+pentagons or hexagons.  From Euler's formula it can be shown that the
+number of pentagons must be exactly 12.
+
+An IPR fullerene is one for which no two pentagons share an edge.
+
+
+The program fullgen must be called
+
+fullgen x
+
+with x the number of vertices of the fullerenes that shall be generated.
+
+By default the fullerenes are just generated and counted. The results
+are written to stderr and into a file named "Full_gen_x.log"
+
+Several options can be given. Some of them have influence on the name of
+the logfile (e.g. by adding a letter or two to the name) -- and all must 
+be given after the number of vertices:
+
+If you want not only fullerenes with a fixed number of vertices, but with 
+vertex numbers in the range y to x, you can use the "start" option.
+It is used e.g. "fullgen x start y" in this case. The time advantage between
+generating the fullerenes with y, y+2, ... x vertices separately differs,
+but is not very large. In the case of just generating ipr fullerenes the
+advantage is larger.
+
+Restricting the program to the generation of IPR fullerenes can be done by
+using the option "ipr".
+
+The generation can be split into 3 disjoint parts by using the options
+"case 1", "case 2" or "case 3".
+
+Another way to split the generation is to use "mod x y" with 0<=x<y. This way
+is not as efficient as "case", but can be used additionally. One should not
+use too large y. Different from "case" the splitting depends on ALL OPTIONS,
+and the whole process, so if one first does "fullgen 60 start 20 mod 0 2" and
+then "fullgen 60 mod 1 2" to get the rest of the 60 vertices fullerenes, the
+result is WRONG. One would have to do "fullgen 60 start 20 mod 1 2".
+
+You can choose whether you want the graphs not only to be counted, but
+also coded. You can choose between 5 possibilities by typing e.g.
+"fullgen x code z" with z the code you have chosen :
+
+code 1: This is a binary code that is easy and fast to compute and to decode.
+        Every entry of the code is an unsigned char. The first entry is the
+        number of vertices.  After that there is a list of the vertices
+        adjacent to vertex number 1 in clockwise orientation. This list is
+        ended with a 0. Then you have the vertices adjacent to number 2 ended
+        with a 0,... .  These codes are written into a file named
+        "Full_codes_x".  In case that the numbers are too large for unsigned
+        char, the first unsigned char written is 0 (!!!). After that the code
+        is as above -- only with unsigned short instead of unsigned char.
+        The unsigned shorts are written in little-endian order (low order
+        byte first).  A 0 character is written before EVERY code.
+
+code 2: This is a binary spiral code. Every entry is an unsigned char. For
+        the complete spiral code you need the positions of the pentagons in
+        a spiral development of the fullerene. So you need 12 entries giving
+        the 12 positions. In fact the coding is a bit different: The first
+        entry tells you how many entries you can take from the last code.
+        So the first entry in every file is 0. The next 12 entries are code
+        number 1. If the next entry is a 4, you take the first 4 entries of
+        the first code and fill up the code using the next 8 entries from the
+        file ...
+        The files are called "Spiral_codes_x". The spiral developments
+        chosen are completely arbitrary except that spirals starting at a
+        pentagon are preferred.  In case a fullerene without spiral is found,
+        it is written to "No_spiral_x" using code 1. Fullerenes without a
+        spiral starting at a pentagon are written to "No_pentagon_spiral_x". 
+
+code 3: This is a spiral code like code 2. The only difference is that in
+        order to make the codes as equal as possible and obtain small files,
+        the lexicographically minimal spiral development is calculated.
+        Furthermore the codes are not written to the file one by one, but
+        2000 codes are gathered and sorted in order to have similar codes
+        close to each other. The number of graphs gathered can be changed by 
+        using the option "list z" with z the number of codes that shall be
+        gathered.  This is the most efficient and most time consuming code.
+
+code 4: In this case the fullerenes are just counted, unless one without a
+        spiral (or a spiral starting at a pentagon) occurs. This graph is
+        treated as above.
+
+code 5: This works completely like code 1 plus code 4 (concerning spirals)
+        together.
+
+code 6: This code is always written to stdout. The code used is the VEGA Code 
+        >>writegraph3d planar<<
+
+code 7: This code is also always written to stdout. It is the same code as
+        in code 1, but the dual is written instead of the graph itself.
+
+code 8: This is like code 1 but uses the sparse6 format (without header).
+        See plantri-guide.txt for the definition of sparse6.
+
+Except for code 6 and code 8, the output is preceded by the header
+">>planar_code le<<" without end-of-line characters.
+
+The option "spiralcheck" makes the program check for spirals independent of
+the code used.
+
+If the option "hexspi" is used, fullerenes that have no spirals starting at a
+hexagon are looked for. If they are found, they are written to a file named 
+"No_hexagon_spiral_x". It MUST be used in combination with some code involving
+spiral checking or with the option spiralcheck.
+
+The option "spistat" makes the program create some statistics about the
+number of spirals the generated fullerenes have. The maximal possible number
+is 4 times the number of edges, since for every edge one has two possibilities
+to choose the initial face and for every such choice one has two possibilities
+(clockwise and counterclockwise) for a spiral.  This does NOT mean that any
+Non-spiral fullerenes are written unless you use other options too. This
+option may be used only if fullerenes of ONE size are computed.
+
+The option "symstat" makes the program create some statistics about the
+symmetries which occur in the generated fullerenes. There are 28 possible
+symmetry groups. 
+
+If you want the graphs not only to be counted, but also coded, you can choose
+if you want only graphs with a special symmetry to be coded. Use the option
+"symm" by typing e.g.: "fullgen x code y symm z"
+z must be one of the following 28 strings:
+C1, C2, Ci, Cs, C3, D2, S4, C2v, C2h, D3, S6, C3v, C3h, D2h, D2d, D5, D6,
+D3h, D3d, T, D5h, D5d, D6h, D6d, Td, Th, I, Ih.
+These are standard names for various symmetry groups - please refer to a
+chemical dictionary for their meanings.
+You do not need to use the option "symstat" simultaneously.
+Using the option "symm" doesn't decrease the generation time since all other
+fullerenes are nevertheless generated, although they are not coded.
+If you use the option "symm" but you don't use the option "code"
+simultaneously, then the option "symm" has no effect. You can use the option
+"symm" several times within one program call. Then you get every graph which
+has one of the selected symmetries.
+ 
+Please note that especially spistat takes quite some additional computing
+time!  The option symstat takes about 2% additional computing time.
+
+Output to files different from "No_spiral_x", "No_pentagon_spiral_x" and 
+"No_hexagon_spiral_x" can be redirected to stdout by using the option stdout. 
+This is useful e.g. for piping.
+
+The option "quiet" makes fullgen suppress all information about the
+generation process.
+
+One possible call of fullgen would be
+
+fullgen 150 start 100 ipr code 5 stdout | otherprogram
+
+In case of problems or interesting results please contact 
+Gunnar Brinkmann (Gunnar.Brinkmann@Ugent.be).
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+For 136 vertices or more (non-IPR), the following numbers are
+different from earlier versions of this manual. In June 2011 Jan
+Goedgebeur and Brendan McKay developed a new program (contact the
+authors for a copy) for the generation of fullerenes that generated
+different numbers for 136 vertices. It turned out that there was some
+(non-algorithmic) error in fullgen that made the program miss
+structures.  The smallest non-ipr case was 136 vertices where 1
+structure was missed.  The smallest IPR case was at 254 vertices. This
+error is now corrected.
+
+
+Numbers of Fullerenes and IPR Fullerenes:
+
+
+                                           vertices | IPR-Fullerenes
+                                         ___________________________
+                                                 60 |             1 
+                                                 62 |             0 
+vertices | Fullerenes                            64 |             0 
+_________________________                        66 |             0 
+      20 |             1                         68 |             0  
+      22 |             0                         70 |             1 
+      24 |             1                         72 |             1   
+      26 |             1                         74 |             1  
+      28 |             2                         76 |             2   
+      30 |             3                         78 |             5  
+      32 |             6                         80 |             7  
+      34 |             6                         82 |             9  
+      36 |            15                         84 |            24  
+      38 |            17                         86 |            19   
+      40 |            40                         88 |            35   
+      42 |            45                         90 |            46   
+      44 |            89                         92 |            86    
+      46 |           116                         94 |           134     
+      48 |           199                         96 |           187     
+      50 |           271                         98 |           259    
+      52 |           437                        100 |           450     
+      54 |           580                        102 |           616     
+      56 |           924                        104 |           823     
+      58 |         1 205                        106 |         1 233     
+      60 |         1 812                        108 |         1 799     
+      62 |         2 385                        110 |         2 355    
+      64 |         3 465                        112 |         3 342    
+      66 |         4 478                        114 |         4 468   
+      68 |         6 332                        116 |         6 063   
+      70 |         8 149                        118 |         8 148  
+      72 |        11 190                        120 |        10 774  
+      74 |        14 246                        122 |        13 977  
+      76 |        19 151                        124 |        18 769  
+      78 |        24 109                        126 |        23 589  
+      80 |        31 924                        128 |        30 683  
+      82 |        39 718                        130 |        39 393  
+      84 |        51 592                        132 |        49 878  
+      86 |        63 761                        134 |        62 372  
+      88 |        81 738                        136 |        79 362  
+      90 |        99 918                        138 |        98 541  
+      92 |       126 409                        140 |       121 354  
+      94 |       153 493                        142 |       151 201  
+      96 |       191 839                        144 |       186 611  
+      98 |       231 017                        146 |       225 245  
+     100 |       285 914                        148 |       277 930  
+     102 |       341 658                        150 |       335 569  
+     104 |       419 013                        152 |       404 667  
+     106 |       497 529                        154 |       489 646  
+     108 |       604 217                        156 |       586 264  
+     110 |       713 319                        158 |       697 720  
+     112 |       860 161                        160 |       836 497  
+     114 |     1 008 444                        162 |       989 495  
+     116 |     1 207 119                        164 |     1 170 157  
+     118 |     1 408 553                        166 |     1 382 953  
+     120 |     1 674 171                        168 |     1 628 029  
+     122 |     1 942 929                        170 |     1 902 265  
+     124 |     2 295 721                        172 |     2 234 133  
+     126 |     2 650 866                        174 |     2 601 868  
+     128 |     3 114 236                        176 |     3 024 383 
+     130 |     3 580 637                        178 |     3 516 365 
+     132 |     4 182 071                        180 |     4 071 832 
+     134 |     4 787 715                        182 |     4 690 880 
+     136 |     5 566 949                        184 |     5 424 777          
+     138 |     6 344 698                        186 |     6 229 550          
+     140 |     7 341 204                        188 |     7 144 091          
+     142 |     8 339 033                        190 |     8 187 581          
+     144 |     9 604 411                        192 |     9 364 975          
+     146 |    10 867 631                        194 |    10 659 863          
+     148 |    12 469 092                        196 |    12 163 298          
+     150 |    14 059 174                        198 |    13 809 901          
+     152 |    16 066 025                        200 |    15 655 672          
+     154 |    18 060 979                        202 |    17 749 388          
+     156 |    20 558 767                        204 |    20 070 486          
+     158 |    23 037 594                        206 |    22 606 939          
+     160 |    26 142 839                        208 |    25 536 557          
+     162 |    29 202 543                        210 |    28 700 677          
+     164 |    33 022 573                        212 |    32 230 861          
+     166 |    36 798 433                        214 |    36 173 081          
+     168 |    41 478 344                        216 |    40 536 922          
+     170 |    46 088 157                        218 |    45 278 722          
+     172 |    51 809 031                        220 |    50 651 799          
+     174 |    57 417 264                        222 |    56 463 948          
+     176 |    64 353 269                        224 |    62 887 775          
+     178 |    71 163 452                        226 |    69 995 887          
+     180 |    79 538 751                        228 |    77 831 323          
+     182 |    87 738 311                        230 |    86 238 206          
+     184 |    97 841 183                        232 |    95 758 929          
+     186 |   107 679 717                        234 |   105 965 373          
+     188 |   119 761 075                        236 |   117 166 528          
+     190 |   131 561 744                        238 |   129 476 607          
+     192 |   145 976 674                        240 |   142 960 479          
+     194 |   159 999 462                        242 |   157 402 781
+     196 |   177 175 687                        244 |   173 577 766
+     198 |   193 814 658                        246 |   190 809 628
+     200 |   214 127 742                        248 |   209 715 141
+     202 |   233 846 463                        250 |   230 272 559
+     204 |   257 815 889                        252 |   252 745 513
+     206 |   281 006 325                        254 |   276 599 787
+     208 |   309 273 526                        256 |   303 235 792
+     210 |   336 500 830                        258 |   331 516 984
+     212 |   369 580 714                        260 |   362 302 637
+     214 |   401 535 955                        262 |   395 600 325
+     216 |   440 216 206                        264 |   431 894 257
+     218 |   477 420 176                        266 |   470 256 444
+     220 |   522 599 564                        268 |   512 858 451
+     222 |   565 900 181                        270 |   557 745 670
+     224 |   618 309 598                        272 |   606 668 511
+     226 |   668 662 698                        274 |   659 140 287
+     228 |   729 414 880                        276 |   716 217 922
+     230 |   787 556 069                        278 |   776 165 188
+     232 |   857 934 016                        280 |   842 498 881
+     234 |   925 042 498                        282 |   912 274 540
+     236 | 1 006 016 526                        284 |   987 874 095
+     238 | 1 083 451 816                        286 | 1 068 507 788
+     240 | 1 176 632 247                        288 | 1 156 161 307
+     242 | 1 265 323 971                        290 | 1 247 686 189
+     244 | 1 372 440 782                        292 | 1 348 832 364
+     246 | 1 474 111 053                        294 | 1 454 359 806
+     248 | 1 596 482 232                        296 | 1 568 768 524
+     250 | 1 712 934 069                        298 | 1 690 214 836
+     252 | 1 852 762 875                        300 | 1 821 766 896
+     254 | 1 985 250 572                
+     256 | 2 144 943 655                
+     258 | 2 295 793 276                
+     260 | 2 477 017 558                
+     262 | 2 648 697 036                
+     264 | 2 854 536 850                
+     266 | 3 048 609 900                
+     268 | 3 282 202 941                
+     270 | 3 501 931 260                
+     272 | 3 765 465 341                
+     274 | 4 014 007 928                
+     276 | 4 311 652 376                
+     278 | 4 591 045 471                
+     280 | 4 926 987 377                
+     282 | 5 241 548 270                
+     284 | 5 618 445 787                
+     286 | 5 972 426 835                
+     288 | 6 395 981 131                
+     290 | 6 791 769 082                
+     292 | 7 267 283 603                
+     294 | 7 710 782 991                
+     296 | 8 241 719 706                
+     298 | 8 738 236 515                
+     300 | 9 332 065 811
+
+
+
+Sample symmetry statistics for 60 vertices like outputted by Fullgen:
+
+Symmetries:
+  C1 :       1508   C2 :        189   Cs :         67   D2 :         19 
+  S4 :          2   C2v:          9   C2h:          4   D3 :          3 
+  C3v:          1   D2h:          1   D2d:          4   D5 :          1 
+  D5d:          1   D6h:          2   Ih :          1 

@@ -158,11 +158,11 @@ from ct.ct_graph_utils import *
 
 def initialize_statistics(stats):
     """
-    "Initialize statistics."
+    Initialize statistics.
 
     Parameters
     ----------
-    stats: The statistics to initialize
+        stats: The statistics to initialize
     """
 
     stats['CASE-F2-01'] = 0
@@ -195,11 +195,11 @@ def initialize_statistics(stats):
 
 def print_stats(stats):
     """
-    "Print the statistics."
+    Print the statistics.
 
     Parameters
     ----------
-    stats: The statistics to print
+        stats: The statistics to print
     """
 
     logger.info("------------------")

@@ -32,22 +32,15 @@ Definition of "planar embedding":
 Some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos
 
-## Installation
-
-To simplify the testing I used docker
-
 ## Pre-requìrements
-- python3
-- networkx
-- sage
+- docker
 
 ## Download a pre-configured dockerized sage docker instance
 - docker run -it sagemath/sagemath:latest bash
   - sudo apt-get update
   - sudo apt-get install python3
   - sudo apt-get install git
-  - apt-get install vim
-  - ... ?
+  - sudo apt-get install vim
 
 ### Download personal repo
 - cd
@@ -59,6 +52,7 @@ To simplify the testing I used docker
 - cd
 - cd prj
 - cd maps-coloring-python
+- cd ct
 - sage 4ct.py --help
 - sage 4ct.py -r 100 (Random graph: dual of a triangulation of N vertices)
 - other parameters

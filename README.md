@@ -38,7 +38,9 @@ Some videos of the running Python and Java programs:
 ## Download a pre-configured dockerized sage docker instance
 - docker run -it sagemath/sagemath:latest bash
   - sudo apt-get update
-  - sudo apt-get install python3
+  - sudo apt-get install python3 (not strictly necessary - the sage image already has it)
+    - If something goes wrong with python 3.7, maybe you will need to try with python3.5
+      - sudo apt-get install python3.5
   - sudo apt-get install git
   - sudo apt-get install vim
 
@@ -59,6 +61,22 @@ Some videos of the running Python and Java programs:
   - -i <file .edgelist> (Load a .edgelist file - networkx)
   - -p <file .serialized> (Load a .serialized planar embedding of the graph)
   - -o <file name without extension> (Save a .edgelist file (networkx), plus a .dot file (networkx)
+
+## Run ct_create_random_maps_from_2v.py
+- cd
+- cd prj
+- cd maps-coloring-python
+- cd ct
+- python3 ct_create_random_maps_from_2v.py -v 100 -o new_map_test_100.planar
+- sage 4ct.py -p new_map_test_100.planar
+
+## Run ct_convert_planar_to_other.py
+- cd
+- cd prj
+- cd maps-coloring-python
+- cd ct
+- TO BE FINISHED
+  - ct_convert_planar_to_other.py requires networkx and pygraphviz and it seems that with python3.7 is impossible to have a clean installation
 
 ## To be finished:
 - Now I have:

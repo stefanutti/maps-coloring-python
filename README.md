@@ -69,7 +69,7 @@ Some videos of the running Python and Java programs:
 - sage 4ct.py -p new_map_test_100.planar
 
 ## Run ct_convert_planar_to_other.py
-- Additional dependencies
+- Dependencies
   - pip3 install networkx
   - pip3 install pydot
 - cd

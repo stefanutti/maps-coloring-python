@@ -35,7 +35,7 @@ Some videos of the running Python and Java programs:
 ## Pre-requìrements
 - docker
 
-## Download a pre-configured dockerized sage docker instance (I used sagemath latest = 9.0, python 3.7)
+## Download a docker instance (I used sagemath latest = 9.0, python 3.7)
 - docker run -it sagemath/sagemath:latest bash
   - sudo apt-get update
   - sudo apt-get install git

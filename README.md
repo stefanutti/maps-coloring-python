@@ -35,12 +35,9 @@ Some videos of the running Python and Java programs:
 ## Pre-requìrements
 - docker
 
-## Download a pre-configured dockerized sage docker instance
+## Download a pre-configured dockerized sage docker instance (I used sagemath latest = 9.0, python 3.7)
 - docker run -it sagemath/sagemath:latest bash
   - sudo apt-get update
-  - sudo apt-get install python3 (not strictly necessary - the sage image already has it)
-    - If something goes wrong with python 3.7, maybe you will need to try with python3.5
-      - sudo apt-get install python3.5
   - sudo apt-get install git
   - sudo apt-get install vim
 
@@ -56,7 +53,8 @@ Some videos of the running Python and Java programs:
 - cd maps-coloring-python
 - cd ct
 - sage 4ct.py --help
-- sage 4ct.py -r 100 (Random graph: dual of a triangulation of N vertices)
+- sage 4ct.py -r 100
+  - Random graph: dual of a triangulation of N vertices
 - other parameters
   - -i <file .edgelist> (Load a .edgelist file - networkx)
   - -p <file .serialized> (Load a .serialized planar embedding of the graph)
@@ -71,15 +69,17 @@ Some videos of the running Python and Java programs:
 - sage 4ct.py -p new_map_test_100.planar
 
 ## Run ct_convert_planar_to_other.py
+- Additional dependencies
+  - pip3 install networkx
+  - pip3 install pydot
 - cd
 - cd prj
 - cd maps-coloring-python
 - cd ct
-- TO BE FINISHED
-  - ct_convert_planar_to_other.py requires networkx and pygraphviz and it seems that with python3.7 is impossible to have a clean installation
+- python3 ct_convert_planar_to_other.py -p new_map_test_100.planar -o new_map_test_100
 
 ## To be finished:
-- Now I have:
+- What I've done that needs to be changed:
   - Generated a large planar triangulation using sage RandomTriangulation (fast)
   - Generated the dual of the planar triangulation, which is planar too (fast)
   - Now, to get the list of faces() sage needs to elaborate le planarity of the graph (very slow)

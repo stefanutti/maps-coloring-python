@@ -64,26 +64,9 @@ import logging
 import json
 
 import networkx as nx
-from networkx.drawing.nx_agraph import write_dot
+
 from networkx.readwrite.edgelist import write_edgelist
-
-# and the following code block is not needed
-# but we want to see which module is used and
-# if and why it fails
-try:
-    import pygraphviz
-    print("using package pygraphviz")
-except ImportError:
-    try:
-        import pydot
-        print("using package pydot")
-    except ImportError:
-        print()
-        print("Both pygraphviz and pydot were not found")
-        print("see https://networkx.github.io/documentation/latest/reference/drawing.html")
-        print()
-        raise
-
+from networkx.drawing.nx_pydot import write_dot
 
 def export_graph(graph_to_export, name_of_file_without_extension):
     """
@@ -98,6 +81,7 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     # Possibilities: adjlist, dot, edgelist, gexf, gml, graphml, multiline_adjlist, pajek, yaml
     write_dot(graph_to_export, name_of_file_without_extension + ".dot")
     logger.info("File saved: %s", name_of_file_without_extension + ".dot")
+
     write_edgelist(graph_to_export, name_of_file_without_extension + ".edgelist")
     logger.info("File saved: %s", name_of_file_without_extension + ".edgelist")
 
@@ -155,7 +139,7 @@ logger.addHandler(logging_stream_handler)
 ###############
 parser = argparse.ArgumentParser(description = 'args')
 parser.add_argument("-p", "--planar", help = "Load a .planar file (planar embedding)", required = True)
-parser.add_argument("-o", "--output", help = "Save a .dot file (networkx). Specify the file without extension", required = True)
+parser.add_argument("-o", "--output", help = "Save a .dot and .edgelist file (networkx). Specify the name without extension", required = True)
 args = parser.parse_args()
 
 # Open the file

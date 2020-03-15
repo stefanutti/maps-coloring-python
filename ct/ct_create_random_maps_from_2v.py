@@ -60,6 +60,7 @@ import json
 ######
 ######
 
+
 def rotate(l, n):
     """
     Rotate elements (works for lists and tuple)
@@ -92,6 +93,7 @@ def log_faces(faces):
 
     return
 
+
 def split_face(selected_face, index_of_the_first_selected_edge, index_of_the_second_selected_edge):
     """
     Split a face
@@ -106,7 +108,7 @@ def split_face(selected_face, index_of_the_first_selected_edge, index_of_the_sec
     -------
         the_two_new_faces_to_return: Returns the two new faces (list of two lists)
     """
-    
+
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: split_face")
 
     # Return the two new faces (list of two lists)
@@ -175,7 +177,7 @@ def print_map_statistics(g_faces):
 
         for i in range(2, 7):
             logger.info("- F%s: %s", i, sum(len(face) == i for face in g_faces))
-    
+
     return
 
 ######
@@ -209,6 +211,7 @@ def print_map_statistics(g_faces):
 ######
 ######
 ######
+
 
 # Set logging facilities: LEVEL XXX
 logger = logging.getLogger()

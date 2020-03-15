@@ -477,8 +477,8 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     logger.info("------------------------------------------------")
     logger.info("BEGIN: Save the 4 colored map in edgelist format")
     logger.info("------------------------------------------------")
-    graph_to_export.export_to_file(name_of_file_without_extension + ".edgelist", format = "edgelist")
-    graph_to_export.graphviz_to_file_named(name_of_file_without_extension + ".dot", edge_labels = True, vertex_labels = False)
+    graph_to_export.export_to_file(name_of_file_without_extension + ".edgelist", format="edgelist")
+    graph_to_export.graphviz_to_file_named(name_of_file_without_extension + ".dot", edge_labels=True, vertex_labels=False)
     logger.info("File saved: %s", name_of_file_without_extension)
 
     # Replace label with color

@@ -58,48 +58,10 @@
 __author__ = "Mario Stefanutti <mario.stefanutti@gmail.com>"
 __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_like_to_help@nowhere.com"
 
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-# 4CT: Import stuffs
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-
 # This is to solve some absolute imports issues for modules. I don't know why it is so complicate in python
-import os.path, sys
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
-
+import os.path
+import sys
+import random
 import argparse
 import collections
 import time
@@ -111,49 +73,68 @@ import json
 import networkx
 from sage.all import *
 
-from ct.ct_graph_utils import *
+from ct.ct_graph_utils import check_graph_planarity_3_regularity_no_loops
+from ct.ct_graph_utils import kempe_chain_color_swap
+from ct.ct_graph_utils import graph_dual
+from ct.ct_graph_utils import print_graph
+from ct.ct_graph_utils import is_well_colored
+from ct.ct_graph_utils import get_edge_color
+from ct.ct_graph_utils import is_multiedge
+from ct.ct_graph_utils import check_if_vertex_is_in_face
+from ct.ct_graph_utils import create_graph_from_planar_representation
+from ct.ct_graph_utils import export_graph
+from ct.ct_graph_utils import are_edges_on_the_same_kempe_cycle
+from ct.ct_graph_utils import apply_half_kempe_loop_color_switching
+from ct.ct_graph_utils import remove_vertex_from_face
+from ct.ct_graph_utils import rotate
+from ct.ct_graph_utils import join_faces
+from ct.ct_graph_utils import is_the_graph_one_edge_connected
+from ct.ct_graph_utils import get_the_other_colors
+from ct.ct_graph_utils import log_faces
+
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 
 # Next instructions MAX_OUTPUT_MESSAGES) solves this issue: http://ask.sagemath.org/question/33727/logging-failing-after-a-while/
 # Only when running the code in the cloud: https://cloud.sagemath.com
 # sage_server.MAX_OUTPUT_MESSAGES = 100000 # Needed for the cloud version of Sage
 
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
 # 4CT: Helping functions
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
 
 
 def initialize_statistics(stats):
@@ -217,43 +198,450 @@ def print_stats(stats):
     return
 
 
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
+def ariadne_case_f2():
+
+    # CASE: F2
+    # Update stats
+    stats['CASE-F2-01'] += 1
+
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F2 (multiple edge)")
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
+
+    v1 = ariadne_step[1]
+    v2 = ariadne_step[2]
+    vertex_to_join_near_v1 = ariadne_step[3]
+    vertex_to_join_near_v2 = ariadne_step[4]
+
+    # For F2 to compute the new colors is easy
+    previous_edge_color = get_edge_color(the_colored_graph, (vertex_to_join_near_v1, vertex_to_join_near_v2))
+
+    # Choose available colors
+    new_multiedge_color_one = get_the_other_colors([previous_edge_color])[0]
+    new_multiedge_color_two = get_the_other_colors([previous_edge_color])[1]
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("new_multiedge_color_one: %s, new_multiedge_color_two: %s", new_multiedge_color_one, new_multiedge_color_two)
+
+    # Delete the edge
+    # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+    the_colored_graph.delete_edge(vertex_to_join_near_v1, vertex_to_join_near_v2, previous_edge_color)
+
+    # Restore the previous edge
+    the_colored_graph.add_edge(v1, vertex_to_join_near_v1, previous_edge_color)
+    the_colored_graph.add_edge(v2, vertex_to_join_near_v2, previous_edge_color)
+    the_colored_graph.add_edge(v1, v2, new_multiedge_color_one)
+    the_colored_graph.add_edge(v2, v1, new_multiedge_color_two)
+
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color: %s, new_multiedge_color_one: %s, new_multiedge_color_two: %s", previous_edge_color, new_multiedge_color_one, new_multiedge_color_two)
+
+    # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
+    # if is_well_colored(the_colored_graph) is False:
+    #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
+    #     exit(-1)
+
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F2 (multiple edge)")
+
+
+def ariadne_case_f3():
+
+    # CASE: F3
+    # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
+    # Update stats
+    stats['CASE-F3-01'] += 1
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F3")
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
+
+    v1 = ariadne_step[1]
+    v2 = ariadne_step[2]
+    vertex_to_join_near_v1_on_the_face = ariadne_step[3]
+    vertex_to_join_near_v2_on_the_face = ariadne_step[4]
+    vertex_to_join_near_v1_not_on_the_face = ariadne_step[5]
+    vertex_to_join_near_v2_not_on_the_face = ariadne_step[6]
+
+    # For F3 to compute the new colors is easy (check also if it is a multiple edges)
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v1_on_the_face: %s, vertex_to_join_near_v2_on_the_face: %s, vertex_to_join_near_v1_not_on_the_face: %s, vertex_to_join_near_v2_not_on_the_face: %s", vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face)
+
+    # If e1 and e2 have the same vertices, they are the same multiedge
+    if (vertex_to_join_near_v1_on_the_face == vertex_to_join_near_v2_on_the_face) and (vertex_to_join_near_v1_not_on_the_face == vertex_to_join_near_v2_not_on_the_face):
+
+        # Get the colors of the two edges (multiedge). Select only the two multiedges (e1, e2 with same vertices)
+        temp_multiple_edges_to_check = the_colored_graph.edges_incident(vertex_to_join_near_v1_on_the_face)  # Three edges will be returned
+        multiple_edges_to_check = [(va, vb, l) for (va, vb, l) in temp_multiple_edges_to_check if (vertex_to_join_near_v1_not_on_the_face == va) or (vertex_to_join_near_v1_not_on_the_face == vb)]
+        previous_edge_color_at_v1 = multiple_edges_to_check[0][2]
+        previous_edge_color_at_v2 = multiple_edges_to_check[1][2]
+    else:
+        previous_edge_color_at_v1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
+        previous_edge_color_at_v2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
+
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color_at_v1: %s, previous_edge_color_at_v2: %s", previous_edge_color_at_v1, previous_edge_color_at_v2)
+
+    # Checkpoint
+    if previous_edge_color_at_v1 == previous_edge_color_at_v2:
+        logger.error("Unexpected condition (for F3 faces two edges have a vertex in common, and so colors MUST be different at this point). Mario you'd better go back to paper")
+        exit(-1)
+
+    # Choose a different color
+    new_edge_color = get_the_other_colors([previous_edge_color_at_v1, previous_edge_color_at_v2])[0]
+
+    # Delete the edges
+    # Since e1 and e2 may be the same multiedge or maybe separately on different multiedge, I remove them using also the "label" parameter
+    # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+    the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+    the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+
+    # Restore the previous edge
+    the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, previous_edge_color_at_v2)
+    the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+    the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
+    the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+    the_colored_graph.add_edge(v1, v2, new_edge_color)
+
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color_at_v1: %s, previous_edge_color_at_v2: %s, new_edge_color: %s", previous_edge_color_at_v1, previous_edge_color_at_v2, new_edge_color)
+
+    # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
+    # if is_well_colored(the_colored_graph) is False:
+    #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
+    #     exit(-1)
+
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F3")
+
+
+def ariadne_case_f4():
+
+    # CASE: F4
+    # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F4")
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
+
+    v1 = ariadne_step[1]
+    v2 = ariadne_step[2]
+    vertex_to_join_near_v1_on_the_face = ariadne_step[3]
+    vertex_to_join_near_v2_on_the_face = ariadne_step[4]
+    vertex_to_join_near_v1_not_on_the_face = ariadne_step[5]
+    vertex_to_join_near_v2_not_on_the_face = ariadne_step[6]
+
+    # For F4 to compute the new colors is not so easy
+    previous_edge_color_at_v1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
+    previous_edge_color_at_v2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color_at_v1: %s, previous_edge_color_at_v2: %s", previous_edge_color_at_v1, previous_edge_color_at_v2)
+
+    # For an F4, the top edge is the edge not adjacent to the edge to restore (as in a rectangular area)
+    edge_color_of_top_edge = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face))
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("edge_color_of_top_edge: %s", edge_color_of_top_edge)
+
+    # Handle the different cases
+    if previous_edge_color_at_v1 == previous_edge_color_at_v2:
+
+        # Update stats
+        stats['CASE-F4-01'] += 1
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F4 - Same color at v1 and v2")
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
+
+        # CASE: F4 SUBCASE: Same color at v1 and v2
+        # Since edges at v1 and v2 are on the same Kempe cycle (with the top edge), I can also avoid the kempe chain color switching, since in this case the chain is made of three edges
+        # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+        the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+        the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+
+        # Kempe chain color swap is done manually since the chain is only three edges long
+        the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, edge_color_of_top_edge)
+        the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
+
+        # Just for sure. Is the top edge a multiedge? I need to verify it. It should't be
+        if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face):
+            the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
+            the_colored_graph.add_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
+            logger.error("HERE?")  # This is only to verify if this condition is real
+            exit(-1)
+        else:
+            the_colored_graph.set_edge_label(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
+
+        # Restore the other edges
+        the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+        the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+        the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
+
+        # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
+        # if is_well_colored(the_colored_graph) is False:
+        #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
+        #     exit(-1)
+
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4 - Same color at v1 and v2")
+    else:
+
+        # In this case I have to check if the edges at v1 and v2 are on the same Kempe cycle
+        if are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face), (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face), previous_edge_color_at_v1, previous_edge_color_at_v2) is True:
+
+            # Update stats
+            stats['CASE-F4-02'] += 1
+
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F4 - The two edges are on the same Kempe cycle")
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
+
+            # CASE: F4, SUBCASE: The two edges are on the same Kempe cycle
+            # Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
+            #
+            # I broke the cycle to apply the half Kempe chain color swapping
+            # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+            the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+            the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+            the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, previous_edge_color_at_v1)
+            the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v2)
+
+            # Half Kempe chain color swapping
+            kempe_chain_color_swap(the_colored_graph, (v1, vertex_to_join_near_v1_on_the_face), previous_edge_color_at_v1, previous_edge_color_at_v2)
+
+            # Restore the other edges
+            the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+            the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+            the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, previous_edge_color_at_v2])[0])
+
+            # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
+            # if is_well_colored(the_colored_graph) is False:
+            #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
+            #     exit(-1)
+
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4 - The two edges are on the same Kempe cycle")
+
+        else:
+
+            # Update stats
+            stats['CASE-F4-03'] += 1
+
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F4 - The two edges are NOT on the same Kempe cycle")
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
+
+            # CASE: F4 SUBCASE: Worst case: The two edges are NOT on the same Kempe cycle
+            # I'll rotate the colors of the cycle for the edge at v1, and then, since edge_color_at_v1 will be == edge_color_at_v2, apply CASE-001
+            kempe_chain_color_swap(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face), previous_edge_color_at_v1, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
+            previous_edge_color_at_v1 = previous_edge_color_at_v2
+
+            # CASE: F4, SUBCASE: The two edges are now on the same Kempe cycle
+            # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
+            the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+            the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+
+            # Kempe chain color swap is done manually since the chain is only three edges long
+            the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, edge_color_of_top_edge)
+            the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
+
+            # Just to be sure. Is the top edge a multiedge? I need to verify it. It should't be
+            if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face):
+                the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
+                the_colored_graph.add_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
+                logger.error("HERE?")  # This is only to verify if this condition is real
+                exit(-1)
+            else:
+                the_colored_graph.set_edge_label(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
+
+            # Restore the other edges
+            the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+            the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+            the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
+
+            # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
+            # if is_well_colored(the_colored_graph) is False:
+            #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
+            #     exit(-1)
+
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4 - The two edges are NOT on the same Kempe cycle")
+
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4")
+
+
+def ariadne_case_f5():
+
+    # CASE: F5
+    # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F5")
+
+    # xxx clean-up v1 + v2
+    # v1 = ariadne_step[1]
+    # v2 = ariadne_step[2]
+    vertex_to_join_near_v1_on_the_face = ariadne_step[3]
+    vertex_to_join_near_v2_on_the_face = ariadne_step[4]
+    vertex_to_join_near_v1_not_on_the_face = ariadne_step[5]
+    vertex_to_join_near_v2_not_on_the_face = ariadne_step[6]
+
+    # I have to get the two edges that are on top
+    # These are two edges that have near_v1_on_the_face and near_v2_on_the_face and a shared vertex
+    # First thing: I need to get the vertex_in_the_top_middle
+    # Removed the form with the [] (list) from the edges_incident() when there is only one item in the list
+    edges_at_vertices_near_v1_on_the_face = the_colored_graph.edges_incident(vertex_to_join_near_v1_on_the_face, labels=False)
+    edges_at_vertices_near_v2_on_the_face = the_colored_graph.edges_incident(vertex_to_join_near_v2_on_the_face, labels=False)
+    temp_v1 = [item for sublist in edges_at_vertices_near_v1_on_the_face for item in sublist]
+    temp_v1.remove(vertex_to_join_near_v1_not_on_the_face)
+    temp_v2 = [item for sublist in edges_at_vertices_near_v2_on_the_face for item in sublist]
+    temp_v2.remove(vertex_to_join_near_v2_not_on_the_face)
+    vertex_in_the_top_middle = list(set.intersection(set(temp_v1), set(temp_v2)))[0]
+
+    # Useful to try to verify if the number of switches may be limited
+    # restore_random_edge_to_fix_the_impasse = (0, 0)
+    # restore_color_one = ""
+    # restore_color_two = ""
+
+    # The algorithm:
+    #
+    # - Check if c1 and c2 are on the same Kempe chain
+    # - If not, try a random swap
+    #   - First try a swap starting from an edge on the face
+    #   - Then try a swap starting from a random edge of the kempe loop on v1
+    #   - Then try a swap starting from a random edge of the entire graph
+    end_of_f5_restore = False
+    i_attempt = 0
+    while end_of_f5_restore is False:
+
+        # For F5 to compute the new colors is difficult (and needs to be proved if always works in all cases)
+        # I need to handle the different cases
+        c1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
+        c3 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_in_the_top_middle))
+        c4 = get_edge_color(the_colored_graph, (vertex_in_the_top_middle, vertex_to_join_near_v2_on_the_face))
+        c2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
+
+        # F5-C1
+        if c1 == c2:
+
+            # The four edges are: c1, c3, c4, c2==c1
+            #
+            # NOTE:
+            # - Next comment was not true:
+            #   - In case e1 and e2 are not on the same Kempe loop (c1, c3) or (c2, c4), the switch of the top colors (c3, c4) solves (I hope) the situation
+            if are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c3):
+
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: CASE-F5-C1==C2-SameKempeLoop-C1-C3")
+
+                # Apply half Kempe loop color switching (c1, c3)
+                apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c1, c1, c3)
+                end_of_f5_restore = True
+
+                # Save the max
+                stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
+
+                # Update stats
+                stats['CASE-F5-C1==C2-SameKempeLoop-C1-C3'] += 1
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1==C2-SameKempeLoop-C1-C3")
+
+            elif are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c4):
+
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: CASE-F5-C1==C2-SameKempeLoop-C1-C4")
+
+                # Apply half Kempe loop color switching (c2==c1, c4)
+                apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c1, c1, c4)
+                end_of_f5_restore = True
+
+                # Save the max
+                stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
+
+                # Update stats
+                stats['CASE-F5-C1==C2-SameKempeLoop-C1-C4'] += 1
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1==C2-SameKempeLoop-C1-C4")
+
+        else:
+
+            # NOTE:
+            # - Next comment was true, but not useful:
+            #   - In case e1 and e2 are not on the same Kempe loop (c1, c2), the swap of c2, c1 at e2 will give the the first case
+            if are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c2):
+
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: CASE-F5-C1!=C2-SameKempeLoop-C1-C4")
+
+                # Apply half Kempe loop color switching (c1, c2)
+                apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c2, c1, c2)
+                end_of_f5_restore = True
+
+                # Save the max
+                stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
+
+                # Update stats
+                stats['CASE-F5-C1!=C2-SameKempeLoop-C1-C2'] += 1
+
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1!=C2-SameKempeLoop-C1-C2")
+
+        # Try random switches around the graph for a random few times
+        #
+        # TODO: If the switch didn't solve the problem, reset the color and try another random switch. I need to verify if a single switch may fix am impasse
+        if end_of_f5_restore is False:
+
+            # Attempts to change (swap) something in the graph
+            stats['TOTAL_RANDOM_KEMPE_SWITCHES'] += 1
+            i_attempt += 1
+
+            # Useful to try to verify if the number of switches may be limited. I need to verify if a single switch may fix all impasses
+            # if i_attempt > 1:
+            #
+            #    # Restore previous coloring, at the beginning of the loop to fix this impasse
+            #    #
+            #    # OMG: I commented next line but it seems that this case (sage 4ct.py -p debug.input_planar_g_faces.serialized.400.bad_one_switch_is_not_enough) loops forever!!!??? :-(
+            #    #      ariadne_step: [5, 12, 7, 32, 6, 15, 10]
+            #    # kempe_chain_color_swap(the_colored_graph, restore_random_edge_to_fix_the_impasse, restore_color_one, restore_color_two)
+            #    #
+            #    # Useful to try to verify if the number of switches may be limited
+            #    restore_random_edge_to_fix_the_impasse = (0, 0)
+            #    restore_color_one = ""
+            #    restore_color_two = ""
+
+            random_other_color_number = random.randint(0, 1)
+            random_edge_to_fix_the_impasse = the_colored_graph.random_edge(labels=False)
+            color_of_the_random_edge = get_edge_color(the_colored_graph, random_edge_to_fix_the_impasse)
+            other_color = get_the_other_colors(color_of_the_random_edge)[random_other_color_number]
+            kempe_chain_color_swap(the_colored_graph, random_edge_to_fix_the_impasse, color_of_the_random_edge, other_color)
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("random_edge: %s, Kempe color switch: (%s, %s)", random_edge_to_fix_the_impasse, color_of_the_random_edge, other_color)
+
+            # Useful to try to verify if the number of switches may be limited. I need to verify if a single switch may fix all impasses
+            #
+            # restore_random_edge_to_fix_the_impasse = random_edge_to_fix_the_impasse
+            # restore_color_one = other_color
+            # restore_color_two = color_of_the_random_edge
+
+            # Only for debug: which map is causing this impasse?
+            if i_attempt == 1000:
+                the_colored_graph.allow_multiple_edges(False)  # At this point there are no multiple edge
+                export_graph(the_colored_graph, "debug.really_bad_case")
+                logger.error("ERROR: Infinite loop. Chech the debug.really_bad_case.* files")
+
+                # This is used as a sentinel to use the runs.bash script
+                open("error.txt", 'a').close()
+                exit(-1)
+
+    # END F5 has been restored
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
+
+
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
 # 4CT # MAIN: Create/upload the graph to color. it has to be planar and without loops and initially multiple edges
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
 
 
 # Set logging facilities: LEVEL XXX
@@ -268,13 +656,13 @@ logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
 # Read options:
 ###############
 # (-r <vertices> or -i <file> or -p <planar embedding (json file)>) -o <file>
-parser = argparse.ArgumentParser(description = '4ct args')
+parser = argparse.ArgumentParser(description='4ct args')
 
 group_input = parser.add_mutually_exclusive_group(required=True)
-group_input.add_argument("-r", "--rand", help = "Random graph: dual of a triangulation of N vertices", type = int)
-group_input.add_argument("-e", "--edgelist", help = "Load a .edgelist file (networkx)")
-group_input.add_argument("-p", "--planar", help = "Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
-parser.add_argument("-o", "--output", help = "Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
+group_input.add_argument("-r", "--rand", help="Random graph: dual of a triangulation of N vertices", type=int)
+group_input.add_argument("-e", "--edgelist", help="Load a .edgelist file (networkx)")
+group_input.add_argument("-p", "--planar", help="Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
+parser.add_argument("-o", "--output", help="Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
 
 args = parser.parse_args()
 
@@ -353,7 +741,8 @@ if args.edgelist is not None:
 if args.planar is not None:
     logger.info("BEGIN: Load the planar embedding of a graph (output of the gfaces() function): %s", args.planar)
     # with open(args.planar, 'r') as fp: g_faces = pickle.load(fp)
-    with open(args.planar, 'r') as fp: g_faces = json.load(fp)
+    with open(args.planar, 'r') as fp:
+        g_faces = json.load(fp)
 
     # Cast back to tuples. json.dump write the "list of list of tuples" as "list of list of list"
     #
@@ -391,7 +780,7 @@ check_graph_planarity_3_regularity_no_loops(the_graph)
 if args.planar is None:
     logger.info("BEGIN: Embed the graph into the plane (Sage function is_planar(set_embedding = True)). It may take very long time depending on the number of vertices")
     stats['time_PLANAR_EMBEDDING_BEGIN'] = time.ctime()
-    void = the_graph.is_planar(set_embedding = True, set_pos = True)
+    void = the_graph.is_planar(set_embedding=True, set_pos=True)
     stats['time_PLANAR_EMBEDDING_END'] = time.ctime()
     logger.info("END: Embed the graph into the plane (is_planar(set_embedding = True)")
 
@@ -415,14 +804,15 @@ if args.planar is None:
     temp_g_faces = the_graph.faces()
 
     # A full sort of all faces would make the algorithm faster
-    temp_g_faces.sort(key = len)
+    temp_g_faces.sort(key=len)
     g_faces = [face for face in temp_g_faces]
 
     # Save the face representation for later executions (if needed)
     #
     # OLD: with open("debug.input_planar_g_faces.serialized", 'wb') as fp: pickle.dump(g_faces, fp)
     # OLD: with open("debug.input_planar_g_faces.embedding_list", 'wb') as fp: fp.writelines(str(line) + '\n' for line in g_faces)
-    with open("debug.input_planar_g_faces.planar", 'wb') as fp: json.dump(g_faces, fp)
+    with open("debug.input_planar_g_faces.planar", 'wb') as fp:
+        json.dump(g_faces, fp)
 
 # Override creation (mainly to debug previously elaborated maps)
 #
@@ -470,44 +860,44 @@ logger.info("END: Graph information")
 logger.info("----------------------")
 logger.info("")
 
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-# 4CT : Method similar to the Kempe reduction "patching" method
-# 4CT : - For each loop remove an edge from a face <= F5, until the graph will have only four faces (an island with three lands)
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+# 4CT: Method similar to the Kempe reduction "patching" method
+# 4CT: For each loop remove an edge from a face <= F5, until the graph will have only four faces (an island with three lands)
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
 
 logger.info("----------------------")
 logger.info("BEGIN: Reduction phase")
@@ -751,44 +1141,44 @@ logger.info("")
 # logger.info("---------------------------------------")
 # logger.info("")
 
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-# 4CT : Restore the edges one at a time and apply the half Kempe-cycle color switching method
-# 4CT : Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
-#######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+# 4CT: Restore the edges one at a time and apply the half Kempe-cycle color switching method
+# 4CT: Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
 
 logger.info("---------------------------")
 logger.info("BEGIN: Reconstruction phase")
@@ -796,7 +1186,7 @@ logger.info("---------------------------")
 
 # At this point the graph has 3 faces (an island with 2 lands + the ocean) and 3 edges ... easily 3-edge-colorable
 # WARNING: the color of the edges of a multiedge graph cannot be changed, so during the process it is necessary to delete and re-insert edges
-the_colored_graph = Graph(sparse = True)
+the_colored_graph = Graph(sparse=True)
 the_colored_graph.allow_loops(False)
 the_colored_graph.allow_multiple_edges(True)  # During the process I need this to be set to true
 
@@ -815,7 +1205,7 @@ v2 = all_vertices[1]
 # At this point the graph is that of an island perfectly slit in two (just to visualize it)
 # I now rebuild a new graph and, at the end of the rebuilding process, I'll check if it is isomorphic to the original
 #
-# NOTE: It is NOT important to create the new graph selecting a particular order for the vertices ... they would all generate exactly the same graph
+# NOTE: For the first step, it is NOT important to create the new graph selecting a particular order for the vertices ... they would all generate exactly the same graph
 the_colored_graph.add_edge(v1, v2, "red")
 the_colored_graph.add_edge(v1, v2, "green")
 the_colored_graph.add_edge(v1, v2, "blue")
@@ -831,414 +1221,22 @@ i_global_rebuilding_counter = 0
 # Start the rebuilding process
 while is_the_end_of_the_rebuild_process is False:
 
-    i_global_rebuilding_counter +=1
+    i_global_rebuilding_counter += 1
 
     # Get the string to walk back home
     ariadne_step = ariadne_string.pop()
     logger.info("ariadne_step (%s/%s): %s", i_global_rebuilding_counter, i_global_counter, ariadne_step)
 
     # F2 = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
+    # F3, 4, 5 = [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
     if ariadne_step[0] == 2:
-
-        # CASE: F2
-        # Update stats
-        stats['CASE-F2-01'] += 1
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F2 (multiple edge)")
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
-
-        v1 = ariadne_step[1]
-        v2 = ariadne_step[2]
-        vertex_to_join_near_v1 = ariadne_step[3]
-        vertex_to_join_near_v2 = ariadne_step[4]
-
-        # For F2 to compute the new colors is easy
-        previous_edge_color = get_edge_color(the_colored_graph, (vertex_to_join_near_v1, vertex_to_join_near_v2))
-
-        # Choose available colors
-        new_multiedge_color_one = get_the_other_colors([previous_edge_color])[0]
-        new_multiedge_color_two = get_the_other_colors([previous_edge_color])[1]
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("new_multiedge_color_one: %s, new_multiedge_color_two: %s", new_multiedge_color_one, new_multiedge_color_two)
-
-        # Delete the edge
-        # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
-        the_colored_graph.delete_edge(vertex_to_join_near_v1, vertex_to_join_near_v2, previous_edge_color)
-
-        # Restore the previous edge
-        the_colored_graph.add_edge(v1, vertex_to_join_near_v1, previous_edge_color)
-        the_colored_graph.add_edge(v2, vertex_to_join_near_v2, previous_edge_color)
-        the_colored_graph.add_edge(v1, v2, new_multiedge_color_one)
-        the_colored_graph.add_edge(v2, v1, new_multiedge_color_two)
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color: %s, new_multiedge_color_one: %s, new_multiedge_color_two: %s", previous_edge_color, new_multiedge_color_one, new_multiedge_color_two)
-
-        # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
-        # if is_well_colored(the_colored_graph) is False:
-        #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
-        #     exit(-1)
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F2 (multiple edge)")
-
+        ariadne_case_f2()
     elif ariadne_step[0] == 3:
-
-        # CASE: F3
-        # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        # Update stats
-        stats['CASE-F3-01'] += 1
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F3")
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels = True)), the_colored_graph.is_regular(3))
-
-        v1 = ariadne_step[1]
-        v2 = ariadne_step[2]
-        vertex_to_join_near_v1_on_the_face = ariadne_step[3]
-        vertex_to_join_near_v2_on_the_face = ariadne_step[4]
-        vertex_to_join_near_v1_not_on_the_face = ariadne_step[5]
-        vertex_to_join_near_v2_not_on_the_face = ariadne_step[6]
-
-        # For F3 to compute the new colors is easy (check also if it is a multiple edges)
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v1_on_the_face: %s, vertex_to_join_near_v2_on_the_face: %s, vertex_to_join_near_v1_not_on_the_face: %s, vertex_to_join_near_v2_not_on_the_face: %s", vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face)
-
-        # If e1 and e2 have the same vertices, they are the same multiedge
-        if (vertex_to_join_near_v1_on_the_face == vertex_to_join_near_v2_on_the_face) and (vertex_to_join_near_v1_not_on_the_face == vertex_to_join_near_v2_not_on_the_face):
-
-            # Get the colors of the two edges (multiedge). Select only the two multiedges (e1, e2 with same vertices)
-            temp_multiple_edges_to_check = the_colored_graph.edges_incident(vertex_to_join_near_v1_on_the_face)  # Three edges will be returned
-            multiple_edges_to_check = [(va, vb, l) for (va, vb, l) in temp_multiple_edges_to_check if (vertex_to_join_near_v1_not_on_the_face == va) or (vertex_to_join_near_v1_not_on_the_face == vb)]
-            previous_edge_color_at_v1 = multiple_edges_to_check[0][2]
-            previous_edge_color_at_v2 = multiple_edges_to_check[1][2]
-        else:
-            previous_edge_color_at_v1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
-            previous_edge_color_at_v2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color_at_v1: %s, previous_edge_color_at_v2: %s", previous_edge_color_at_v1, previous_edge_color_at_v2)
-
-        # Checkpoint
-        if previous_edge_color_at_v1 == previous_edge_color_at_v2:
-            logger.error("Unexpected condition (for F3 faces two edges have a vertex in common, and so colors MUST be different at this point). Mario you'd better go back to paper")
-            exit(-1)
-
-        # Choose a different color
-        new_edge_color = get_the_other_colors([previous_edge_color_at_v1, previous_edge_color_at_v2])[0]
-
-        # Delete the edges
-        # Since e1 and e2 may be the same multiedge or maybe separately on different multiedge, I remove them using also the "label" parameter
-        # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
-        the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-        the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-
-        # Restore the previous edge
-        the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, previous_edge_color_at_v2)
-        the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-        the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
-        the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-        the_colored_graph.add_edge(v1, v2, new_edge_color)
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color_at_v1: %s, previous_edge_color_at_v2: %s, new_edge_color: %s", previous_edge_color_at_v1, previous_edge_color_at_v2, new_edge_color)
-
-        # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
-        # if is_well_colored(the_colored_graph) is False:
-        #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
-        #     exit(-1)
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F3")
-
+        ariadne_case_f3()
     elif ariadne_step[0] == 4:
-
-        # CASE: F4
-        # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F4")
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
-
-        v1 = ariadne_step[1]
-        v2 = ariadne_step[2]
-        vertex_to_join_near_v1_on_the_face = ariadne_step[3]
-        vertex_to_join_near_v2_on_the_face = ariadne_step[4]
-        vertex_to_join_near_v1_not_on_the_face = ariadne_step[5]
-        vertex_to_join_near_v2_not_on_the_face = ariadne_step[6]
-
-        # For F4 to compute the new colors is not so easy
-        previous_edge_color_at_v1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
-        previous_edge_color_at_v2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color_at_v1: %s, previous_edge_color_at_v2: %s", previous_edge_color_at_v1, previous_edge_color_at_v2)
-
-        # For an F4, the top edge is the edge not adjacent to the edge to restore (as in a rectangular area)
-        edge_color_of_top_edge = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face))
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("edge_color_of_top_edge: %s", edge_color_of_top_edge)
-
-        # Handle the different cases
-        if previous_edge_color_at_v1 == previous_edge_color_at_v2:
-
-            # Update stats
-            stats['CASE-F4-01'] += 1
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F4 - Same color at v1 and v2")
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
-
-            # CASE: F4 SUBCASE: Same color at v1 and v2
-            # Since edges at v1 and v2 are on the same Kempe cycle (with the top edge), I can also avoid the kempe chain color switching, since in this case the chain is made of three edges
-            # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
-            the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-            the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-
-            # Kempe chain color swap is done manually since the chain is only three edges long
-            the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, edge_color_of_top_edge)
-            the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
-
-            # Just for sure. Is the top edge a multiedge? I need to verify it. It should't be
-            if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face):
-                the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
-                the_colored_graph.add_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
-                logger.error("HERE?")  # This is only to verify if this condition is real
-                exit(-1)
-            else:
-                the_colored_graph.set_edge_label(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
-
-            # Restore the other edges
-            the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-            the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-            the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
-
-            # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
-            # if is_well_colored(the_colored_graph) is False:
-            #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
-            #     exit(-1)
-
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4 - Same color at v1 and v2")
-        else:
-
-            # In this case I have to check if the edges at v1 and v2 are on the same Kempe cycle
-            if are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face), (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face), previous_edge_color_at_v1, previous_edge_color_at_v2) is True:
-
-                # Update stats
-                stats['CASE-F4-02'] += 1
-
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F4 - The two edges are on the same Kempe cycle")
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
-
-                # CASE: F4, SUBCASE: The two edges are on the same Kempe cycle
-                # Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
-                #
-                # I broke the cycle to apply the half Kempe chain color swapping
-                # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
-                the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-                the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-                the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, previous_edge_color_at_v1)
-                the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v2)
-
-                # Half Kempe chain color swapping
-                kempe_chain_color_swap(the_colored_graph, (v1, vertex_to_join_near_v1_on_the_face), previous_edge_color_at_v1, previous_edge_color_at_v2)
-
-                # Restore the other edges
-                the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-                the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-                the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, previous_edge_color_at_v2])[0])
-
-                # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
-                # if is_well_colored(the_colored_graph) is False:
-                #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
-                #     exit(-1)
-
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4 - The two edges are on the same Kempe cycle")
-
-            else:
-
-                # Update stats
-                stats['CASE-F4-03'] += 1
-
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F4 - The two edges are NOT on the same Kempe cycle")
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
-
-                # CASE: F4 SUBCASE: Worst case: The two edges are NOT on the same Kempe cycle
-                # I'll rotate the colors of the cycle for the edge at v1, and then, since edge_color_at_v1 will be == edge_color_at_v2, apply CASE-001
-                kempe_chain_color_swap(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face), previous_edge_color_at_v1, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
-                previous_edge_color_at_v1 = previous_edge_color_at_v2
-
-                # CASE: F4, SUBCASE: The two edges are now on the same Kempe cycle
-                # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
-                the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-                the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-
-                # Kempe chain color swap is done manually since the chain is only three edges long
-                the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, edge_color_of_top_edge)
-                the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
-
-                # Just to be sure. Is the top edge a multiedge? I need to verify it. It should't be
-                if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face):
-                    the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
-                    the_colored_graph.add_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
-                    logger.error("HERE?")  # This is only to verify if this condition is real
-                    exit(-1)
-                else:
-                    the_colored_graph.set_edge_label(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
-
-                # Restore the other edges
-                the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-                the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-                the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
-
-                # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
-                # if is_well_colored(the_colored_graph) is False:
-                #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
-                #     exit(-1)
-
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4 - The two edges are NOT on the same Kempe cycle")
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4")
-
+        ariadne_case_f4()
     elif ariadne_step[0] == 5:
-
-        # CASE: F5
-        # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F5")
-
-        v1 = ariadne_step[1]
-        v2 = ariadne_step[2]
-        vertex_to_join_near_v1_on_the_face = ariadne_step[3]
-        vertex_to_join_near_v2_on_the_face = ariadne_step[4]
-        vertex_to_join_near_v1_not_on_the_face = ariadne_step[5]
-        vertex_to_join_near_v2_not_on_the_face = ariadne_step[6]
-
-        # I have to get the two edges that are on top
-        # These are two edges that have near_v1_on_the_face and near_v2_on_the_face and a shared vertex
-        # First thing: I need to get the vertex_in_the_top_middle
-        # Removed the form with the [] (list) from the edges_incident() when there is only one item in the list
-        edges_at_vertices_near_v1_on_the_face = the_colored_graph.edges_incident(vertex_to_join_near_v1_on_the_face, labels=False)
-        edges_at_vertices_near_v2_on_the_face = the_colored_graph.edges_incident(vertex_to_join_near_v2_on_the_face, labels=False)
-        temp_v1 = [item for sublist in edges_at_vertices_near_v1_on_the_face for item in sublist]
-        temp_v1.remove(vertex_to_join_near_v1_not_on_the_face)
-        temp_v2 = [item for sublist in edges_at_vertices_near_v2_on_the_face for item in sublist]
-        temp_v2.remove(vertex_to_join_near_v2_not_on_the_face)
-        vertex_in_the_top_middle = list(set.intersection(set(temp_v1), set(temp_v2)))[0]
-
-        # Useful to try to verify if the number of switches may be limited
-        restore_random_edge_to_fix_the_impasse = (0, 0)
-        restore_color_one = ""
-        restore_color_two = ""
-
-        # The algorithm:
-        #
-        # - Check if c1 and c2 are on the same Kempe chain
-        # - If not, try a random swap
-        #   - First try a swap starting from an edge on the face
-        #   - Then try a swap starting from a random edge of the kempe loop on v1
-        #   - Then try a swap starting from a random edge of the entire graph
-        end_of_f5_restore = False
-        i_attempt = 0
-        while end_of_f5_restore is False:
-
-            # For F5 to compute the new colors is difficult (and needs to be proved if always works in all cases)
-            # I need to handle the different cases
-            c1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
-            c3 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_in_the_top_middle))
-            c4 = get_edge_color(the_colored_graph, (vertex_in_the_top_middle, vertex_to_join_near_v2_on_the_face))
-            c2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
-
-            # F5-C1
-            if c1 == c2:
-
-                # The four edges are: c1, c3, c4, c2==c1
-                #
-                # NOTE:
-                # - Next comment was not true:
-                #   - In case e1 and e2 are not on the same Kempe loop (c1, c3) or (c2, c4), the switch of the top colors (c3, c4) solves (I hope) the situation
-                if are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c3):
-
-                    if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: CASE-F5-C1==C2-SameKempeLoop-C1-C3")
-
-                    # Apply half Kempe loop color switching (c1, c3)
-                    apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c1, c1, c3)
-                    end_of_f5_restore = True
-
-                    # Save the max
-                    stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
-
-                    # Update stats
-                    stats['CASE-F5-C1==C2-SameKempeLoop-C1-C3'] += 1
-                    if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1==C2-SameKempeLoop-C1-C3")
-
-                elif are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c4):
-
-                    if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: CASE-F5-C1==C2-SameKempeLoop-C1-C4")
-
-                    # Apply half Kempe loop color switching (c2==c1, c4)
-                    apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c1, c1, c4)
-                    end_of_f5_restore = True
-
-                    # Save the max
-                    stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
-
-                    # Update stats
-                    stats['CASE-F5-C1==C2-SameKempeLoop-C1-C4'] += 1
-                    if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1==C2-SameKempeLoop-C1-C4")
-
-            else:
-
-                # NOTE:
-                # - Next comment was true, but not useful:
-                #   - In case e1 and e2 are not on the same Kempe loop (c1, c2), the swap of c2, c1 at e2 will give the the first case
-                if are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c2):
-
-                    if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: CASE-F5-C1!=C2-SameKempeLoop-C1-C4")
-
-                    # Apply half Kempe loop color switching (c1, c2)
-                    apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c2, c1, c2)
-                    end_of_f5_restore = True
-
-                    # Save the max
-                    stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
-
-                    # Update stats
-                    stats['CASE-F5-C1!=C2-SameKempeLoop-C1-C2'] += 1
-
-                    if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1!=C2-SameKempeLoop-C1-C2")
-
-            # Try random switches around the graph for a random few times
-            #
-            # TODO: If the switch didn't solve the problem, reset the color and try another random switch. I need to verify if a single switch may fix am impasse
-            if end_of_f5_restore is False:
-
-                # Attempts to change (swap) something in the graph
-                stats['TOTAL_RANDOM_KEMPE_SWITCHES'] += 1
-                i_attempt += 1
-
-                # Useful to try to verify if the number of switches may be limited. I need to verify if a single switch may fix all impasses
-                if i_attempt > 1:
-
-                    # Restore previous coloring, at the beginning of the loop to fix this impasse
-                    #
-                    # OMG: I commented next line but it seems that this case (sage 4ct.py -p debug.input_planar_g_faces.serialized.400.bad_one_switch_is_not_enough) loops forever!!!??? :-(
-                    #      ariadne_step: [5, 12, 7, 32, 6, 15, 10]
-                    #
-                    # kempe_chain_color_swap(the_colored_graph, restore_random_edge_to_fix_the_impasse, restore_color_one, restore_color_two)
-
-                    restore_random_edge_to_fix_the_impasse = (0, 0)
-                    restore_color_one = ""
-                    restore_color_two = ""
-
-                random_other_color_number = randint(0, 1)
-                random_edge_to_fix_the_impasse = the_colored_graph.random_edge(labels=False)
-                color_of_the_random_edge = get_edge_color(the_colored_graph, random_edge_to_fix_the_impasse)
-                other_color = get_the_other_colors(color_of_the_random_edge)[random_other_color_number]
-                kempe_chain_color_swap(the_colored_graph, random_edge_to_fix_the_impasse, color_of_the_random_edge, other_color)
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("random_edge: %s, Kempe color switch: (%s, %s)", random_edge_to_fix_the_impasse, color_of_the_random_edge, other_color)
-
-                # Useful to try to verify if the number of switches may be limited. I need to verify if a single switch may fix all impasses
-                #
-                # restore_random_edge_to_fix_the_impasse = random_edge_to_fix_the_impasse
-                # restore_color_one = other_color
-                # restore_color_two = color_of_the_random_edge
-
-                # Only for debug: which map is causing this impasse?
-                if i_attempt == 1000:
-                    the_colored_graph.allow_multiple_edges(False)  # At this point there are no multiple edge
-                    export_graph(the_colored_graph, "debug.really_bad_case")
-                    logger.error("ERROR: Infinite loop. Chech the debug.really_bad_case.* files")
-
-                    # This is used as a sentinel to use the runs.bash script
-                    open("error.txt", 'a').close()
-                    exit(-1)
-
-        # END F5 has been restored
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
+        ariadne_case_f5()
 
     # Separator
     if logger.isEnabledFor(logging.DEBUG): logger.debug("")
@@ -1248,7 +1246,7 @@ while is_the_end_of_the_rebuild_process is False:
         logger.error("Unexpected condition (coloring is not valid). Mario you'd better go back to paper or learn to code")
         exit(-1)
 
-    # If no other edges are to be restored, then I've done
+    # If no other edges have to be restored, then I'm done
     if len(ariadne_string) == 0:
         is_the_end_of_the_rebuild_process = True
 
@@ -1259,11 +1257,11 @@ logger.info("END: Reconstruction phase")
 logger.info("-------------------------")
 logger.info("")
 
-#######
-#######
-# 4CT : Show the restored and 4 colored map
-#######
-#######
+######
+######
+# 4CT: Show the restored and 4 colored map and check for mistakes
+######
+######
 
 logger.info("------------------------------------------")
 logger.info("BEGIN: Show the restored and 4 colored map")
@@ -1271,18 +1269,16 @@ logger.info("------------------------------------------")
 
 # Check if the recreated graph is isomorphic to the original
 logger.info("BEGIN: Check if isomorphic")
-
 if the_graph.is_isomorphic(the_colored_graph) is True:
     logger.info("Recreated graph is equal to the original")
 else:
     logger.error("Unexpected condition (recreated graph is different from the original). Mario you'd better go back to paper")
-
 logger.info("END: Check if isomorphic")
-
 
 logger.info("BEGIN: print_graph (Original)")
 print_graph(the_graph)
 logger.info("END: print_graph (Original)")
+
 logger.info("BEGIN: print_graph (Colored)")
 print_graph(the_colored_graph)
 logger.info("END: print_graph (Colored)")

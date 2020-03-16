@@ -34,6 +34,7 @@
 # - 06/Oct/2016 - Something new (bad and good at the same time) happened
 #                 - Bad: Using this method You can encounter maps for which the method loops indefinitely
 #                 - Good: Now that I know, at least I won't spend more time on this aspect. The other good thing is that this case is very rare, and the program can color almost all maps
+# - 10/Mar/2020 - Coronavirus collateral effects ... back to programming = refactoring
 #
 # TODOs:
 # - Moved to: https://github.com/stefanutti/maps-coloring-python/issues
@@ -61,7 +62,7 @@ __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_
 # This is to solve some absolute imports issues for modules. I don't know why it is so complicate in python
 import os.path
 import sys
-import random
+
 import argparse
 import collections
 import time
@@ -91,6 +92,8 @@ from ct.ct_graph_utils import join_faces
 from ct.ct_graph_utils import is_the_graph_one_edge_connected
 from ct.ct_graph_utils import get_the_other_colors
 from ct.ct_graph_utils import log_faces
+
+from numpy.random import randint
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 
@@ -453,7 +456,7 @@ def ariadne_case_f5():
     # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F5")
 
-    # xxx clean-up v1 + v2
+    # clean-up v1 + v2
     # v1 = ariadne_step[1]
     # v2 = ariadne_step[2]
     vertex_to_join_near_v1_on_the_face = ariadne_step[3]
@@ -578,7 +581,7 @@ def ariadne_case_f5():
             #    restore_color_one = ""
             #    restore_color_two = ""
 
-            random_other_color_number = random.randint(0, 1)
+            random_other_color_number = randint(0, 1)
             random_edge_to_fix_the_impasse = the_colored_graph.random_edge(labels=False)
             color_of_the_random_edge = get_edge_color(the_colored_graph, random_edge_to_fix_the_impasse)
             other_color = get_the_other_colors(color_of_the_random_edge)[random_other_color_number]

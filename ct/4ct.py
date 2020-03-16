@@ -63,6 +63,8 @@ __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_
 import os.path
 import sys
 
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+
 import argparse
 import collections
 import time
@@ -94,8 +96,6 @@ from ct.ct_graph_utils import get_the_other_colors
 from ct.ct_graph_utils import log_faces
 
 from numpy.random import randint
-
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 
 # Next instructions MAX_OUTPUT_MESSAGES) solves this issue: http://ask.sagemath.org/question/33727/logging-failing-after-a-while/
 # Only when running the code in the cloud: https://cloud.sagemath.com

@@ -246,7 +246,7 @@ def ariadne_case_f2(the_colored_graph, ariadne_step, stats):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F2 (multiple edge)")
 
 
-def ariadne_case_f3():
+def ariadne_case_f3(the_colored_graph, ariadne_step, stats):
     """
     Restore the edge of a F3 face.
     """
@@ -314,7 +314,7 @@ def ariadne_case_f3():
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F3")
 
 
-def ariadne_case_f4():
+def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
     """
     Restore the edge of a F4 face.
     """
@@ -461,7 +461,7 @@ def ariadne_case_f4():
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4")
 
 
-def ariadne_case_f5():
+def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
     """
     Restore the edge of a F5 face.
     """
@@ -1273,11 +1273,11 @@ while is_the_end_of_the_rebuild_process is False:
     if ariadne_step[0] == 2:
         ariadne_case_f2(the_colored_graph, ariadne_step, stats)
     elif ariadne_step[0] == 3:
-        ariadne_case_f3()
+        ariadne_case_f3(the_colored_graph, ariadne_step, stats)
     elif ariadne_step[0] == 4:
-        ariadne_case_f4()
+        ariadne_case_f4(the_colored_graph, ariadne_step, stats)
     elif ariadne_step[0] == 5:
-        ariadne_case_f5()
+        ariadne_case_f5(the_colored_graph, ariadne_step, stats)
 
     # Separator
     if logger.isEnabledFor(logging.DEBUG): logger.debug("")

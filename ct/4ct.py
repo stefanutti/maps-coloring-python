@@ -622,7 +622,7 @@ def ariadne_case_f5():
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
 
 
-def select_edge_to_remove():
+def select_edge_to_remove(f1, i_global_counter):
     """
     Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
 
@@ -632,6 +632,8 @@ def select_edge_to_remove():
         edge_to_remove
         f1_plus_f2_temp
     """
+
+    len_of_the_face_to_reduce = len(f1)
 
     is_the_edge_to_remove_found = False
     i_edge = 0
@@ -691,7 +693,7 @@ def select_edge_to_remove():
     if is_the_edge_to_remove_found is False:
         edge_to_remove = ()
 
-    return is_the_edge_to_remove_found, edge_to_remove, f1_plus_f2_temp
+    return is_the_edge_to_remove_found, edge_to_remove, f1_plus_f2_temp, f2
 
 
 ######
@@ -1042,7 +1044,7 @@ while is_the_end_of_the_reduction_process is False:
     logger.info("BEGIN %s: Search the right edge to remove (face len: %s)", i_global_counter, len_of_the_face_to_reduce)
     if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected face: %s", f1)
 
-    is_the_edge_to_remove_found, edge_to_remove, f1_plus_f2_temp = select_edge_to_remove()
+    is_the_edge_to_remove_found, edge_to_remove, f1_plus_f2_temp, f2 = select_edge_to_remove(f1, i_global_counter)
 
     # Check if math is right :-)
     if is_the_edge_to_remove_found is False:

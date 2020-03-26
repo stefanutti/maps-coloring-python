@@ -201,7 +201,10 @@ def print_stats(stats):
     return
 
 
-def ariadne_case_f2():
+def ariadne_case_f2(the_colored_graph, ariadne_step, stats):
+    """
+    Restore the edge of a F2 face.
+    """
 
     # CASE: F2
     # Update stats
@@ -244,11 +247,15 @@ def ariadne_case_f2():
 
 
 def ariadne_case_f3():
+    """
+    Restore the edge of a F3 face.
+    """
 
     # CASE: F3
     # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
     # Update stats
     stats['CASE-F3-01'] += 1
+
     if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F3")
     if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
 
@@ -308,6 +315,9 @@ def ariadne_case_f3():
 
 
 def ariadne_case_f4():
+    """
+    Restore the edge of a F4 face.
+    """
 
     # CASE: F4
     # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
@@ -335,6 +345,7 @@ def ariadne_case_f4():
 
         # Update stats
         stats['CASE-F4-01'] += 1
+    
         if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F4 - Same color at v1 and v2")
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
 
@@ -451,6 +462,9 @@ def ariadne_case_f4():
 
 
 def ariadne_case_f5():
+    """
+    Restore the edge of a F5 face.
+    """
 
     # CASE: F5
     # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
@@ -608,6 +622,78 @@ def ariadne_case_f5():
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
 
 
+def select_edge_to_remove():
+    """
+    Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
+
+    Returns
+    -------
+        is_the_edge_to_remove_found
+        edge_to_remove
+        f1_plus_f2_temp
+    """
+
+    is_the_edge_to_remove_found = False
+    i_edge = 0
+    while is_the_edge_to_remove_found is False and i_edge < len_of_the_face_to_reduce:
+
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN %s: test the %s edge", i_global_counter, i_edge)
+
+        # One edge separates two faces (pay attention to multiple edges == F2)
+        # The edge to remove can be found in the list of faces as (v1, v2) or (v2, v1)
+        #
+        # TODO: Instead of getting the edges in sequence, I should use a random selector (without repetitions)
+        #
+        # i_edge = randint(0, len(f1) - 1)  # When stuck, if you re-execute the program (with this random) it should work
+        edge_to_remove = f1[i_edge]
+        rotated_edge_to_remove = rotate(edge_to_remove, 1)
+
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("len_of_the_face_to_reduce: %s", len_of_the_face_to_reduce)
+            logger.debug("edge_to_remove: %s", edge_to_remove)
+            logger.debug("rotated_edge_to_remove: %s", rotated_edge_to_remove)
+
+        # TODO:
+        # - It would be better not to select an edge (to remove) if it belongs to the ocean
+        # - I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
+        # - This can be used only if the graph was created by me from the "base" graph
+        # commented: if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
+
+        # If F2, the rotated edge appears twice in the list of faces
+        if len_of_the_face_to_reduce == 2:
+
+            # For F2 faces, edges will appear twice in all the edges lists of all faces
+            temp_f2 = [face for face in g_faces if rotated_edge_to_remove in face]
+            temp_f2.remove(f1)
+            f2 = temp_f2[0]
+            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
+        else:
+            f2 = next(face for face in g_faces if rotated_edge_to_remove in face)
+            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
+
+        # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries, but separates a portion of the same land
+        if is_the_graph_one_edge_connected(f1_plus_f2_temp) is True:
+
+            # Skip to the next edge, this is not good
+            i_edge += 1
+        else:
+            is_the_edge_to_remove_found = True
+
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Edge to remove found :-) %s", edge_to_remove)
+                logger.debug("f1: %s", f1)
+                logger.debug("f2: %s", f2)
+                logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
+
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("END %s: test the %s edge", i_global_counter, i_edge)
+
+    # If not found -> Reset the edge_to_remove
+    if is_the_edge_to_remove_found is False:
+        edge_to_remove = ()
+
+    return is_the_edge_to_remove_found, edge_to_remove, f1_plus_f2_temp
+
+
 ######
 ######
 ######
@@ -743,6 +829,7 @@ if args.edgelist is not None:
 # Warning: Sage NotImplementedError: cannot compute with embeddings of multiple-edged or looped graphs
 if args.planar is not None:
     logger.info("BEGIN: Load the planar embedding of a graph (output of the gfaces() function): %s", args.planar)
+
     # with open(args.planar, 'r') as fp: g_faces = pickle.load(fp)
     with open(args.planar, 'r') as fp:
         g_faces = json.load(fp)
@@ -778,7 +865,7 @@ logger.info("------------------------")
 
 check_graph_planarity_3_regularity_no_loops(the_graph)
 
-# Compute the embedding only if it was non loaded withe the -p (planar) parameter
+# Compute the embedding only if it was non loaded with the -p (planar) parameter
 # The embedding is needed to get the face() representation of the map
 if args.planar is None:
     logger.info("BEGIN: Embed the graph into the plane (Sage function is_planar(set_embedding = True)). It may take very long time depending on the number of vertices")
@@ -797,7 +884,8 @@ if args.planar is None:
 # Tests starting from triangulations with 100 vertices: 7, 73, 54, 65, 216, 142, 15, 14, 21, 73, 24, 15, 32, 72, 232 seconds
 
 # Get the faces representation of the graph
-# From now on, 'till the end of the reduction process, I'll use only this representation (join_faces, remove vertices, etc.) instead of the Graph object
+# From now on, 'till the end of the reduction process, I'll use only this representation (join_faces, remove vertices, etc.)
+# instead of the Graph object.
 # This is because the elaboration is faster and I don't have to deal with the limit of sage about multiple edges and loops
 # List it is sorted: means faces with len less than 6 are placed at the beginning
 
@@ -811,7 +899,6 @@ if args.planar is None:
     g_faces = [face for face in temp_g_faces]
 
     # Save the face representation for later executions (if needed)
-    #
     # OLD: with open("debug.input_planar_g_faces.serialized", 'wb') as fp: pickle.dump(g_faces, fp)
     # OLD: with open("debug.input_planar_g_faces.embedding_list", 'wb') as fp: fp.writelines(str(line) + '\n' for line in g_faces)
     with open("debug.input_planar_g_faces.planar", 'wb') as fp:
@@ -955,58 +1042,7 @@ while is_the_end_of_the_reduction_process is False:
     logger.info("BEGIN %s: Search the right edge to remove (face len: %s)", i_global_counter, len_of_the_face_to_reduce)
     if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected face: %s", f1)
 
-    # Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected
-    is_the_edge_to_remove_found = False
-    i_edge = 0
-    f1_edges_enumeration = range(0, len(f1) - 1)  # TBF
-    while is_the_edge_to_remove_found is False and i_edge < len_of_the_face_to_reduce:
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN %s: test the %s edge", i_global_counter, i_edge)
-
-        # One edge separates two faces (pay attention to multiple edges == F2)
-        # The edge to remove can be found in the list of faces as (v1, v2) or (v2, v1)
-        #
-        # TODO: Instead of getting the edges in sequence, I should use a random selector (without repetitions)
-        #
-        # i_edge = randint(0, len(f1) - 1)  # When stuck, if you re-execute the program (with this random) it should work
-        edge_to_remove = f1[i_edge]
-        rotated_edge_to_remove = rotate(edge_to_remove, 1)
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("len_of_the_face_to_reduce: %s", len_of_the_face_to_reduce)
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("edge_to_remove: %s", edge_to_remove)
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("rotated_edge_to_remove: %s", rotated_edge_to_remove)
-
-        # TODO:
-        # - It would be better not to select an edge (to remove) if it belongs to the ocean
-        # - I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
-        # - This can be used only if the graph was created by me from the "base" graph
-        # commented: if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
-
-        # If F2, the rotated edge appears twice in the list of faces
-        if len_of_the_face_to_reduce == 2:
-
-            # For F2 faces, edges will appear twice in all the edges lists of all faces
-            temp_f2 = [face for face in g_faces if rotated_edge_to_remove in face]
-            temp_f2.remove(f1)
-            f2 = temp_f2[0]
-            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
-        else:
-            f2 = next(face for face in g_faces if rotated_edge_to_remove in face)
-            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
-
-        # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries, but separates a portion of the same land
-        if is_the_graph_one_edge_connected(f1_plus_f2_temp) is True:
-
-            # Skip to the next edge, this is not good
-            i_edge += 1
-        else:
-            is_the_edge_to_remove_found = True
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("Edge to remove found :-) %s", edge_to_remove)
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("f1: %s", f1)
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("f2: %s", f2)
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("END %s: test the %s edge", i_global_counter, i_edge)
+    is_the_edge_to_remove_found, edge_to_remove, f1_plus_f2_temp = select_edge_to_remove()
 
     # Check if math is right :-)
     if is_the_edge_to_remove_found is False:
@@ -1233,7 +1269,7 @@ while is_the_end_of_the_rebuild_process is False:
     # F2 = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
     # F3, 4, 5 = [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
     if ariadne_step[0] == 2:
-        ariadne_case_f2()
+        ariadne_case_f2(the_colored_graph, ariadne_step, stats)
     elif ariadne_step[0] == 3:
         ariadne_case_f3()
     elif ariadne_step[0] == 4:

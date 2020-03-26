@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 # Valid colors
 VALID_COLORS = ['red', 'green', 'blue']
 
+
 def echo_function(text):
     """
     A true echo is a single reflection of the sound source
@@ -40,7 +41,7 @@ def echo_function(text):
     text: return the input text parameter
     """
 
-    print ("echo: " + text)
+    print("echo: " + text)
 
     return text
 
@@ -125,7 +126,7 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Loop: current_edge: %s, current_color: %s, next_color: %s", current_edge, current_color, next_color)
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Vertex at direction: %s", current_edge[direction])
 
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(graph.edge_iterator(labels = True)), graph.is_regular(3))
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(graph.edge_iterator(labels=True)), graph.is_regular(3))
 
         # From current edge, I'll search incident edges in one direction [0 or 1] - current_edge[direction] is a vertex
         temp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
@@ -444,11 +445,12 @@ def create_graph_from_planar_representation(faces):
     # Create the graph from the list of faces
     flattened_egdes = [edge for face in faces for edge in face]
 
-    # TODO: This cycle remove duplicates. Two adjacent faces list at least one edge twice
+    # TODO: This cycle remove duplicates. Two adjacent faces, list at least one edge twice
     for edge in flattened_egdes:
         reverse_edge = (edge[1], edge[0])
         if reverse_edge in flattened_egdes:
             flattened_egdes.remove(reverse_edge)
+
     new_graph = Graph(sparse=True)
     new_graph.allow_loops(False)
     new_graph.allow_multiple_edges(True)

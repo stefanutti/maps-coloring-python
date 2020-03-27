@@ -204,6 +204,12 @@ def print_stats(stats):
 def ariadne_case_f2(the_colored_graph, ariadne_step, stats):
     """
     Restore the edge of a F2 face.
+
+    Parameters
+    ----------
+        the_colored_graph: The graph to color
+        ariadne_step: The step to process
+        stats: The statistics to print
     """
 
     # CASE: F2
@@ -249,6 +255,12 @@ def ariadne_case_f2(the_colored_graph, ariadne_step, stats):
 def ariadne_case_f3(the_colored_graph, ariadne_step, stats):
     """
     Restore the edge of a F3 face.
+
+    Parameters
+    ----------
+        the_colored_graph: The graph to color
+        ariadne_step: The step to process
+        stats: The statistics to print
     """
 
     # CASE: F3
@@ -317,6 +329,12 @@ def ariadne_case_f3(the_colored_graph, ariadne_step, stats):
 def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
     """
     Restore the edge of a F4 face.
+
+    Parameters
+    ----------
+        the_colored_graph: The graph to color
+        ariadne_step: The step to process
+        stats: The statistics to print
     """
 
     # CASE: F4
@@ -345,7 +363,7 @@ def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
 
         # Update stats
         stats['CASE-F4-01'] += 1
-    
+
         if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: restore an F4 - Same color at v1 and v2")
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
 
@@ -464,6 +482,12 @@ def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
 def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
     """
     Restore the edge of a F5 face.
+
+    Parameters
+    ----------
+        the_colored_graph: The graph to color
+        ariadne_step: The step to process
+        stats: The statistics to print
     """
 
     # CASE: F5
@@ -622,24 +646,45 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
 
 
-def select_edge_to_remove(f1, i_global_counter):
+def select_edge_to_remove(g_faces, i_global_counter):
     """
     Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
 
+    Parameters
+    ----------
+        g_faces: The entire graph from which the edge has to be selected
+
     Returns
     -------
-        is_the_edge_to_remove_found
-        edge_to_remove
-        f1_plus_f2_temp
+        edge_to_remove: The selected edge or, if not found, ()
+        f1: The face of the selected edge 
+        f2: One edge separetes two faces 
+        f1_plus_f2_temp: It is used to speed up computation. I need it here and and it will be used outside this funcion
     """
 
+    logger.info("BEGIN %s: Search the right edge to remove (faces left: %s)", i_global_counter, len(g_faces))
+
+    # Select a face < F6
+    # Since faces less then 6 always exist for any graph (Euler), I can take the first face that I find with that characteristics (< 6)
+    # A smart sort will reorder the list for the next cycle (I need to process faces with 2 or 3 edges first, to avoid bad conditions ahead)
+    if len(g_faces[0]) != 2:
+        f_temp = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+        g_faces.remove(f_temp)
+        g_faces.insert(0, f_temp)
+
+    # Select a face < F6
+    # Since faces less then 6 always exist for any graph (Euler) AND faces are sorted by their length, I can take the first one
+    # In this version instead of a full sort, I just move an F2, 3, 4, or 5 at the beginning of the list
+    f1 = g_faces[0]
     len_of_the_face_to_reduce = len(f1)
+
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected face: %s", f1)
 
     is_the_edge_to_remove_found = False
     i_edge = 0
     while is_the_edge_to_remove_found is False and i_edge < len_of_the_face_to_reduce:
 
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN %s: test the %s edge", i_global_counter, i_edge)
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: test the %s edge", i_edge)
 
         # One edge separates two faces (pay attention to multiple edges == F2)
         # The edge to remove can be found in the list of faces as (v1, v2) or (v2, v1)
@@ -658,8 +703,8 @@ def select_edge_to_remove(f1, i_global_counter):
         # TODO:
         # - It would be better not to select an edge (to remove) if it belongs to the ocean
         # - I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
-        # - This can be used only if the graph was created by me from the "base" graph
-        # commented: if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
+        # - Can this be used only if the graph was created by me from the "base" graph?
+        #   commented: if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
 
         # If F2, the rotated edge appears twice in the list of faces
         if len_of_the_face_to_reduce == 2:
@@ -687,13 +732,20 @@ def select_edge_to_remove(f1, i_global_counter):
                 logger.debug("f2: %s", f2)
                 logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
 
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("END %s: test the %s edge", i_global_counter, i_edge)
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("END: test the %s edge", i_edge)
 
     # If not found -> Reset the edge_to_remove
     if is_the_edge_to_remove_found is False:
         edge_to_remove = ()
+    else:
 
-    return is_the_edge_to_remove_found, edge_to_remove, f1_plus_f2_temp, f2
+        # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
+        len_f1 = len(f1)
+        len_f2 = len(f2)
+
+    logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge_to_remove, len_f1, len_f2)
+
+    return edge_to_remove, f1, f2, f1_plus_f2_temp
 
 
 ######
@@ -1024,41 +1076,26 @@ while is_the_end_of_the_reduction_process is False:
     f1 = []
     f2 = []
     edge_to_remove = ()
-    rotated_edge_to_remove = ()
     f1_plus_f2_temp = []  # It is used to speed up computation. At the beginning is used to see it the graph is_the_graph_one_edge_connected() and then reused
+    rotated_edge_to_remove = ()
 
-    # Select a face < F6
-    # Since faces less then 6 always exist for any graph (Euler), I can take the first face that I find with that characteristics (< 6)
-    # A smart sort will reorder the list for the next cycle (I need to process faces with 2 or 3 edges first, to avoid bad conditions ahead)
-    if len(g_faces[0]) != 2:
-        f_temp = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
-        g_faces.remove(f_temp)
-        g_faces.insert(0, f_temp)
+    edge_to_remove, f1, f2, f1_plus_f2_temp = select_edge_to_remove(g_faces, i_global_counter)
 
-    # Select a face < F6
-    # Since faces less then 6 always exist for any graph (Euler) AND faces are sorted by their length, I can take the first one
-    # In this version instead of a full sort, I just move an F2, 3, 4, or 5 at the beginning of the list
-    f1 = g_faces[0]
-    len_of_the_face_to_reduce = len(f1)
-
-    logger.info("BEGIN %s: Search the right edge to remove (face len: %s)", i_global_counter, len_of_the_face_to_reduce)
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected face: %s", f1)
-
-    is_the_edge_to_remove_found, edge_to_remove, f1_plus_f2_temp, f2 = select_edge_to_remove(f1, i_global_counter)
-
-    # Check if math is right :-)
-    if is_the_edge_to_remove_found is False:
+    # Check if math is right :-) An edge to remove must exist
+    if edge_to_remove is ():
         logger.error("Unexpected condition (a suitable edge has not been found). Mario you'd better go back to paper")
         logger.info("TODO: For now I considered only the first selected face < F6. I may search the right edge in other faces < F6")
         logger.info("Should be easier to prove that among all faces < F6, an edge exists that if removed does not make the graph 1-edge-connected")
         exit(-1)
 
-    logger.info("END %s: Search the right edge to remove. Found: %s (case: %s)", i_global_counter, edge_to_remove, len_of_the_face_to_reduce)
+    # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
+    len_of_the_face_to_reduce_f1 = len(f1)
+    len_of_the_face_to_reduce_f2 = len(f2)
 
     # Remove the edge of an F2 (multiple edge)
-    if len_of_the_face_to_reduce == 2:
+    if len_of_the_face_to_reduce_f1 == 2:
 
-        logger.info("BEGIN %s: Remove a multiple edge (case: %s)", i_global_counter, len_of_the_face_to_reduce)
+        logger.info("BEGIN %s: Remove a multiple edge (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
 
         # Get the two vertices to join
         # It may also happen that at the end of the process, I'll get a loop: From ---CO to ---O
@@ -1090,12 +1127,12 @@ while is_the_end_of_the_reduction_process is False:
         # if logger.isEnabledFor(logging.DEBUG): logger.debug("ariadne_step: %s", ariadne_step)
 
         # Do one thing at a time and return at the beginning of the main loop
-        logger.info("END %s: Remove a multiple edge (case: %s)", i_global_counter, len_of_the_face_to_reduce)
+        logger.info("END %s: Remove a multiple edge (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
 
     # Remove an F3 or F4 or F5
     else:
 
-        logger.info("BEGIN %s: Remove an F3, F4 or F5 (case: %s)", i_global_counter, len_of_the_face_to_reduce)
+        logger.info("BEGIN %s: Remove an F3, F4 or F5 (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
 
         # Get the vertices at the ends of the edge to remove
         # And find the other four neighbors :>.---.<: (If the --- is the removed edge, the four external dots represent the vertices I'm looking for)
@@ -1131,12 +1168,12 @@ while is_the_end_of_the_reduction_process is False:
         # Ariadne ball of thread
         # First parameter == len_of_the_face_to_reduce, will tell that it was a Fx face that has been removed (x = 3, 4 or 5)
         # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        ariadne_step = [len_of_the_face_to_reduce, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
+        ariadne_step = [len_of_the_face_to_reduce_f1, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
         ariadne_string.append(ariadne_step)
         if logger.isEnabledFor(logging.DEBUG): logger.debug("ariadne_step: %s", ariadne_step)
 
         # Do one thing at a time and return at the beginning of the main loop
-        logger.info("END %s: Remove an F3, F4 or F5 (case: %s)", i_global_counter, len_of_the_face_to_reduce)
+        logger.info("END %s: Remove an F3, F4 or F5 (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
 
     # Check 3-regularity (I commented this slow procedure: I did it run for a while, now I feel confident about this first part of the code)
     #

@@ -12,3 +12,9 @@ e2 = (3, 1)
 
 print (e1[0] in e2)
 
+eee = ()
+if eee is not ():
+    print (eee)
+
+eee = (1, 4)
+print (eee)

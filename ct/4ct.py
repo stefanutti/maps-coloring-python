@@ -350,8 +350,15 @@ def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
     vertex_to_join_near_v2_not_on_the_face = ariadne_step[6]
 
     # For F4 to compute the new colors is not so easy
-    previous_edge_color_at_v1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
     previous_edge_color_at_v2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
+
+    # If e1 is a F2 face, for sure one of the two edge has the same color as e2
+    # For now I don't care is also e2 is part of an F2 face. This solved bug should not impact e2
+    if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face):
+        previous_edge_color_at_v1 = previous_edge_color_at_v2
+    else:
+        previous_edge_color_at_v1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
+
     if logger.isEnabledFor(logging.DEBUG): logger.debug("previous_edge_color_at_v1: %s, previous_edge_color_at_v2: %s", previous_edge_color_at_v1, previous_edge_color_at_v2)
 
     # For an F4, the top edge is the edge not adjacent to the edge to restore (as in a rectangular area)
@@ -369,7 +376,6 @@ def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
 
         # CASE: F4 SUBCASE: Same color at v1 and v2
         # Since edges at v1 and v2 are on the same Kempe cycle (with the top edge), I can also avoid the kempe chain color switching, since in this case the chain is made of three edges
-        # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
         the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
         the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
 
@@ -381,7 +387,7 @@ def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
         if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face):
             the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, edge_color_of_top_edge)
             the_colored_graph.add_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
-            logger.error("HERE?")  # This is only to verify if this condition is real
+            logger.error("HERE?")  # This is only to verify if this condition may happen ... and my reasoning was wrong :-(
             exit(-1)
         else:
             the_colored_graph.set_edge_label(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v1)
@@ -537,6 +543,13 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
         c4 = get_edge_color(the_colored_graph, (vertex_in_the_top_middle, vertex_to_join_near_v2_on_the_face))
         c2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
 
+        if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face):
+            if c1 == c2:
+                c1_other_color = get_the_other_colors([c1, c3])[0]
+                logger.info("YES: This is the case I need to address (c1 = %s is converted to c1_other_color = %s)", c1, c1_other_color)
+                c1 = c1_other_color
+                time.sleep(0.2)
+
         # F5-C1
         if c1 == c2:
 
@@ -575,7 +588,12 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
                 stats['CASE-F5-C1==C2-SameKempeLoop-C1-C4'] += 1
                 if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1==C2-SameKempeLoop-C1-C4")
 
-        else:
+        else:  # c1 != c2
+
+            if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face):
+                c1_other_color = get_the_other_colors([c1, c3])[0]
+                logger.info("YES: This is the case I need to address (c1 = %s, c1_other_color = %s, c2 = %s)", c1, c1_other_color, c2)
+                time.sleep(0.2)
 
             # NOTE:
             # - Next comment was true, but not useful:
@@ -610,7 +628,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
             #
             #    # Restore previous coloring, at the beginning of the loop to fix this impasse
             #    #
-            #    # OMG: I commented next line but it seems that this case (sage 4ct.py -p debug.input_planar_g_faces.serialized.400.bad_one_switch_is_not_enough) loops forever!!!??? :-(
+            #    # OMG: I commented next line but it seems that this case (sage 4ct.py -p debug.previous_run.serialized.400.bad_one_switch_is_not_enough) loops forever!!!??? :-(
             #    #      ariadne_step: [5, 12, 7, 32, 6, 15, 10]
             #    # kempe_chain_color_swap(the_colored_graph, restore_random_edge_to_fix_the_impasse, restore_color_one, restore_color_two)
             #    #
@@ -622,7 +640,8 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
             random_other_color_number = randint(0, 1)
             random_edge_to_fix_the_impasse = the_colored_graph.random_edge(labels=False)
             color_of_the_random_edge = get_edge_color(the_colored_graph, random_edge_to_fix_the_impasse)
-            other_color = get_the_other_colors(color_of_the_random_edge)[random_other_color_number]
+
+            other_color = get_the_other_colors([color_of_the_random_edge])[random_other_color_number]
             kempe_chain_color_swap(the_colored_graph, random_edge_to_fix_the_impasse, color_of_the_random_edge, other_color)
             if logger.isEnabledFor(logging.DEBUG): logger.debug("random_edge: %s, Kempe color switch: (%s, %s)", random_edge_to_fix_the_impasse, color_of_the_random_edge, other_color)
 
@@ -646,7 +665,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
 
 
-def select_edge_to_remove(g_faces, i_global_counter):
+def select_edge_to_remove(g_faces, start_with, i_global_counter):
     """
     Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
 
@@ -657,8 +676,8 @@ def select_edge_to_remove(g_faces, i_global_counter):
     Returns
     -------
         edge_to_remove: The selected edge or, if not found, ()
-        f1: The face of the selected edge 
-        f2: One edge separetes two faces 
+        f1: The face of the selected edge
+        f2: One edge separetes two faces
         f1_plus_f2_temp: It is used to speed up computation. I need it here and and it will be used outside this funcion
     """
 
@@ -667,15 +686,25 @@ def select_edge_to_remove(g_faces, i_global_counter):
     # Select a face < F6
     # Since faces less then 6 always exist for any graph (Euler), I can take the first face that I find with that characteristics (< 6)
     # A smart sort will reorder the list for the next cycle (I need to process faces with 2 or 3 edges first, to avoid bad conditions ahead)
-    if len(g_faces[0]) != 2:
-        f_temp = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
-        g_faces.remove(f_temp)
-        g_faces.insert(0, f_temp)
+    # if len(g_faces[0]) != 2:
+    #     f_temp = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+    #     g_faces.remove(f_temp)
+    #     g_faces.insert(0, f_temp)
 
     # Select a face < F6
-    # Since faces less then 6 always exist for any graph (Euler) AND faces are sorted by their length, I can take the first one
+    # Since faces less then 6 always exist for any graph (Euler)
+    # AND faces are sorted by their length, I can take the first one
     # In this version instead of a full sort, I just move an F2, 3, 4, or 5 at the beginning of the list
-    f1 = g_faces[0]
+    # f1 = g_faces[0]
+    if start_with == 2:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+    if start_with == 3:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+    if start_with == 4:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+    if start_with == 5:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), g_faces[0]))))
+    
     len_of_the_face_to_reduce = len(f1)
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected face: %s", f1)
@@ -737,13 +766,14 @@ def select_edge_to_remove(g_faces, i_global_counter):
     # If not found -> Reset the edge_to_remove
     if is_the_edge_to_remove_found is False:
         edge_to_remove = ()
+        logger.info("END %s: Search the right edge to remove. NOT Found", i_global_counter)
     else:
 
         # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
         len_f1 = len(f1)
         len_f2 = len(f2)
 
-    logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge_to_remove, len_f1, len_f2)
+        logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge_to_remove, len_f1, len_f2)
 
     return edge_to_remove, f1, f2, f1_plus_f2_temp
 
@@ -766,7 +796,7 @@ def select_edge_to_remove(g_faces, i_global_counter):
 ######
 ######
 ######
-# 4CT # MAIN: Create/upload the graph to color. it has to be planar and without loops and initially multiple edges
+# 4CT: MAIN Create/upload the graph to color. it has to be planar and initially without loops and multiple edges
 ######
 ######
 ######
@@ -806,6 +836,7 @@ group_input.add_argument("-r", "--rand", help="Random graph: dual of a triangula
 group_input.add_argument("-e", "--edgelist", help="Load a .edgelist file (networkx)")
 group_input.add_argument("-p", "--planar", help="Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
 parser.add_argument("-o", "--output", help="Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
+parser.add_argument("-s", "--start", help="From which F do you want to start", type=int, required=False)
 
 args = parser.parse_args()
 
@@ -862,8 +893,8 @@ if args.rand is not None:
     # I need this (export + import) to be able to reproduce this test exactly in the same condition in a second run
     # I cannot use the output file because it has different ordering of edges and vertices, and the execution would run differently (I experimented it on my skin)
     # The export function saves the graph using a different order for the edges (even if the graph are exactly the same graph)
-    the_graph.export_to_file("debug.temp.edgelist", format="edgelist")
-    the_graph = Graph(networkx.read_edgelist("debug.temp.edgelist", create_using=networkx.MultiGraph()), multiedges=True)
+    the_graph.export_to_file("debug.previous_run.edgelist", format="edgelist")
+    the_graph = Graph(networkx.read_edgelist("debug.previous_run.edgelist", create_using=networkx.MultiGraph()), multiedges=True)
     the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
     the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
     the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
@@ -953,9 +984,9 @@ if args.planar is None:
     g_faces = [face for face in temp_g_faces]
 
     # Save the face representation for later executions (if needed)
-    # OLD: with open("debug.input_planar_g_faces.serialized", 'wb') as fp: pickle.dump(g_faces, fp)
-    # OLD: with open("debug.input_planar_g_faces.embedding_list", 'wb') as fp: fp.writelines(str(line) + '\n' for line in g_faces)
-    with open("debug.input_planar_g_faces.planar", 'wb') as fp:
+    # OLD: with open("debug.previous_run.serialized", 'wb') as fp: pickle.dump(g_faces, fp)
+    # OLD: with open("debug.previous_run.embedding_list", 'wb') as fp: fp.writelines(str(line) + '\n' for line in g_faces)
+    with open("debug.previous_run.planar", 'wb') as fp:
         json.dump(g_faces, fp)
 
 # Override creation (mainly to debug previously elaborated maps)
@@ -1079,13 +1110,15 @@ while is_the_end_of_the_reduction_process is False:
     f1_plus_f2_temp = []  # It is used to speed up computation. At the beginning is used to see it the graph is_the_graph_one_edge_connected() and then reused
     rotated_edge_to_remove = ()
 
-    edge_to_remove, f1, f2, f1_plus_f2_temp = select_edge_to_remove(g_faces, i_global_counter)
+    # Select an edge from the graph
+    # This is one of the most important function to work on, to apply different strategies
+    edge_to_remove, f1, f2, f1_plus_f2_temp = select_edge_to_remove(g_faces, args.start, i_global_counter)
 
     # Check if math is right :-) An edge to remove must exist
     if edge_to_remove is ():
         logger.error("Unexpected condition (a suitable edge has not been found). Mario you'd better go back to paper")
         logger.info("TODO: For now I considered only the first selected face < F6. I may search the right edge in other faces < F6")
-        logger.info("Should be easier to prove that among all faces < F6, an edge exists that if removed does not make the graph 1-edge-connected")
+        logger.info("TODO: Should be easier to prove that among all faces < F6, an edge exists that if removed does not make the graph 1-edge-connected")
         exit(-1)
 
     # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
@@ -1175,7 +1208,8 @@ while is_the_end_of_the_reduction_process is False:
         # Do one thing at a time and return at the beginning of the main loop
         logger.info("END %s: Remove an F3, F4 or F5 (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
 
-    # Check 3-regularity (I commented this slow procedure: I did it run for a while, now I feel confident about this first part of the code)
+    # Check 3-regularity (I commented this slow procedure
+    # I did it run for a while, now I feel confident about this first part of the code)
     #
     # if check_regularity(g_faces) is False:
     #    logger.error("Unexpected condition (check_regularity is False). Mario you'd better go back to paper")

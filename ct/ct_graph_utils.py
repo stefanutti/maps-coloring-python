@@ -114,6 +114,7 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
 
     # From current edge, I'll search incident edges in one direction
     # The check is important to recognize the half cycle color switching to an entire cycle color switching
+    # In half cycle color switching, edges at the two ends have been removed and the vertices at the two ends have degree == 2
     direction = 1
     if logger.isEnabledFor(logging.DEBUG): logger.debug("degree: %s", graph.degree(current_edge[direction]))
     if graph.degree(current_edge[direction]) != 3:
@@ -125,7 +126,6 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
         # Debug
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Loop: current_edge: %s, current_color: %s, next_color: %s", current_edge, current_color, next_color)
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Vertex at direction: %s", current_edge[direction])
-
         if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(graph.edge_iterator(labels=True)), graph.is_regular(3))
 
         # From current edge, I'll search incident edges in one direction [0 or 1] - current_edge[direction] is a vertex
@@ -151,7 +151,7 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
             elif next_e2_color == next_color:
                 current_edge = edges_to_check[1]
             else:
-                logger.error("Unexpected condition (next color should exist). Mario you'd better go back to paper")
+                logger.error("Unexpected condition (next color must always exists). Mario you'd better go back to paper")
                 exit(-1)
 
             # Update current and next color
@@ -166,19 +166,21 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
 
             # Just to be sure. Is it a multiedge? I need to verify it. It should't be
             if is_multiedge(graph, previous_edge[0], previous_edge[1]):
-                the_colored_graph.delete_edge(previous_edge[0], previous_edge[1], previous_color)
-                the_colored_graph.add_edge(previous_edge[0], previous_edge[1], current_color)
-                logger.error("HERE?")  # This is only to verify if this condition is real
-                exit(-1)
+                graph.delete_edge(previous_edge[0], previous_edge[1], previous_color)
+                graph.add_edge(previous_edge[0], previous_edge[1], current_color)
+                logger.error("HERE 1?")  # This is only to verify if this condition is real
+                # raise Exception("HERE 1?")
+                # exit(-1)
             else:
                 graph.set_edge_label(previous_edge[0], previous_edge[1], current_color)
 
             # Just to be sure. Is it a multiedge? I need to verify it. It should't be
             if is_multiedge(graph, current_edge[0], current_edge[1]):
-                the_colored_graph.delete_edge(current_edge[0], current_edge[1], current_color)
-                the_colored_graph.add_edge(current_edge[0], current_edge[1], previous_color)
-                logger.error("HERE?")  # This is only to verify if this condition is real
-                exit(-1)
+                graph.delete_edge(current_edge[0], current_edge[1], current_color)
+                graph.add_edge(current_edge[0], current_edge[1], previous_color)
+                logger.error("HERE 2?")  # This is only to verify if this condition is real
+                # raise Exception("HERE 2?")
+                # exit(-1)
             else:
                 graph.set_edge_label(current_edge[0], current_edge[1], previous_color)
 
@@ -333,7 +335,7 @@ def are_incident_edges_well_colored(graph, vertex):
 def get_edge_color(graph, edge):
     """
     Get the color of an edge.\n
-    In case of multiedge it will return one of the two edges.\n
+    In case of multiedge it will return the color of one of the two edges.\n
     This is not a problem because when I'll rebuild the graph the deletes will be done namely using the three attributes (v1, v2, label) (label is the color).
 
     Parameters
@@ -552,7 +554,7 @@ def are_edges_on_the_same_kempe_cycle(graph, e1, e2, c1, c2):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("current_color: %s", current_color)
 
     # From current edge, I'll search incident edges in one direction: 1 for the first edge, and then will decide the graph
-    # (v1, v2) if a search all incident edges to v2 I'll have (v2, vx) and (v2, vy). Next vertex to choose will be vx or vy ... depending on the next chain color
+    # (v1, v2) If I search all incident edges to v2 I'll have (v2, vx) and (v2, vy). Next vertex to choose will be vx or vy ... depending on the next chain color
     direction = 1
     is_the_end_of_search_process = False
     while is_the_end_of_search_process is False:
@@ -563,7 +565,7 @@ def are_edges_on_the_same_kempe_cycle(graph, e1, e2, c1, c2):
         # From current edge, I'll search incident edges in one direction [0 or 1] - current_edge[direction] is a vertex
         temp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
         if logger.isEnabledFor(logging.DEBUG): logger.debug("temp_next_edges_to_check: %s", temp_next_edges_to_check)
-        edges_to_check = [(v1, v2, l) for (v1, v2, l) in temp_next_edges_to_check if (v1, v2) != (current_edge[0], current_edge[1]) and (v2, v1) != (current_edge[0], current_edge[1])]
+        edges_to_check = [(v1, v2, l) for (v1, v2, l) in temp_next_edges_to_check if (v1, v2, l) != (current_edge[0], current_edge[1], current_color) and (v2, v1, l) != (current_edge[0], current_edge[1], current_color)]
         if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex: %s, edges_to_check: %s", current_edge[direction], edges_to_check)
 
         # Check the color of the two edges and find the next chain
@@ -856,7 +858,6 @@ def get_the_other_colors(colors):
         Returns a list of missing colors respect to the given colors
     """
 
-    # return [x for x in ["red", "green", "blue"] if x not in colors]
     return [x for x in VALID_COLORS if x not in colors]
 
 
@@ -866,7 +867,7 @@ def log_faces(faces):
 
     Parameters
     ----------
-        faces: The faces of the map
+        faces: The faces of the map to print for debugging
     """
 
     if logger.isEnabledFor(logging.DEBUG):

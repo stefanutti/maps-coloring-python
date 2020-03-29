@@ -18,6 +18,8 @@
 __author__ = "Mario Stefanutti <mario.stefanutti@gmail.com>"
 __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_like_to_help@nowhere.com"
 
+import time
+import datetime
 import logging
 
 from sage.all import *
@@ -91,7 +93,129 @@ def check_graph_planarity_3_regularity_no_loops(graph):
     return
 
 
-def kempe_chain_color_swap(graph, starting_edge, c1, c2):
+def kempe_chain_color_swap(graph, starting_edge, c1, c2, is_debug_requested=False):
+    """
+    Execute a Kempe chain color swapping.\n
+    Works for chains and cycles and consider also multiedges cases.
+
+    Parameters
+    ----------
+        graph: The graph
+        starting_edge: (n, m) the edge where to start the swap
+        c1: the color to switch with c2
+        c2: the color to switch with c1
+    """
+
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: kempe_chain_color_swap: %s, %s, %s", starting_edge, c1, c2)
+
+    # Start the loop at e1
+    current_edge = starting_edge
+    previous_color = "none"  # Not important here, will be used later
+    current_color = c1
+    next_color = c2
+
+    # From current edge, I'll search incident edges in one direction
+    # Check this is important to recognize the "half cycle color switching" respect tp an "entire cycle color switching"
+    # In half cycle color switching, edges at the two ends have been removed and the vertices at the two ends have degree == 2
+    direction = 1
+    if graph.degree(current_edge[direction]) != 3:
+        direction = 0  # Change direction. I was almost falling into the void
+
+    is_the_end_of_switch_process = False
+    while is_the_end_of_switch_process is False:
+
+        # Debug
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("Loop: current_edge: %s, current_color: %s, next_color: %s", current_edge, current_color, next_color)
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("Vertex at direction: %s", current_edge[direction])
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(graph.edge_iterator(labels=True)), graph.is_regular(3))
+
+        # From the current edge, I'll search incident edges on the chosen direction [0 or 1]. current_edge[direction] is a vertex
+        temp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
+        other_direction = 1 - direction
+
+        # I need to filter the edge I was coming from (it may be two edges in case I'm walking on a multiedge connection)
+        vertex_to_filter = current_edge[other_direction]
+
+        if is_debug_requested: logger.info("temp_next_edges_to_check: %s", temp_next_edges_to_check)
+        edges_to_check = [(v1, v2, l) for (v1, v2, l) in temp_next_edges_to_check if vertex_to_filter not in (v1, v2)]
+        if is_debug_requested: logger.info("vertex: %s, edges_to_check: %s", current_edge[direction], edges_to_check)
+
+        # Save current edge and vertex direction
+        previous_edge = current_edge
+        previous_vertex = current_edge[direction]
+
+        # In case of the previous vertex was a multiedge, the list remains with one element. And the algorith from here won't work
+        # TODO: Need to review the entire algorithm
+        if len(edges_to_check) == 1:
+            # Add a fake edge
+            edges_to_check.append((-1, -1, "dummy"))
+            time.sleep(2)
+
+        # Check if I've looped an entire cycle
+        if are_the_same_edge(starting_edge, edges_to_check[0]) or are_the_same_edge(starting_edge, edges_to_check[1]):
+            is_the_end_of_switch_process = True
+        else:
+
+            # Check the color of the two edges and find the next chain
+            next_e1_color = edges_to_check[0][2]
+            next_e2_color = edges_to_check[1][2]
+            if next_e1_color == next_color:
+                current_edge = edges_to_check[0]
+            elif next_e2_color == next_color:
+                current_edge = edges_to_check[1]
+            else:
+                logger.error("Unexpected condition (next color must always exists). Mario you'd better go back to paper")
+                exit(-1)
+
+            # Update current and next color
+            previous_color = current_color
+            current_color = next_color
+            next_color = previous_color
+
+            # Now: swap colors
+            #
+            # graph.set_edge_label(previous_edge[0], previous_edge[1], current_color)
+            # graph.set_edge_label(current_edge[0], current_edge[1], previous_color)
+
+            # Just to be sure. Is it a multiedge? I need to verify it
+            if is_multiedge(graph, previous_edge[0], previous_edge[1]):
+                graph.delete_edge(previous_edge[0], previous_edge[1], previous_color)
+                graph.add_edge(previous_edge[0], previous_edge[1], current_color)
+                logger.warning("HERE 1?")  # This is to verify if this condition is real
+                # raise Exception("HERE 1?")
+                # exit(-1)
+                if is_debug_requested: logger.info("xxx previous_edge[0]: %s, previous_edge[1]: %s, previous_color: %s, current_color: %s", previous_edge[0], previous_edge[1], previous_color, current_color)
+            else:
+                graph.set_edge_label(previous_edge[0], previous_edge[1], current_color)
+                if is_debug_requested: logger.info("xxx previous_edge[0]: %s, previous_edge[1]: %s, current_color: %s", previous_edge[0], previous_edge[1], current_color)
+
+            # Just to be sure. Is it a multiedge? I need to verify it
+            if is_multiedge(graph, current_edge[0], current_edge[1]):
+                graph.delete_edge(current_edge[0], current_edge[1], current_color)
+                graph.add_edge(current_edge[0], current_edge[1], previous_color)
+                logger.warning("HERE 2?")  # This is to verify if this condition is real
+                # raise Exception("HERE 2?")
+                # exit(-1)
+                if is_debug_requested: logger.info("yyy current_edge[0]: %s, current_edge[1]: %s, current_color: %s, previous_color: %s", current_edge[0], current_edge[1], current_color, previous_color)
+            else:
+                graph.set_edge_label(current_edge[0], current_edge[1], previous_color)
+                if is_debug_requested: logger.info("yyy current_edge[0]: %s, current_edge[1]: %s, previous_color: %s", current_edge[0], current_edge[1], previous_color)
+
+            # Update direction. This was tricky since tuples for multiple edges are similar: (1, 2, "red") and (1, 2, "green")
+            if current_edge[0] == previous_vertex:
+                direction = 1
+            else:
+                direction = 0
+
+            # Check if I've reached the end of a chain
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("degree: %s", graph.degree(current_edge[direction]))
+            if graph.degree(current_edge[direction]) != 3:
+                is_the_end_of_switch_process = True
+
+    return
+
+
+def kempe_chain_color_swap_backup(graph, starting_edge, c1, c2):
     """
     Execute a Kempe chain color swapping.\n
     Works for chains and cycles and consider also multiedges cases.
@@ -130,8 +254,13 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
 
         # From current edge, I'll search incident edges in one direction [0 or 1] - current_edge[direction] is a vertex
         temp_next_edges_to_check = graph.edges_incident(current_edge[direction])  # Still need to remove current edge
+        if direction == 1:
+            other_direction = 0
+        else:
+            other_direction = 1
+
         if logger.isEnabledFor(logging.DEBUG): logger.debug("temp_next_edges_to_check: %s", temp_next_edges_to_check)
-        edges_to_check = [(v1, v2, l) for (v1, v2, l) in temp_next_edges_to_check if (v1, v2) != (current_edge[0], current_edge[1]) and (v2, v1) != (current_edge[0], current_edge[1])]
+        edges_to_check = [(v1, v2, l) for (v1, v2, l) in temp_next_edges_to_check if (v1, v2, l) != (current_edge[0], current_edge[1], previous_color) and (v2, v1, l) != (current_edge[0], current_edge[1], previous_color)]
         if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex: %s, edges_to_check: %s", current_edge[direction], edges_to_check)
 
         # Save current edge and vertex direction
@@ -291,11 +420,19 @@ def is_well_colored(graph):
     while is_end_of_job is False and i_vertex < len(vertices):
         vertex = vertices[i_vertex]
 
+        # edges (example): [(457, 592, 'blue'), (110, 592, 'red'), (558, 592, 'green')]
         edges = graph.edges_incident(vertex)
 
-        colors_around_this_vertex = [edges[0][2], edges[1][2], edges[2][2]]
+        # colors_around_this_vertex = [edges[0][2], edges[1][2], edges[2][2]]
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex: %s, edges: %s, elements: %s", vertex, edges, [edges[0][2], edges[1][2], edges[2][2]])
 
-        if not all(color in VALID_COLORS for color in colors_around_this_vertex):
+        # I use a dictionaty of colors to see if each vertes has three colors = three keys (= 1 is just a dummy value)
+        test_three_elements_in_the_color_dictionary = {}
+        test_three_elements_in_the_color_dictionary[edges[0][2]] = 1
+        test_three_elements_in_the_color_dictionary[edges[1][2]] = 1
+        test_three_elements_in_the_color_dictionary[edges[2][2]] = 1
+
+        if len(test_three_elements_in_the_color_dictionary.keys()) != 3:
             is_well_colored = False
             is_end_of_job = True
         else:
@@ -478,16 +615,16 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     #
     # Additional note (17/Oct/2016): I decided to save the graph also as a .dot file
     # The problem with dot file is that you can write .dot files directly, but you cannot read them back if you don't install an additional package
-    logger.info("------------------------------------------------")
-    logger.info("BEGIN: Save the 4 colored map in edgelist format")
-    logger.info("------------------------------------------------")
+    logger.info("-----------------------------")
+    logger.info("BEGIN: Save the 4 colored map")
+    logger.info("-----------------------------")
     graph_to_export.export_to_file(name_of_file_without_extension + ".edgelist", format="edgelist")
-    graph_to_export.graphviz_to_file_named(name_of_file_without_extension + ".dot", edge_labels=True, vertex_labels=False)
+    graph_to_export.graphviz_to_file_named(name_of_file_without_extension + ".orig.dot", edge_labels=True, vertex_labels=True)
     logger.info("File saved: %s", name_of_file_without_extension)
 
     # Replace label with color
     filedata = None
-    with open(name_of_file_without_extension + ".dot", 'r') as file:
+    with open(name_of_file_without_extension + ".orig.dot", 'r') as file:
         filedata = file.read()
 
     filedata = filedata.replace('label', 'color')
@@ -495,9 +632,9 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     with open(name_of_file_without_extension + ".dot", 'w') as file:
         file.write(filedata)
 
-    logger.info("----------------------------------------------")
-    logger.info("END: Save the 4 colored map in edgelist format")
-    logger.info("----------------------------------------------")
+    logger.info("---------------------------")
+    logger.info("END: Save the 4 colored map")
+    logger.info("---------------------------")
 
     return
 
@@ -615,14 +752,10 @@ def apply_half_kempe_loop_color_switching(graph, ariadne_step, color_at_v1, colo
     ----------
         graph: The graph
         ariadne_step: This step
-        color_at_v1: Second edge
-        color_at_v2: First color
-        swap_c1: Second color the the chain (a chain is defined by two colors)
-        swap_c2: Second color the the chain (a chain is defined by two colors)
-
-    Returns
-    -------
-        are_edges_on_the_same_kempe_cycle_flag: True or False if the two edges are part of the same cycle
+        color_at_v1: Color at v1
+        color_at_v2: Color at v1
+        swap_c1: First color
+        swap_c2: Second color
     """
 
     v1 = ariadne_step[1]

@@ -416,26 +416,7 @@ def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
 
             # CASE: F4, SUBCASE: The two edges are on the same Kempe cycle
             # Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
-            #
-            # I broke the cycle to apply the half Kempe chain color swapping
-            # Removed from delete_edge the form with the (): delete_edge((vi, v2, color))
-            the_colored_graph.delete_edge(vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-            the_colored_graph.delete_edge(vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-            the_colored_graph.add_edge(v1, vertex_to_join_near_v1_on_the_face, previous_edge_color_at_v1)
-            the_colored_graph.add_edge(v2, vertex_to_join_near_v2_on_the_face, previous_edge_color_at_v2)
-
-            # Half Kempe chain color swapping
-            kempe_chain_color_swap(the_colored_graph, (v1, vertex_to_join_near_v1_on_the_face), previous_edge_color_at_v1, previous_edge_color_at_v2)
-
-            # Restore the other edges
-            the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-            the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-            the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, previous_edge_color_at_v2])[0])
-
-            # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
-            # if is_well_colored(the_colored_graph) is False:
-            #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
-            #     exit(-1)
+            apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, previous_edge_color_at_v1, previous_edge_color_at_v2, previous_edge_color_at_v1, previous_edge_color_at_v2)
 
             if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4 - The two edges are on the same Kempe cycle")
 
@@ -474,11 +455,6 @@ def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
             the_colored_graph.add_edge(v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
             the_colored_graph.add_edge(v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
             the_colored_graph.add_edge(v1, v2, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
-
-            # if logger.isEnabledFor(logging.DEBUG): logger.debug("Edges: %s, is_regular: %s", list(the_colored_graph.edge_iterator(labels=True)), the_colored_graph.is_regular(3))
-            # if is_well_colored(the_colored_graph) is False:
-            #     logger.error("Unexpected condition (Not well colored). Mario you'd better go back to paper")
-            #     exit(-1)
 
             if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4 - The two edges are NOT on the same Kempe cycle")
 
@@ -526,6 +502,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
     # restore_color_two = ""
 
     # The algorithm:
+    # TODO: Update the algoritm respect to how it was implemented
     #
     # - Check if c1 and c2 are on the same Kempe chain
     # - If not, try a random swap
@@ -543,12 +520,15 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
         c4 = get_edge_color(the_colored_graph, (vertex_in_the_top_middle, vertex_to_join_near_v2_on_the_face))
         c2 = get_edge_color(the_colored_graph, (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face))
 
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("Four colors are: c1 = %s, c3 = %s, c4 = %s, c2 = %s", c1, c3, c4, c2)
+
+        # If the first edge bolongs to an F2 and if c1 = c2, then the F2 other color is == to c4
+        # And in this case I need to avoid this situation or the are_edges_on_the_same_kempe_cycle(c1, c4) would terminate immedially on the F2
         if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face):
             if c1 == c2:
                 c1_other_color = get_the_other_colors([c1, c3])[0]
-                logger.info("YES: This is the case I need to address (c1 = %s is converted to c1_other_color = %s)", c1, c1_other_color)
+                logger.info("Avoid this case (c1 = %s is converted to c1_other_color = %s)", c1, c1_other_color)
                 c1 = c1_other_color
-                time.sleep(0.2)
 
         # F5-C1
         if c1 == c2:
@@ -590,17 +570,17 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
 
         else:  # c1 != c2
 
+            # Only for debugging. See the comment above of the same check (is_multiedge)
             if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face):
                 c1_other_color = get_the_other_colors([c1, c3])[0]
-                logger.info("YES: This is the case I need to address (c1 = %s, c1_other_color = %s, c2 = %s)", c1, c1_other_color, c2)
-                time.sleep(0.2)
+                logger.info("Other edge of the starting edge e1 (in this case belonging to an F2): c1 = %s, c1_other_color = %s, c2 = %s", c1, c1_other_color, c2)
 
             # NOTE:
             # - Next comment was true, but not useful:
             #   - In case e1 and e2 are not on the same Kempe loop (c1, c2), the swap of c2, c1 at e2 will give the the first case
             if are_edges_on_the_same_kempe_cycle(the_colored_graph, (vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v1_on_the_face), (vertex_to_join_near_v2_not_on_the_face, vertex_to_join_near_v2_on_the_face), c1, c2):
 
-                if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: CASE-F5-C1!=C2-SameKempeLoop-C1-C4")
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: CASE-F5-C1!=C2-SameKempeLoop-C1-C2")
 
                 # Apply half Kempe loop color switching (c1, c2)
                 apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, c1, c2, c1, c2)
@@ -614,52 +594,48 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
 
                 if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1!=C2-SameKempeLoop-C1-C2")
 
-        # Try random switches around the graph for a random few times
+        # Try random switches around the graph for a random few times. It works almost all times
+        # But it may get stuck in infinite loops
         #
-        # TODO: If the switch didn't solve the problem, reset the color and try another random switch. I need to verify if a single switch may fix am impasse
+        # TODO: If the first random switch doesn't solve the problem, reset and try another random switch. I need to verify if a single switch somewhere may fix an impasse
         if end_of_f5_restore is False:
+
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: Random switch")
 
             # Attempts to change (swap) something in the graph
             stats['TOTAL_RANDOM_KEMPE_SWITCHES'] += 1
             i_attempt += 1
 
-            # Useful to try to verify if the number of switches may be limited. I need to verify if a single switch may fix all impasses
-            # if i_attempt > 1:
-            #
-            #    # Restore previous coloring, at the beginning of the loop to fix this impasse
-            #    #
-            #    # OMG: I commented next line but it seems that this case (sage 4ct.py -p debug.previous_run.serialized.400.bad_one_switch_is_not_enough) loops forever!!!??? :-(
-            #    #      ariadne_step: [5, 12, 7, 32, 6, 15, 10]
-            #    # kempe_chain_color_swap(the_colored_graph, restore_random_edge_to_fix_the_impasse, restore_color_one, restore_color_two)
-            #    #
-            #    # Useful to try to verify if the number of switches may be limited
-            #    restore_random_edge_to_fix_the_impasse = (0, 0)
-            #    restore_color_one = ""
-            #    restore_color_two = ""
-
-            random_other_color_number = randint(0, 1)
             random_edge_to_fix_the_impasse = the_colored_graph.random_edge(labels=False)
             color_of_the_random_edge = get_edge_color(the_colored_graph, random_edge_to_fix_the_impasse)
+            another_random_color = get_the_other_colors([color_of_the_random_edge])[randint(0, 1)]
 
-            other_color = get_the_other_colors([color_of_the_random_edge])[random_other_color_number]
-            kempe_chain_color_swap(the_colored_graph, random_edge_to_fix_the_impasse, color_of_the_random_edge, other_color)
-            if logger.isEnabledFor(logging.DEBUG): logger.debug("random_edge: %s, Kempe color switch: (%s, %s)", random_edge_to_fix_the_impasse, color_of_the_random_edge, other_color)
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected Edge: %s (swap_c1: %s, swap_c2: %s)", random_edge_to_fix_the_impasse, color_of_the_random_edge, another_random_color)
 
-            # Useful to try to verify if the number of switches may be limited. I need to verify if a single switch may fix all impasses
-            #
-            # restore_random_edge_to_fix_the_impasse = random_edge_to_fix_the_impasse
-            # restore_color_one = other_color
-            # restore_color_two = color_of_the_random_edge
+            # No need to swap if the selected face belongs to an F2. Hence if it is not, try a random Kempe switch
+            if is_multiedge(the_colored_graph, random_edge_to_fix_the_impasse[0], random_edge_to_fix_the_impasse[1]) is False:
+
+                # Apply an entire cycle color switching
+                if logger.isEnabledFor(logging.INFO): logger.info("TTT - Before - is_well_colored: %s and (c1: %s, c2: %s)", is_well_colored(the_colored_graph), color_of_the_random_edge, another_random_color)
+                kempe_chain_color_swap(the_colored_graph, random_edge_to_fix_the_impasse, color_of_the_random_edge, another_random_color)
+                if logger.isEnabledFor(logging.INFO): logger.info("TTT - After - is_well_colored: %s and (c1: %s, c2: %s)", is_well_colored(the_colored_graph), color_of_the_random_edge, another_random_color)
+            else:
+                if logger.isEnabledFor(logging.INFO): logger.info("The selected random edge it is a multiedge")
 
             # Only for debug: which map is causing this impasse?
             if i_attempt == 1000:
-                the_colored_graph.allow_multiple_edges(False)  # At this point there are no multiple edge
-                export_graph(the_colored_graph, "debug.really_bad_case")
+                export_graph(the_colored_graph, "debug.really_bad_case_infinite_loop")
                 logger.error("ERROR: Infinite loop. Chech the debug.really_bad_case.* files")
 
                 # This is used as a sentinel to use the runs.bash script
                 open("error.txt", 'a').close()
                 exit(-1)
+
+            if is_well_colored(the_colored_graph) is False:
+                logger.error("is_well_colored: False")
+                exit(-1)
+
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("END: Random switch")
 
     # END F5 has been restored
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
@@ -704,7 +680,7 @@ def select_edge_to_remove(g_faces, start_with, i_global_counter):
         f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
     if start_with == 5:
         f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), g_faces[0]))))
-    
+
     len_of_the_face_to_reduce = len(f1)
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected face: %s", f1)
@@ -836,7 +812,7 @@ group_input.add_argument("-r", "--rand", help="Random graph: dual of a triangula
 group_input.add_argument("-e", "--edgelist", help="Load a .edgelist file (networkx)")
 group_input.add_argument("-p", "--planar", help="Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
 parser.add_argument("-o", "--output", help="Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
-parser.add_argument("-s", "--start", help="From which F do you want to start", type=int, required=False)
+parser.add_argument("-s", "--start", help="From which F do you want to start (2 to 5)", type=int, default=2, choices=range(2, 6), required=False)
 
 args = parser.parse_args()
 
@@ -894,6 +870,7 @@ if args.rand is not None:
     # I cannot use the output file because it has different ordering of edges and vertices, and the execution would run differently (I experimented it on my skin)
     # The export function saves the graph using a different order for the edges (even if the graph are exactly the same graph)
     the_graph.export_to_file("debug.previous_run.edgelist", format="edgelist")
+
     the_graph = Graph(networkx.read_edgelist("debug.previous_run.edgelist", create_using=networkx.MultiGraph()), multiedges=True)
     the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
     the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
@@ -1353,7 +1330,7 @@ while is_the_end_of_the_rebuild_process is False:
     # Separator
     if logger.isEnabledFor(logging.DEBUG): logger.debug("")
 
-    # After all cases
+    # After all cases attempt of a single step back to the original graph (one ariadne step), better to ckeck if the coloring is good
     if not is_well_colored(the_colored_graph):
         logger.error("Unexpected condition (coloring is not valid). Mario you'd better go back to paper or learn to code")
         exit(-1)

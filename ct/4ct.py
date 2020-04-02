@@ -77,6 +77,7 @@ import networkx
 from sage.all import *
 
 from ct.ct_graph_utils import check_graph_planarity_3_regularity_no_loops
+from ct.ct_graph_utils import kempe_chain_color_swap_old
 from ct.ct_graph_utils import kempe_chain_color_swap
 from ct.ct_graph_utils import graph_dual
 from ct.ct_graph_utils import print_graph
@@ -595,7 +596,8 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
                 if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1!=C2-SameKempeLoop-C1-C2")
 
         # Try random switches around the graph for a random few times. It works almost all times
-        # But it may get stuck in infinite loops
+        # But it may get stuck in infinite loops:
+        # - See: https://four-color-theorem.org/2016/11/05/four-color-theorem-infinite-switches-are-not-enough-rectangular-map/
         #
         # TODO: If the first random switch doesn't solve the problem, reset and try another random switch. I need to verify if a single switch somewhere may fix an impasse
         if end_of_f5_restore is False:
@@ -606,7 +608,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
             stats['TOTAL_RANDOM_KEMPE_SWITCHES'] += 1
             i_attempt += 1
 
-            random_edge_to_fix_the_impasse = the_colored_graph.random_edge(labels=False)
+            random_edge_to_fix_the_impasse = the_colored_graph.random_edge(labels=True)
             color_of_the_random_edge = get_edge_color(the_colored_graph, random_edge_to_fix_the_impasse)
             another_random_color = get_the_other_colors([color_of_the_random_edge])[randint(0, 1)]
 
@@ -616,9 +618,9 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
             if is_multiedge(the_colored_graph, random_edge_to_fix_the_impasse[0], random_edge_to_fix_the_impasse[1]) is False:
 
                 # Apply an entire cycle color switching
-                if logger.isEnabledFor(logging.INFO): logger.info("TTT - Before - is_well_colored: %s and (c1: %s, c2: %s)", is_well_colored(the_colored_graph), color_of_the_random_edge, another_random_color)
                 kempe_chain_color_swap(the_colored_graph, random_edge_to_fix_the_impasse, color_of_the_random_edge, another_random_color)
                 if logger.isEnabledFor(logging.INFO): logger.info("TTT - After - is_well_colored: %s and (c1: %s, c2: %s)", is_well_colored(the_colored_graph), color_of_the_random_edge, another_random_color)
+                time.sleep(0.3)
             else:
                 if logger.isEnabledFor(logging.INFO): logger.info("The selected random edge it is a multiedge")
 
@@ -632,6 +634,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
                 exit(-1)
 
             if is_well_colored(the_colored_graph) is False:
+                print_graph(the_colored_graph)
                 logger.error("is_well_colored: False")
                 exit(-1)
 

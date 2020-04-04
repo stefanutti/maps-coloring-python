@@ -77,7 +77,6 @@ import networkx
 from sage.all import *
 
 from ct.ct_graph_utils import check_graph_planarity_3_regularity_no_loops
-from ct.ct_graph_utils import kempe_chain_color_swap_old
 from ct.ct_graph_utils import kempe_chain_color_swap
 from ct.ct_graph_utils import graph_dual
 from ct.ct_graph_utils import print_graph
@@ -528,7 +527,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
         if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face):
             if c1 == c2:
                 c1_other_color = get_the_other_colors([c1, c3])[0]
-                logger.info("Avoid this case (c1 = %s is converted to c1_other_color = %s)", c1, c1_other_color)
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("Avoid this case (c1 = %s is converted to c1_other_color = %s)", c1, c1_other_color)
                 c1 = c1_other_color
 
         # F5-C1
@@ -574,7 +573,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
             # Only for debugging. See the comment above of the same check (is_multiedge)
             if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face):
                 c1_other_color = get_the_other_colors([c1, c3])[0]
-                logger.info("Other edge of the starting edge e1 (in this case belonging to an F2): c1 = %s, c1_other_color = %s, c2 = %s", c1, c1_other_color, c2)
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("Other edge of the starting edge e1 (in this case belonging to an F2): c1 = %s, c1_other_color = %s, c2 = %s", c1, c1_other_color, c2)
 
             # NOTE:
             # - Next comment was true, but not useful:
@@ -615,14 +614,15 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
             if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected Edge: %s (swap_c1: %s, swap_c2: %s)", random_edge_to_fix_the_impasse, color_of_the_random_edge, another_random_color)
 
             # No need to swap if the selected face belongs to an F2. Hence if it is not, try a random Kempe switch
+            # TODO: In case of multiedge as the random edge chosen, select the colors carefully
             if is_multiedge(the_colored_graph, random_edge_to_fix_the_impasse[0], random_edge_to_fix_the_impasse[1]) is False:
 
                 # Apply an entire cycle color switching
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("Before kempe_chain_color_swap - is_well_colored?: %s and (c1: %s, c2: %s)", is_well_colored(the_colored_graph), color_of_the_random_edge, another_random_color)
                 kempe_chain_color_swap(the_colored_graph, random_edge_to_fix_the_impasse, color_of_the_random_edge, another_random_color)
-                if logger.isEnabledFor(logging.INFO): logger.info("TTT - After - is_well_colored: %s and (c1: %s, c2: %s)", is_well_colored(the_colored_graph), color_of_the_random_edge, another_random_color)
-                time.sleep(0.3)
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("After kempe_chain_color_swap - is_well_colored?: %s and (c1: %s, c2: %s)", is_well_colored(the_colored_graph), color_of_the_random_edge, another_random_color)
             else:
-                if logger.isEnabledFor(logging.INFO): logger.info("The selected random edge it is a multiedge")
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("The selected random edge it is a multiedge")
 
             # Only for debug: which map is causing this impasse?
             if i_attempt == 1000:
@@ -644,13 +644,15 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
 
 
-def select_edge_to_remove(g_faces, start_with, i_global_counter):
+def select_edge_to_remove(g_faces, choices, i_global_counter):
     """
     Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
 
     Parameters
     ----------
         g_faces: The entire graph from which the edge has to be selected
+        choices: 2 + the permutations of 3 4 5
+        i_global_counter: for debugging
 
     Returns
     -------
@@ -674,15 +676,21 @@ def select_edge_to_remove(g_faces, start_with, i_global_counter):
     # Since faces less then 6 always exist for any graph (Euler)
     # AND faces are sorted by their length, I can take the first one
     # In this version instead of a full sort, I just move an F2, 3, 4, or 5 at the beginning of the list
+    # permutations of 3, 4, 5 = {3, 4, 5} | {3, 5, 4} | {4, 3, 5} | {4, 5, 3} | {5, 3, 4} | {5, 4, 3}
+    # F2 has to go first ... for now
     # f1 = g_faces[0]
-    if start_with == 2:
+    if choices == 2345:
         f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
-    if start_with == 3:
-        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
-    if start_with == 4:
+    elif choices == 2354:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 4), g_faces[0]))))
+    elif choices == 2435:
         f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
-    if start_with == 5:
+    elif choices == 2453:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 3), g_faces[0]))))
+    elif choices == 2534:
         f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), g_faces[0]))))
+    elif choices == 2543:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 3), g_faces[0]))))
 
     len_of_the_face_to_reduce = len(f1)
 
@@ -815,7 +823,7 @@ group_input.add_argument("-r", "--rand", help="Random graph: dual of a triangula
 group_input.add_argument("-e", "--edgelist", help="Load a .edgelist file (networkx)")
 group_input.add_argument("-p", "--planar", help="Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
 parser.add_argument("-o", "--output", help="Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
-parser.add_argument("-s", "--start", help="From which F do you want to start (2 to 5)", type=int, default=2, choices=range(2, 6), required=False)
+parser.add_argument("-c", "--choices", help="Sequence of the Fs to choose (2345, 2354, 2435, 2453, 2534, 2543)", type=int, default=2345, choices=[2345, 2354, 2435, 2453, 2534, 2543], required=False)
 
 args = parser.parse_args()
 
@@ -1092,7 +1100,7 @@ while is_the_end_of_the_reduction_process is False:
 
     # Select an edge from the graph
     # This is one of the most important function to work on, to apply different strategies
-    edge_to_remove, f1, f2, f1_plus_f2_temp = select_edge_to_remove(g_faces, args.start, i_global_counter)
+    edge_to_remove, f1, f2, f1_plus_f2_temp = select_edge_to_remove(g_faces, args.choices, i_global_counter)
 
     # Check if math is right :-) An edge to remove must exist
     if edge_to_remove is ():

@@ -13,7 +13,7 @@ G.add_edge(2, 3, key="blue")
 G.add_edge(3, 4, key="red")
 G.add_edge(4, 2, key="green")
 
-print (G.edges(data=True, keys=True))
+print(G.edges(data=True, keys=True))
 
 
 is_it_planar, embedding = check_planarity(G, counterexample=True)

@@ -137,13 +137,15 @@ logger.addHandler(logging_stream_handler)
 ###############
 # Read options:
 ###############
-parser = argparse.ArgumentParser(description = 'args')
-parser.add_argument("-p", "--planar", help = "Load a .planar file (planar embedding)", required = True)
-parser.add_argument("-o", "--output", help = "Save a .dot and .edgelist file (networkx). Specify the name without extension", required = True)
+parser = argparse.ArgumentParser(description='args')
+parser.add_argument("-p", "--planar", help="Load a .planar file (planar embedding) (no loops of multiple edges permitted)", required=True)
+parser.add_argument("-o", "--output", help="Save a .dot and .edgelist file (networkx). Specify the name without extension", required=True)
 args = parser.parse_args()
 
 # Open the file
+logger.info("BEGIN: Load the planar graph: %s", args.planar)
 with open(args.planar, 'r') as fp: g_faces = json.load(fp)
+logger.info("END: Load the planar graph: %s", args.planar)
 
 # Cast back to tuples. json.dump write the "list of list of tuples" as "list of list of list"
 #
@@ -152,18 +154,31 @@ with open(args.planar, 'r') as fp: g_faces = json.load(fp)
 g_faces = [[tuple(l) for l in L] for L in g_faces]
 
 # Create the graph from the list of faces (flat them)
+logger.info("BEGIN: all duplicated edges (each edge is listed many times in a planar representation)")
+i = 0
 flattened_egdes = [edge for face in g_faces for edge in face]
 for edge in flattened_egdes:
+    i += 1
+    if not (i % 1000):
+        logger.info("Removing duplicated edges. Counter: %s", i)
     reverse_edge = (edge[1], edge[0])
     if reverse_edge in flattened_egdes:
         flattened_egdes.remove(reverse_edge)
+logger.info("END: Remove all duplicated edges")
 
 # Create an empty graph
-
-# Load the graph
 the_graph = nx.MultiGraph()
+
+logger.info("BEGIN: Create the graph")
+i = 0
 for edge_to_add in flattened_egdes:
     the_graph.add_edge(edge_to_add[0], edge_to_add[1])
+    i += 1
+    if not (i % 1000):
+        logger.info("Adding edges. Counter: %s", i)
+logger.info("END: Create the graph")
 
 # Export
+logger.info("BEGIN: Export the graph")
 export_graph(the_graph, args.output)
+logger.info("END: Export the graph")

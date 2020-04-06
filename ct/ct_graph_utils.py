@@ -873,3 +873,4 @@ def log_faces(faces):
             logger.debug("Face: %s", face)
 
     return
+

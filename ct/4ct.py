@@ -765,6 +765,171 @@ def select_edge_to_remove(g_faces, choices, i_global_counter):
     return edge_to_remove, f1, f2, f1_plus_f2_temp
 
 
+def from_graph_to_planar(the_graph):
+    """
+    Convert a graph to the planar representation.
+
+    Parameters
+    ----------
+        the_graph: The graph to convert
+
+    Returns
+    -------
+        g_faces: The planar representation of the graph
+    """
+
+    # Compute the embedding only if it was non loaded with the -p (planar) parameter
+    # The embedding is needed to get the face() representation of the map
+    logger.info("BEGIN: Embed the graph into the plane (Sage function is_planar(set_embedding = True)). It may take very long time depending on the number of vertices")
+    stats['time_PLANAR_EMBEDDING_BEGIN'] = time.ctime()
+    void = the_graph.is_planar(set_embedding=True, set_pos=True)
+    stats['time_PLANAR_EMBEDDING_END'] = time.ctime()
+    logger.info("END: Embed the graph into the plane (is_planar(set_embedding = True)")
+
+    # Just a test here: Using sage built-in functions to color the map, may take a loooooooot of time :-)
+    #
+    # logger.info("BEGIN: Coloring")
+    # the_graph.allow_multiple_edges(False)
+    # from sage.graphs.graph_coloring import edge_coloring
+    # edge_coloring(the_graph)
+    # logger.info("END: Coloring")
+    # Tests starting from triangulations with 100 vertices: 7, 73, 54, 65, 216, 142, 15, 14, 21, 73, 24, 15, 32, 72, 232 seconds
+
+    # Get the faces representation of the graph
+    # From now on, 'till the end of the reduction process, I'll use only this representation (join_faces, remove vertices, etc.)
+    # instead of the Graph object.
+    # This is because the elaboration is faster and I don't have to deal with the limit of sage about multiple edges and loops
+    # List it is sorted: means faces with len less than 6 are placed at the beginning
+
+    # Save the face() representation only if it was non loaded with the -p (planar) parameter
+    # In that case g_faces is already set
+    temp_g_faces = the_graph.faces()
+
+    # A full sort of all faces would make the algorithm faster later (maybe)
+    temp_g_faces.sort(key=len)
+    g_faces = [face for face in temp_g_faces]
+
+    # Save the face representation for later executions (if needed)
+    # OLD: with open("debug.previous_run.serialized", 'wb') as fp: pickle.dump(g_faces, fp)
+    # OLD: with open("debug.previous_run.embedding_list", 'wb') as fp: fp.writelines(str(line) + '\n' for line in g_faces)
+    with open("debug.previous_run.planar", 'wb') as fp:
+        json.dump(g_faces, fp)
+
+    return g_faces
+
+
+def create_from_random(number_of_vertices_for_the_random_triangulation):
+    """
+    Create a random planar graph from the dual of a RandomTriangulation (Sage function).
+
+    Parameters
+    ----------
+        number_of_vertices_for_the_random_triangulation: The number of vertices to create the graph
+
+    Returns
+    -------
+        the_graph: The graph
+        g_faces: The planar representation of the graph
+    """
+
+    logger.info("BEGIN: Create a random planar graph from the dual of a RandomTriangulation (Sage function) of %s vertices. It may take very long time depending on the number of vertices", number_of_vertices_for_the_random_triangulation)
+    if number_of_vertices_for_the_random_triangulation < 9:
+        logger.warning("RandomTriangulation sometimes fails with n < 9. It is a Sage bug/limitation")
+
+    temp_g = graphs.RandomTriangulation(number_of_vertices_for_the_random_triangulation)  # Random triangulation on the surface of a sphere
+    void = temp_g.is_planar(set_embedding=True, set_pos=True)  # Cannot calculate the dual if the graph has not been embedded
+    the_graph = graph_dual(temp_g)  # The dual of a triangulation is a 3-regular planar graph
+    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
+    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
+    the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
+
+    check_graph_planarity_3_regularity_no_loops(the_graph)
+
+    # I need this (export + import) to be able to reproduce this test exactly in the same condition in a second run
+    # I cannot use the output file because it has different ordering of edges and vertices, and the execution would run differently (I experimented it on my skin)
+    # The export function saves the graph using a different order for the edges (even if the graph are exactly the same graph)
+    the_graph.export_to_file("debug.previous_run.edgelist", format="edgelist")
+
+    the_graph = Graph(networkx.read_edgelist("debug.previous_run.edgelist", create_using=networkx.MultiGraph()), multiedges=True)
+    the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
+    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
+    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
+
+    # Convert the graph to planar (faces representation)
+    g_faces = from_graph_to_planar(the_graph)
+
+    logger.info("END: Create a random planar graph of %s vertices, from the dual of a RandomTriangulation of %s vertices", the_graph.order(), number_of_vertices_for_the_random_triangulation)
+
+    return the_graph, g_faces
+
+
+def create_from_edge_list(edgelist_filename):
+    """
+    Load the graph from the external edgelist file.
+
+    Parameters
+    ----------
+        edgelist_filename: The edgelist file to upload
+
+    Returns
+    -------
+        the_graph: The graph
+        g_faces: The planar representation of the graph
+    """
+
+    logger.info("BEGIN: Load the graph from the external file: %s", edgelist_filename)
+    the_graph = Graph(networkx.read_edgelist(edgelist_filename, create_using=networkx.MultiGraph()), multiedges=True)
+
+    check_graph_planarity_3_regularity_no_loops(the_graph)
+
+    # TODO: Why did I need to relabel them? For now I'll comment the line
+    # the_graph.relabel()  # I need to relabel it
+    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
+    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
+
+    # Convert the graph to planar (faces representation)
+    g_faces = from_graph_to_planar(the_graph)
+
+    logger.info("END: Load the graph from the external file: %s", edgelist_filename)
+
+    return the_graph, g_faces
+
+
+def create_from_planar(planar_filename):
+    """
+    Load the planar embedding of a graph (output of the gfaces() function).
+
+    Parameters
+    ----------
+        planar_filename: The planar file to upload
+
+    Returns
+    -------
+        the_graph: The graph
+        g_faces: The planar representation of the graph
+    """
+
+    logger.info("BEGIN: Load the planar embedding of a graph (output of the gfaces() function): %s", planar_filename)
+
+    # Warning: Sage NotImplementedError: cannot compute with embeddings of multiple-edged or looped graphs
+    # with open(args.planar, 'r') as fp: g_faces = pickle.load(fp)
+    with open(planar_filename, 'r') as fp:
+        g_faces = json.load(fp)
+
+    # Cast back to tuples. json.dump write the "list of list of tuples" as "list of list of list"
+    #
+    # Original: [[(3,2),(3,5)],[(2,4),(1,3),(1,3)], ... ,[(1,2),(3,4),(6,7)]]
+    # Saved as: [[[3,2],[3,5]],[[2,4],[1,3],[1,3]], ... ,[[1,2],[3,4],[6,7]]]
+    g_faces = [[tuple(l) for l in L] for L in g_faces]
+
+    # I need the graph here only to check_graph_at_beginning
+    the_graph = create_graph_from_planar_representation(g_faces)
+
+    logger.info("END: Load the planar embedding of a graph (output of the gfaces() function): %s", planar_filename)
+
+    return the_graph, g_faces
+
+
 ######
 ######
 ######
@@ -803,28 +968,21 @@ def select_edge_to_remove(g_faces, choices, i_global_counter):
 ######
 ######
 
-
-# Set logging facilities: LEVEL XXX
+# Set logging facilities
 logger = logging.getLogger()
 logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
-# logger.setLevel(logging.INFO)
-# logging_stream_handler = logging.StreamHandler(sys.stdout)
-# logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))
-# logger.addHandler(logging_stream_handler)
 
 ###############
 # Read options:
 ###############
 # (-r <vertices> or -i <file> or -p <planar embedding (json file)>) -o <file>
 parser = argparse.ArgumentParser(description='4ct args')
-
 group_input = parser.add_mutually_exclusive_group(required=True)
 group_input.add_argument("-r", "--rand", help="Random graph: dual of a triangulation of N vertices", type=int)
 group_input.add_argument("-e", "--edgelist", help="Load a .edgelist file (networkx)")
 group_input.add_argument("-p", "--planar", help="Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
 parser.add_argument("-o", "--output", help="Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
 parser.add_argument("-c", "--choices", help="Sequence of the Fs to choose (2345, 2354, 2435, 2453, 2534, 2543)", type=int, default=2345, choices=[2345, 2354, 2435, 2453, 2534, 2543], required=False)
-
 args = parser.parse_args()
 
 # Initialize statistics
@@ -861,63 +1019,13 @@ stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
 # the_graph.add_edge(9,11)
 # the_graph.relabel()
 
-# Random - Dual of a triangulation
-#
-if args.rand is not None:
-    logger.info("BEGIN: Create a random planar graph from the dual of a RandomTriangulation (Sage function) of %s vertices. It may take very long time depending on the number of vertices", args.rand)
-    number_of_vertices_for_the_random_triangulation = args.rand
-
-    if number_of_vertices_for_the_random_triangulation < 9:
-        logger.warning("RandomTriangulation sometimes fails with n < 9. It is a Sage bug/limitation")
-
-    temp_g = graphs.RandomTriangulation(number_of_vertices_for_the_random_triangulation)  # Random triangulation on the surface of a sphere
-    void = temp_g.is_planar(set_embedding=True, set_pos=True)  # Cannot calculate the dual if the graph has not been embedded
-    the_graph = graph_dual(temp_g)  # The dual of a triangulation is a 3-regular planar graph
-    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
-    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
-    the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
-
-    # I need this (export + import) to be able to reproduce this test exactly in the same condition in a second run
-    # I cannot use the output file because it has different ordering of edges and vertices, and the execution would run differently (I experimented it on my skin)
-    # The export function saves the graph using a different order for the edges (even if the graph are exactly the same graph)
-    the_graph.export_to_file("debug.previous_run.edgelist", format="edgelist")
-
-    the_graph = Graph(networkx.read_edgelist("debug.previous_run.edgelist", create_using=networkx.MultiGraph()), multiedges=True)
-    the_graph.relabel()  # The dual of a triangulation will have vertices represented by lists - triangles (v1, v2, v3) instead of a single value
-    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
-    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
-    logger.info("END: Create a random planar graph of %s vertices, from the dual of a RandomTriangulation of %s vertices", the_graph.order(), number_of_vertices_for_the_random_triangulation)
-
-# edgelist - Load a graph stored in edgelist format
-if args.edgelist is not None:
-    logger.info("BEGIN: Load the graph from the external file: %s", args.edgelist)
-    the_graph = Graph(networkx.read_edgelist(args.edgelist, create_using=networkx.MultiGraph()), multiedges=True)
-    # TODO: Why did I need to relabel them? For now I'll comment the line
-    # the_graph.relabel()  # I need to relabel it
-    the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
-    the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
-    logger.info("END: Load the graph from the external file: %s", args.edgelist)
-
-# Planar - Load a planar embedding of the graph
-# Warning: Sage NotImplementedError: cannot compute with embeddings of multiple-edged or looped graphs
-if args.planar is not None:
-    logger.info("BEGIN: Load the planar embedding of a graph (output of the gfaces() function): %s", args.planar)
-
-    # with open(args.planar, 'r') as fp: g_faces = pickle.load(fp)
-    with open(args.planar, 'r') as fp:
-        g_faces = json.load(fp)
-
-    # Cast back to tuples. json.dump write the "list of list of tuples" as "list of list of list"
-    #
-    # Original: [[(3,2),(3,5)],[(2,4),(1,3),(1,3)], ... ,[(1,2),(3,4),(6,7)]]
-    # Saved as: [[[3,2],[3,5]],[[2,4],[1,3],[1,3]], ... ,[[1,2],[3,4],[6,7]]]
-    g_faces = [[tuple(l) for l in L] for L in g_faces]
-
-    # I need the graph here only to check_graph_at_beginning
-    the_graph = create_graph_from_planar_representation(g_faces)
-
-    print_graph(the_graph)
-    logger.info("END: Load the planar embedding of a graph (output of the gfaces() function): %s", args.planar)
+# Create the graph
+if args.rand is not None:  # Random - Dual of a triangulation
+    the_graph, g_faces = create_from_random(args.rand)
+elif args.edgelist is not None:  # edgelist - Load a graph stored in edgelist format
+    the_graph, g_faces = create_from_edge_list(args.edgelist)
+elif args.planar is not None:  # Planar - Load a planar embedding of the graph
+    the_graph, g_faces = create_from_planar(args.planar)
 
 stats['time_GRAPH_CREATION_END'] = time.ctime()
 logger.info("------------------------------")
@@ -935,47 +1043,6 @@ logger.info("")
 logger.info("------------------------")
 logger.info("BEGIN: Graph information")
 logger.info("------------------------")
-
-check_graph_planarity_3_regularity_no_loops(the_graph)
-
-# Compute the embedding only if it was non loaded with the -p (planar) parameter
-# The embedding is needed to get the face() representation of the map
-if args.planar is None:
-    logger.info("BEGIN: Embed the graph into the plane (Sage function is_planar(set_embedding = True)). It may take very long time depending on the number of vertices")
-    stats['time_PLANAR_EMBEDDING_BEGIN'] = time.ctime()
-    void = the_graph.is_planar(set_embedding=True, set_pos=True)
-    stats['time_PLANAR_EMBEDDING_END'] = time.ctime()
-    logger.info("END: Embed the graph into the plane (is_planar(set_embedding = True)")
-
-# Just a test here: Using sage built-in functions to color the map, may take a loooooooot of time :-)
-#
-# logger.info("BEGIN: Coloring")
-# the_graph.allow_multiple_edges(False)
-# from sage.graphs.graph_coloring import edge_coloring
-# edge_coloring(the_graph)
-# logger.info("END: Coloring")
-# Tests starting from triangulations with 100 vertices: 7, 73, 54, 65, 216, 142, 15, 14, 21, 73, 24, 15, 32, 72, 232 seconds
-
-# Get the faces representation of the graph
-# From now on, 'till the end of the reduction process, I'll use only this representation (join_faces, remove vertices, etc.)
-# instead of the Graph object.
-# This is because the elaboration is faster and I don't have to deal with the limit of sage about multiple edges and loops
-# List it is sorted: means faces with len less than 6 are placed at the beginning
-
-# Save the face() representation only if it was non loaded with the -p (planar) parameter
-# In that case g_faces is already set
-if args.planar is None:
-    temp_g_faces = the_graph.faces()
-
-    # A full sort of all faces would make the algorithm faster
-    temp_g_faces.sort(key=len)
-    g_faces = [face for face in temp_g_faces]
-
-    # Save the face representation for later executions (if needed)
-    # OLD: with open("debug.previous_run.serialized", 'wb') as fp: pickle.dump(g_faces, fp)
-    # OLD: with open("debug.previous_run.embedding_list", 'wb') as fp: fp.writelines(str(line) + '\n' for line in g_faces)
-    with open("debug.previous_run.planar", 'wb') as fp:
-        json.dump(g_faces, fp)
 
 # Override creation (mainly to debug previously elaborated maps)
 #

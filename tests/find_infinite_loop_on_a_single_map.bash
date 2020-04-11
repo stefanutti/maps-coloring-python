@@ -16,7 +16,7 @@ do
       exit -1
    fi
 
-   sage 4ct.py -p debug.random.input_planar_g_faces.serialized.100
+   sage ../ct/4ct.py -p debug.random.input_planar_g_faces.serialized.100
 
    if [ -f "error.txt" ]
    then

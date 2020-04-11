@@ -18,8 +18,6 @@
 __author__ = "Mario Stefanutti <mario.stefanutti@gmail.com>"
 __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_like_to_help@nowhere.com"
 
-import time
-import datetime
 import logging
 
 from sage.all import *
@@ -288,7 +286,7 @@ def is_well_colored(graph):
             # colors_around_this_vertex = [edges[0][2], edges[1][2], edges[2][2]]
             if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex: %s, edges: %s, elements: %s", vertex, edges, [edges[0][2], edges[1][2], edges[2][2]])
 
-            # I use a dictionaty of colors to see if each vertes has three colors = three keys (= 1 is just a dummy value)
+            # I'll use a dictionaty of colors to see if each vertes has three colors = three keys (= 1 is just a dummy value)
             test_three_elements_in_the_color_dictionary = {}
             test_three_elements_in_the_color_dictionary[edges[0][2]] = 1
             test_three_elements_in_the_color_dictionary[edges[1][2]] = 1
@@ -487,7 +485,7 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     graph_to_export.graphviz_to_file_named(name_of_file_without_extension + ".orig.dot", edge_labels=True, vertex_labels=True)
     logger.info("File saved: %s", name_of_file_without_extension)
 
-    # Replace label with color
+    # Replace label with color. Just to be used from Gephy
     filedata = None
     with open(name_of_file_without_extension + ".orig.dot", 'r') as file:
         filedata = file.read()
@@ -873,4 +871,3 @@ def log_faces(faces):
             logger.debug("Face: %s", face)
 
     return
-

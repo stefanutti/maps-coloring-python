@@ -1,6 +1,8 @@
 #############################
 # Remove a vertex from a face
 #############################
+
+
 def remove_vertex_from_face(face, vertex):
 
     # The new face to return
@@ -22,22 +24,23 @@ def remove_vertex_from_face(face, vertex):
 
     return new_face
 
+
 vertex = 6
 face = [(6, 1), (1, 3), (3, 8), (8, 6)]
 new_face = remove_vertex_from_face(face, vertex)
-print ("face:", face, "vertex:", vertex, "new_face:", new_face)
+print("face:", face, "vertex:", vertex, "new_face:", new_face)
 
 vertex = 3
 face = [(6, 1), (1, 3), (3, 8), (8, 6)]
 new_face = remove_vertex_from_face(face, vertex)
-print ("face:", face, "vertex:", vertex, "new_face:", new_face)
+print("face:", face, "vertex:", vertex, "new_face:", new_face)
 
 vertex = 1
 face = [(6, 1), (1, 3), (3, 8), (8, 6)]
 new_face = remove_vertex_from_face(face, vertex)
-print ("face:", face, "vertex:", vertex, "new_face:", new_face)
+print("face:", face, "vertex:", vertex, "new_face:", new_face)
 
 vertex = 8
 face = [(6, 1), (1, 3), (3, 8), (8, 6)]
 new_face = remove_vertex_from_face(face, vertex)
-print ("face:", face, "vertex:", vertex, "new_face:", new_face)
+print("face:", face, "vertex:", vertex, "new_face:", new_face)

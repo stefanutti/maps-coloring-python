@@ -9,6 +9,7 @@ logging_stream_handler = logging.StreamHandler(sys.stdout)
 logging_stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s --- %(message)s'))
 logger.addHandler(logging_stream_handler)
 
+
 def join_faces(f1, f2, edge_to_remove_on_f1):
 
     # You can only use this function if at least one face has length > 2
@@ -134,60 +135,59 @@ def join_faces2(f1, f2, edge_to_remove_on_f1):
     return f1_plus_f2
 
 
-def rotate (l, n):
+def rotate(l, n):
     return l[n:] + l[:n]
 
 
 f1 = [(55, 20), (20, 55)]
 f2 = [(20, 55), (55, 6), (6, 4), (4, 3), (3, 18), (18, 20)]
-f1PlusF2 = join_faces (f1, f2, (55, 20))
-print ("---")
+f1PlusF2 = join_faces(f1, f2, (55, 20))
+print("---")
 
 f1 = [(2, 1), (1, 3), (3, 4), (4, 2)]
 f2 = [(3, 4), (4, 3)]
-f1PlusF2 = join_faces (f1, f2, (3, 4))
-f1PlusF2 = join_faces2 (f1, f2, (3, 4))
-print ("---")
+f1PlusF2 = join_faces(f1, f2, (3, 4))
+f1PlusF2 = join_faces2(f1, f2, (3, 4))
+print("---")
 
 f1 = [(6, 1), (1, 2), (2, 7), (7, 6)]
 f2 = [(3, 8), (8, 7), (7, 2), (2, 3)]
-f1PlusF2 = join_faces (f1, f2, (2, 7))
-f1PlusF2 = join_faces2 (f1, f2, (2, 7))
-print ("---")
+f1PlusF2 = join_faces(f1, f2, (2, 7))
+f1PlusF2 = join_faces2(f1, f2, (2, 7))
+print("---")
 
 f1 = [(2, 7), (7, 6), (6, 1), (1, 2)]
 f2 = [(2, 3), (3, 8), (8, 7), (7, 2)]
-f1PlusF2 = join_faces (f1, f2, (2, 7))
-f1PlusF2 = join_faces2 (f1, f2, (2, 7))
-print ("---")
+f1PlusF2 = join_faces(f1, f2, (2, 7))
+f1PlusF2 = join_faces2(f1, f2, (2, 7))
+print("---")
 
 f1 = [(1, 2), (2, 7), (7, 6), (6, 1)]
 f2 = [(7, 2), (2, 3), (3, 8), (8, 7)]
-f1PlusF2 = join_faces (f1, f2, (2, 7))
-f1PlusF2 = join_faces2 (f1, f2, (2, 7))
-print ("---")
+f1PlusF2 = join_faces(f1, f2, (2, 7))
+f1PlusF2 = join_faces2(f1, f2, (2, 7))
+print("---")
 
 f1 = [(1, 2), (2, 3), (3, 1)]
 f2 = [(2, 4), (4, 3), (3, 2)]
-f1PlusF2 = join_faces (f1, f2, (2, 3))
-f1PlusF2 = join_faces2 (f1, f2, (2, 3))
-print ("---")
+f1PlusF2 = join_faces(f1, f2, (2, 3))
+f1PlusF2 = join_faces2(f1, f2, (2, 3))
+print("---")
 
 f1 = [(2, 1), (1, 2)]
 f2 = [(2, 3), (3, 1), (1, 2)]
-f1PlusF2 = join_faces (f1, f2, (2, 1))
-f1PlusF2 = join_faces2 (f1, f2, (2, 1))
-print ("---")
+f1PlusF2 = join_faces(f1, f2, (2, 1))
+f1PlusF2 = join_faces2(f1, f2, (2, 1))
+print("---")
 
 f1 = [(2, 1), (1, 2)]
 f2 = [(4, 5), (5, 3), (3, 1), (1, 2), (2, 4)]
-f1PlusF2 = join_faces (f1, f2, (2, 1))
-f1PlusF2 = join_faces2 (f1, f2, (2, 1))
-print ("---")
+f1PlusF2 = join_faces(f1, f2, (2, 1))
+f1PlusF2 = join_faces2(f1, f2, (2, 1))
+print("---")
 
 f1 = [(2, 1), (1, 2)]
 f2 = [(4, 5), (5, 3), (3, 1), (1, 2), (2, 4)]
-f1PlusF2 = join_faces (f1, f2, (2, 1))
-f1PlusF2 = join_faces2 (f1, f2, (2, 1))
-print ("---")
-
+f1PlusF2 = join_faces(f1, f2, (2, 1))
+f1PlusF2 = join_faces2(f1, f2, (2, 1))
+print("---")

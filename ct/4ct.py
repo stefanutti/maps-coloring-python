@@ -53,6 +53,22 @@
 # - Save graphs (sdgelist)
 # - To verify (condition to avoid): there are three topologically different island with three lands. Only the one with all lands touching each other has to be generated
 #   - Answer: if you get rid of F2 before the other faces, when you get down to 5 faces left on the map, you'll be forced to avoid the condition
+# - Override creation (mainly to debug previously elaborated maps)
+#   g_faces = [[(27, 26), (26, 36), (36, 27)], [(11, 19), (19, 12), (12, 11)], [(38, 44), (44, 41), (41, 38)], [(3, 2), (2, 15), (15, 3)],
+#              [(48, 49), (49, 46), (46, 48)], [(32, 54), (54, 55), (55, 33), (33, 32)], [(39, 46), (46, 49), (49, 42), (42, 39)],
+#              [(33, 55), (55, 52), (52, 34), (34, 33)], [(40, 41), (41, 44), (44, 43), (43, 40)], [(26, 25), (25, 35), (35, 36), (36, 26)],
+#              [(7, 8), (8, 54), (54, 32), (32, 7)], [(2, 1), (1, 14), (14, 15), (15, 2)], [(16, 17), (17, 9), (9, 10), (10, 16)],
+#              [(5, 24), (24, 20), (20, 6), (6, 5)], [(13, 14), (14, 1), (1, 0), (0, 13)], [(34, 52), (52, 53), (53, 50), (50, 31), (31, 34)],
+#              [(10, 12), (12, 19), (19, 18), (18, 16), (16, 10)], [(31, 50), (50, 51), (51, 47), (47, 45), (45, 30), (30, 31)],
+#              [(28, 37), (37, 22), (22, 21), (21, 35), (35, 25), (25, 28)], [(21, 20), (20, 24), (24, 27), (27, 36), (36, 35), (35, 21)],
+#              [(38, 29), (29, 30), (30, 45), (45, 43), (43, 44), (44, 38)],
+#              [(23, 51), (51, 50), (50, 53), (53, 17), (17, 16), (16, 18), (18, 23)],
+#              [(39, 40), (40, 43), (43, 45), (45, 47), (47, 48), (48, 46), (46, 39)],
+#              [(9, 13), (13, 0), (0, 4), (4, 11), (11, 12), (12, 10), (10, 9)],
+#              [(28, 29), (29, 38), (38, 41), (41, 40), (40, 39), (39, 42), (42, 37), (37, 28)], [(42, 49), (49, 48), (48, 47), (47, 51), (51, 23), (23, 22), (22, 37), (37, 42)],
+#              [(8, 7), (7, 5), (5, 6), (6, 4), (4, 0), (0, 1), (1, 2), (2, 3), (3, 8)], [(18, 19), (19, 11), (11, 4), (4, 6), (6, 20), (20, 21), (21, 22), (22, 23), (23, 18)],
+#              [(55, 54), (54, 8), (8, 3), (3, 15), (15, 14), (14, 13), (13, 9), (9, 17), (17, 53), (53, 52), (52, 55)],
+#              [(31, 30), (30, 29), (29, 28), (28, 25), (25, 26), (26, 27), (27, 24), (24, 5), (5, 7), (7, 32), (32, 33), (33, 34), (34, 31)]]
 #
 ###
 
@@ -72,6 +88,9 @@ import datetime
 import logging
 import logging.config
 import json
+
+# TODO: Really don't know why random.shuffle works using "import random" and "random.shuffle"
+from random import shuffle
 
 import networkx
 from sage.all import *
@@ -96,6 +115,7 @@ from ct.ct_graph_utils import get_the_other_colors
 from ct.ct_graph_utils import log_faces
 
 from numpy.random import randint
+
 
 # Next instructions MAX_OUTPUT_MESSAGES) solves this issue: http://ask.sagemath.org/question/33727/logging-failing-after-a-while/
 # Only when running the code in the cloud: https://cloud.sagemath.com
@@ -139,14 +159,9 @@ from numpy.random import randint
 ######
 ######
 
-
-def initialize_statistics(stats):
+def initialize_statistics():
     """
     Initialize statistics.
-
-    Parameters
-    ----------
-        stats: The statistics to initialize
     """
 
     stats['CASE-F2-01'] = 0
@@ -177,7 +192,7 @@ def initialize_statistics(stats):
     return
 
 
-def print_stats(stats):
+def print_stats():
     """
     Print the statistics.
 
@@ -201,7 +216,7 @@ def print_stats(stats):
     return
 
 
-def ariadne_case_f2(the_colored_graph, ariadne_step, stats):
+def ariadne_case_f2(the_colored_graph, ariadne_step):
     """
     Restore the edge of a F2 face.
 
@@ -252,7 +267,7 @@ def ariadne_case_f2(the_colored_graph, ariadne_step, stats):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F2 (multiple edge)")
 
 
-def ariadne_case_f3(the_colored_graph, ariadne_step, stats):
+def ariadne_case_f3(the_colored_graph, ariadne_step):
     """
     Restore the edge of a F3 face.
 
@@ -326,7 +341,7 @@ def ariadne_case_f3(the_colored_graph, ariadne_step, stats):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F3")
 
 
-def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
+def ariadne_case_f4(the_colored_graph, ariadne_step):
     """
     Restore the edge of a F4 face.
 
@@ -461,7 +476,7 @@ def ariadne_case_f4(the_colored_graph, ariadne_step, stats):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4")
 
 
-def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
+def ariadne_case_f5(the_colored_graph, ariadne_step):
     """
     Restore the edge of a F5 face.
 
@@ -628,6 +643,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, stats):
             if i_attempt == 1000:
                 export_graph(the_colored_graph, "debug.really_bad_case_infinite_loop")
                 logger.error("ERROR: Infinite loop. Chech the debug.really_bad_case.* files")
+                logger.error("Try to shuffle the faces at the beginning: sage 4ct.py -p debug.previous_run.planar -s")
 
                 # This is used as a sentinel to use the runs.bash script
                 open("error.txt", 'a').close()
@@ -672,13 +688,13 @@ def select_edge_to_remove(g_faces, choices, i_global_counter):
     #     g_faces.remove(f_temp)
     #     g_faces.insert(0, f_temp)
 
-    # Select a face < F6
-    # Since faces less then 6 always exist for any graph (Euler)
-    # AND faces are sorted by their length, I can take the first one
-    # In this version instead of a full sort, I just move an F2, 3, 4, or 5 at the beginning of the list
-    # permutations of 3, 4, 5 = {3, 4, 5} | {3, 5, 4} | {4, 3, 5} | {4, 5, 3} | {5, 3, 4} | {5, 4, 3}
-    # F2 has to go first ... for now
-    # f1 = g_faces[0]
+    # Since faces less then 6 always exist for any graph (Euler) --> Select a face < F6
+    #
+    # OLD COMMENT: AND faces are sorted by their length, I can take the first one
+    # OLD COMMENT: In this version instead of a full sort, I just move an F2, 3, 4, or 5 at the beginning of the list
+    #
+    # Permutations of 3, 4, 5 = {3, 4, 5} | {3, 5, 4} | {4, 3, 5} | {4, 5, 3} | {5, 3, 4} | {5, 4, 3}
+    # F2s have to be selected first ... for now
     if choices == 2345:
         f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
     elif choices == 2354:
@@ -691,6 +707,9 @@ def select_edge_to_remove(g_faces, choices, i_global_counter):
         f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), g_faces[0]))))
     elif choices == 2543:
         f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 3), g_faces[0]))))
+    else:
+        logger.error("Value for choices (%s) not expected", choices)
+        exit(-1)
 
     len_of_the_face_to_reduce = len(f1)
 
@@ -782,7 +801,7 @@ def from_graph_to_planar(the_graph):
     # The embedding is needed to get the face() representation of the map
     logger.info("BEGIN: Embed the graph into the plane (Sage function is_planar(set_embedding = True)). It may take very long time depending on the number of vertices")
     stats['time_PLANAR_EMBEDDING_BEGIN'] = time.ctime()
-    void = the_graph.is_planar(set_embedding=True, set_pos=True)
+    the_graph.is_planar(set_embedding=True, set_pos=True)
     stats['time_PLANAR_EMBEDDING_END'] = time.ctime()
     logger.info("END: Embed the graph into the plane (is_planar(set_embedding = True)")
 
@@ -818,13 +837,14 @@ def from_graph_to_planar(the_graph):
     return g_faces
 
 
-def create_from_random(number_of_vertices_for_the_random_triangulation):
+def create_from_random(number_of_vertices_for_the_random_triangulation, shuffle_the_planar_representation):
     """
     Create a random planar graph from the dual of a RandomTriangulation (Sage function).
 
     Parameters
     ----------
         number_of_vertices_for_the_random_triangulation: The number of vertices to create the graph
+        shuffle_the_planar_representation: Shuffle the planar representation of the map
 
     Returns
     -------
@@ -837,7 +857,7 @@ def create_from_random(number_of_vertices_for_the_random_triangulation):
         logger.warning("RandomTriangulation sometimes fails with n < 9. It is a Sage bug/limitation")
 
     temp_g = graphs.RandomTriangulation(number_of_vertices_for_the_random_triangulation)  # Random triangulation on the surface of a sphere
-    void = temp_g.is_planar(set_embedding=True, set_pos=True)  # Cannot calculate the dual if the graph has not been embedded
+    temp_g.is_planar(set_embedding=True, set_pos=True)  # Cannot calculate the dual if the graph has not been embedded
     the_graph = graph_dual(temp_g)  # The dual of a triangulation is a 3-regular planar graph
     the_graph.allow_loops(False)  # At the beginning and during the process I'll avoid this situation anyway
     the_graph.allow_multiple_edges(True)  # During the reduction process the graph may have multiple edges - It is normal
@@ -858,18 +878,23 @@ def create_from_random(number_of_vertices_for_the_random_triangulation):
     # Convert the graph to planar (faces representation)
     g_faces = from_graph_to_planar(the_graph)
 
+    # Shuffle the planar representation of the map
+    if shuffle_the_planar_representation:
+        shuffle(g_faces)
+
     logger.info("END: Create a random planar graph of %s vertices, from the dual of a RandomTriangulation of %s vertices", the_graph.order(), number_of_vertices_for_the_random_triangulation)
 
     return the_graph, g_faces
 
 
-def create_from_edge_list(edgelist_filename):
+def create_from_edge_list(edgelist_filename, shuffle_the_planar_representation):
     """
     Load the graph from the external edgelist file.
 
     Parameters
     ----------
         edgelist_filename: The edgelist file to upload
+        shuffle_the_planar_representation: Shuffle the planar representation of the map
 
     Returns
     -------
@@ -890,18 +915,23 @@ def create_from_edge_list(edgelist_filename):
     # Convert the graph to planar (faces representation)
     g_faces = from_graph_to_planar(the_graph)
 
+    # Shuffle the planar representation of the map
+    if shuffle_the_planar_representation:
+        shuffle(g_faces)
+
     logger.info("END: Load the graph from the external file: %s", edgelist_filename)
 
     return the_graph, g_faces
 
 
-def create_from_planar(planar_filename):
+def create_from_planar(planar_filename, shuffle_the_planar_representation):
     """
     Load the planar embedding of a graph (output of the gfaces() function).
 
     Parameters
     ----------
         planar_filename: The planar file to upload
+        shuffle_the_planar_representation: Shuffle the planar representation of the map
 
     Returns
     -------
@@ -921,6 +951,9 @@ def create_from_planar(planar_filename):
     # Original: [[(3,2),(3,5)],[(2,4),(1,3),(1,3)], ... ,[(1,2),(3,4),(6,7)]]
     # Saved as: [[[3,2],[3,5]],[[2,4],[1,3],[1,3]], ... ,[[1,2],[3,4],[6,7]]]
     g_faces = [[tuple(l) for l in L] for L in g_faces]
+
+    if shuffle_the_planar_representation:
+        shuffle(g_faces)
 
     # I need the graph here only to check_graph_at_beginning
     the_graph = create_graph_from_planar_representation(g_faces)
@@ -948,7 +981,7 @@ def create_from_planar(planar_filename):
 ######
 ######
 ######
-# 4CT: MAIN Create/upload the graph to color. it has to be planar and initially without loops and multiple edges
+# 4CT: REDUCE & REBUILD
 ######
 ######
 ######
@@ -968,497 +1001,536 @@ def create_from_planar(planar_filename):
 ######
 ######
 
-# Set logging facilities
-logger = logging.getLogger()
-logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
+def reduce(g_faces, choices):
+    """
+    Method similar to the Kempe reduction "patching" method.\n
+    For each loop remove an edge from a face <= F5, until the graph will have only four faces (an island with three lands)
 
-###############
-# Read options:
-###############
-# (-r <vertices> or -i <file> or -p <planar embedding (json file)>) -o <file>
-parser = argparse.ArgumentParser(description='4ct args')
-group_input = parser.add_mutually_exclusive_group(required=True)
-group_input.add_argument("-r", "--rand", help="Random graph: dual of a triangulation of N vertices", type=int)
-group_input.add_argument("-e", "--edgelist", help="Load a .edgelist file (networkx)")
-group_input.add_argument("-p", "--planar", help="Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
-parser.add_argument("-o", "--output", help="Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
-parser.add_argument("-c", "--choices", help="Sequence of the Fs to choose (2345, 2354, 2435, 2453, 2534, 2543)", type=int, default=2345, choices=[2345, 2354, 2435, 2453, 2534, 2543], required=False)
-args = parser.parse_args()
+    Parameters
+    ----------
+        g_faces: The planar representation of the graph
+        choices: The selection method for the edges
 
-# Initialize statistics
-stats = {}
-initialize_statistics(stats)
+    Returns
+    -------
+        ariadne_s_thread: You would better study the classics
+    """
 
-logger.info("--------------------------------")
-logger.info("BEGIN: Create the graph to color")
-logger.info("--------------------------------")
-stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
+    logger.info("----------------------")
+    logger.info("BEGIN: Reduction phase")
+    logger.info("----------------------")
+    stats['time_ELABORATION_BEGIN'] = time.ctime()
+    stats['time_ELABORATION'] = datetime.datetime.now()
 
-# 1) Handmade
-#
-# the_graph = Graph(sparse = True)
-# the_graph.allow_loops(False)
-# the_graph.allow_multiple_edges(True)
-# the_graph.add_edge(1,2)
-# the_graph.add_edge(2,3)
-# the_graph.add_edge(3,4)
-# the_graph.add_edge(4,5)
-# the_graph.add_edge(5,1)
-# the_graph.add_edge(1,6)
-# the_graph.add_edge(2,10)
-# the_graph.add_edge(3,12)
-# the_graph.add_edge(4,11)
-# the_graph.add_edge(5,7)
-# the_graph.add_edge(6,7)
-# the_graph.add_edge(6,8)
-# the_graph.add_edge(8,10)
-# the_graph.add_edge(10,12)
-# the_graph.add_edge(12,11)
-# the_graph.add_edge(7,9)
-# the_graph.add_edge(8,9)
-# the_graph.add_edge(9,11)
-# the_graph.relabel()
+    # It will contain items made of lists of values to find the way back to the original graph (Ariadne's String Myth)
+    # _string not in the sense of programming language :-) search for the mitos: ariadne string
+    ariadne_s_thread = []
+    ariadne_step = []
 
-# Create the graph
-if args.rand is not None:  # Random - Dual of a triangulation
-    the_graph, g_faces = create_from_random(args.rand)
-elif args.edgelist is not None:  # edgelist - Load a graph stored in edgelist format
-    the_graph, g_faces = create_from_edge_list(args.edgelist)
-elif args.planar is not None:  # Planar - Load a planar embedding of the graph
-    the_graph, g_faces = create_from_planar(args.planar)
+    # Start the reduction process
+    is_the_end_of_the_reduction_process = False
+    i_global_counter = 0
 
-stats['time_GRAPH_CREATION_END'] = time.ctime()
-logger.info("------------------------------")
-logger.info("END: Create the graph to color")
-logger.info("------------------------------")
-logger.info("")
-
-######
-######
-# 4CT: AT THE BEGINNING THE GRAPH HAS TO BE CUBIC AND PLANAR WITH NO LOOPS
-# 4CT: NOTE: It can have multiple edges but some software is not able to compute planarity
-######
-######
-
-logger.info("------------------------")
-logger.info("BEGIN: Graph information")
-logger.info("------------------------")
-
-# Override creation (mainly to debug previously elaborated maps)
-#
-# g_faces = [[(27, 26), (26, 36), (36, 27)], [(11, 19), (19, 12), (12, 11)], [(38, 44), (44, 41), (41, 38)], [(3, 2), (2, 15), (15, 3)],
-#            [(48, 49), (49, 46), (46, 48)], [(32, 54), (54, 55), (55, 33), (33, 32)], [(39, 46), (46, 49), (49, 42), (42, 39)],
-#            [(33, 55), (55, 52), (52, 34), (34, 33)], [(40, 41), (41, 44), (44, 43), (43, 40)], [(26, 25), (25, 35), (35, 36), (36, 26)],
-#            [(7, 8), (8, 54), (54, 32), (32, 7)], [(2, 1), (1, 14), (14, 15), (15, 2)], [(16, 17), (17, 9), (9, 10), (10, 16)],
-#            [(5, 24), (24, 20), (20, 6), (6, 5)], [(13, 14), (14, 1), (1, 0), (0, 13)], [(34, 52), (52, 53), (53, 50), (50, 31), (31, 34)],
-#            [(10, 12), (12, 19), (19, 18), (18, 16), (16, 10)], [(31, 50), (50, 51), (51, 47), (47, 45), (45, 30), (30, 31)],
-#            [(28, 37), (37, 22), (22, 21), (21, 35), (35, 25), (25, 28)], [(21, 20), (20, 24), (24, 27), (27, 36), (36, 35), (35, 21)],
-#            [(38, 29), (29, 30), (30, 45), (45, 43), (43, 44), (44, 38)],
-#            [(23, 51), (51, 50), (50, 53), (53, 17), (17, 16), (16, 18), (18, 23)],
-#            [(39, 40), (40, 43), (43, 45), (45, 47), (47, 48), (48, 46), (46, 39)],
-#            [(9, 13), (13, 0), (0, 4), (4, 11), (11, 12), (12, 10), (10, 9)],
-#            [(28, 29), (29, 38), (38, 41), (41, 40), (40, 39), (39, 42), (42, 37), (37, 28)], [(42, 49), (49, 48), (48, 47), (47, 51), (51, 23), (23, 22), (22, 37), (37, 42)],
-#            [(8, 7), (7, 5), (5, 6), (6, 4), (4, 0), (0, 1), (1, 2), (2, 3), (3, 8)], [(18, 19), (19, 11), (11, 4), (4, 6), (6, 20), (20, 21), (21, 22), (22, 23), (23, 18)],
-#            [(55, 54), (54, 8), (8, 3), (3, 15), (15, 14), (14, 13), (13, 9), (9, 17), (17, 53), (53, 52), (52, 55)],
-#            [(31, 30), (30, 29), (29, 28), (28, 25), (25, 26), (26, 27), (27, 24), (24, 5), (5, 7), (7, 32), (32, 33), (33, 34), (34, 31)]]
-
-# g_faces = [[(28, 26), (26, 32), (32, 28)], [(47, 46), (46, 49), (49, 47)],
-#            [(10, 3), (3, 2), (2, 10)], [(51, 55), (55, 53), (53, 51)],
-#            [(55, 54), (54, 52), (52, 53), (53, 55)], [(0, 7), (7, 9), (9, 1), (1, 0)],
-#            [(34, 35), (35, 40), (40, 39), (39, 34)], [(38, 36), (36, 49), (49, 46), (46, 38)],
-#            [(2, 1), (1, 9), (9, 10), (10, 2)], [(29, 27), (27, 34), (34, 39), (39, 29)],
-#            [(52, 54), (54, 44), (44, 42), (42, 52)], [(17, 18), (18, 20), (20, 21), (21, 17)],
-#            [(32, 26), (26, 30), (30, 23), (23, 24), (24, 32)], [(8, 7), (7, 0), (0, 4), (4, 6), (6, 8)],
-#            [(30, 31), (31, 21), (21, 20), (20, 23), (23, 30)], [(6, 4), (4, 5), (5, 11), (11, 12), (12, 6)],
-#            [(21, 31), (31, 16), (16, 15), (15, 17), (17, 21)], [(48, 37), (37, 33), (33, 43), (43, 50), (50, 48)],
-#            [(54, 55), (55, 51), (51, 50), (50, 43), (43, 44), (44, 54)], [(36, 37), (37, 48), (48, 45), (45, 47), (47, 49), (49, 36)],
-#            [(5, 4), (4, 0), (0, 1), (1, 2), (2, 3), (3, 5)], [(13, 8), (8, 6), (6, 12), (12, 15), (15, 16), (16, 13)],
-#            [(18, 19), (19, 22), (22, 25), (25, 24), (24, 23), (23, 20), (20, 18)],
-#            [(46, 47), (47, 45), (45, 41), (41, 40), (40, 35), (35, 38), (38, 46)],
-#            [(11, 14), (14, 19), (19, 18), (18, 17), (17, 15), (15, 12), (12, 11)],
-#            [(53, 52), (52, 42), (42, 41), (41, 45), (45, 48), (48, 50), (50, 51), (51, 53)],
-#            [(8, 13), (13, 14), (14, 11), (11, 5), (5, 3), (3, 10), (10, 9), (9, 7), (7, 8)],
-#            [(40, 41), (41, 42), (42, 44), (44, 43), (43, 33), (33, 25), (25, 22), (22, 29), (29, 39), (39, 40)],
-#            [(30, 26), (26, 28), (28, 27), (27, 29), (29, 22), (22, 19), (19, 14), (14, 13), (13, 16), (16, 31), (31, 30)],
-#            [(35, 34), (34, 27), (27, 28), (28, 32), (32, 24), (24, 25), (25, 33), (33, 37), (37, 36), (36, 38), (38, 35)]]
-
-# Log faces
-log_faces(g_faces)
-
-logger.info("----------------------")
-logger.info("END: Graph information")
-logger.info("----------------------")
-logger.info("")
-
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-# 4CT: Method similar to the Kempe reduction "patching" method
-# 4CT: For each loop remove an edge from a face <= F5, until the graph will have only four faces (an island with three lands)
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-
-logger.info("----------------------")
-logger.info("BEGIN: Reduction phase")
-logger.info("----------------------")
-stats['time_ELABORATION_BEGIN'] = time.ctime()
-stats['time_ELABORATION'] = datetime.datetime.now()
-
-# It will contain items made of lists of values to find the way back to the original graph (Ariadne's String Myth)
-ariadne_string = []
-ariadne_step = []
-
-# Start the reduction process
-is_the_end_of_the_reduction_process = False
-i_global_counter = 0
-
-# If the graph is already reduced (2 vertices and 3 edges = 3 faces, included the ocean)
-if len(g_faces) == 3:
-
-    # Graph already reduced
-    is_the_end_of_the_reduction_process = True
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph is already reduced")
-
-while is_the_end_of_the_reduction_process is False:
-
-    logger.info("BEGIN %s: Main loop", i_global_counter)
-    log_faces(g_faces)
-
-    # Deep debug: Log all faces
-    # log_faces(g_faces)
-
-    # f1, f2, edge_to_remove, rotated_edge_to_remove, len_of_the_face_to_reduce will be valid during the rest of this "while" loop after the first block ("Select an edge") has been executed
-    f1 = []
-    f2 = []
-    edge_to_remove = ()
-    f1_plus_f2_temp = []  # It is used to speed up computation. At the beginning is used to see it the graph is_the_graph_one_edge_connected() and then reused
-    rotated_edge_to_remove = ()
-
-    # Select an edge from the graph
-    # This is one of the most important function to work on, to apply different strategies
-    edge_to_remove, f1, f2, f1_plus_f2_temp = select_edge_to_remove(g_faces, args.choices, i_global_counter)
-
-    # Check if math is right :-) An edge to remove must exist
-    if edge_to_remove is ():
-        logger.error("Unexpected condition (a suitable edge has not been found). Mario you'd better go back to paper")
-        logger.info("TODO: For now I considered only the first selected face < F6. I may search the right edge in other faces < F6")
-        logger.info("TODO: Should be easier to prove that among all faces < F6, an edge exists that if removed does not make the graph 1-edge-connected")
-        exit(-1)
-
-    # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
-    len_of_the_face_to_reduce_f1 = len(f1)
-    len_of_the_face_to_reduce_f2 = len(f2)
-
-    # Remove the edge of an F2 (multiple edge)
-    if len_of_the_face_to_reduce_f1 == 2:
-
-        logger.info("BEGIN %s: Remove a multiple edge (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
-
-        # Get the two vertices to join
-        # It may also happen that at the end of the process, I'll get a loop: From ---CO to ---O
-        v1 = edge_to_remove[0]
-        v2 = edge_to_remove[1]
-
-        # >--0--<
-        #
-        # F2 is the zero in the center (in the drawing)
-        vertex_to_join_near_v1 = next(edge for edge in f2 if edge[0] == v1)[1]
-        vertex_to_join_near_v2 = next(edge for edge in f2 if edge[1] == v2)[0]
-
-        # f1 and f2 have been joined before to test 1-edge-connectivity ... I can use that!
-        g_faces.remove(f1)
-        g_faces.remove(f2)
-        g_faces.insert(-1, f1_plus_f2_temp)
-
-        # I already prepared f1 and f2, but when these two faces are joined also the other face that has the two vertices has to be updated
-        # A vertex is shared by three faces (two of these are f1 and f2). For this F2 case, the two vertices belong to only a third face
-        # NOTE: For F3, F4, F5 ... v1 and v2 may have two different faces (other than f1 and f2)
-        third_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v1))
-        remove_vertex_from_face(third_face_to_update, v1)
-        remove_vertex_from_face(third_face_to_update, v2)  # For this F2 case, the two vertices belong to only a third face
-
-        # Ariadne ball of thread. First parameter == 2, will tell that it was a multiple edge
-        # [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
-        ariadne_step = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
-        ariadne_string.append(ariadne_step)
-        # if logger.isEnabledFor(logging.DEBUG): logger.debug("ariadne_step: %s", ariadne_step)
-
-        # Do one thing at a time and return at the beginning of the main loop
-        logger.info("END %s: Remove a multiple edge (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
-
-    # Remove an F3 or F4 or F5
-    else:
-
-        logger.info("BEGIN %s: Remove an F3, F4 or F5 (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
-
-        # Get the vertices at the ends of the edge to remove
-        # And find the other four neighbors :>.---.<: (If the --- is the removed edge, the four external dots represent the vertices I'm looking for)
-        v1 = edge_to_remove[0]
-        v2 = edge_to_remove[1]
-
-        vertex_to_join_near_v1_on_the_face = next(edge for edge in f1 if edge[1] == v1)[0]
-        vertex_to_join_near_v2_on_the_face = next(edge for edge in f1 if edge[0] == v2)[1]
-        vertex_to_join_near_v1_not_on_the_face = next(edge for edge in f2 if edge[0] == v1)[1]
-        vertex_to_join_near_v2_not_on_the_face = next(edge for edge in f2 if edge[1] == v2)[0]
-
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v1_on_the_face: %s", vertex_to_join_near_v1_on_the_face)
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v2_on_the_face: %s", vertex_to_join_near_v2_on_the_face)
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v1_not_on_the_face: %s", vertex_to_join_near_v1_not_on_the_face)
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v2_not_on_the_face: %s", vertex_to_join_near_v2_not_on_the_face)
-
-        # f1 and f2 have been joined before to test 1-edge-connectivity ... I can use that!
-        g_faces.remove(f1)
-        g_faces.remove(f2)
-        g_faces.insert(-1, f1_plus_f2_temp)
-
-        # I already prepared f1 and f2, but when these two faces are joined also the other faces that has the two vertices have to be updated
-        # A vertex is shared by three faces (two of these are f1 and f2)
-        # NOTE: For F3, F4, F5 ... v1 and v2, most of the times will have f3 and f4 different ... but they can also be the same face
-        third_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v1))
-        fourth_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v2))
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("third_face_to_update: %s", third_face_to_update)
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("fourth_face_to_update: %s", fourth_face_to_update)
-
-        remove_vertex_from_face(third_face_to_update, v1)
-        remove_vertex_from_face(fourth_face_to_update, v2)
-
-        # Ariadne ball of thread
-        # First parameter == len_of_the_face_to_reduce, will tell that it was a Fx face that has been removed (x = 3, 4 or 5)
-        # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        ariadne_step = [len_of_the_face_to_reduce_f1, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        ariadne_string.append(ariadne_step)
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("ariadne_step: %s", ariadne_step)
-
-        # Do one thing at a time and return at the beginning of the main loop
-        logger.info("END %s: Remove an F3, F4 or F5 (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
-
-    # Check 3-regularity (I commented this slow procedure
-    # I did it run for a while, now I feel confident about this first part of the code)
-    #
-    # if check_regularity(g_faces) is False:
-    #    logger.error("Unexpected condition (check_regularity is False). Mario you'd better go back to paper")
-    #    log_faces(g_faces)
-    #    exit(-1)
-
-    # At this point the graph has 3 faces (an island with 2 lands + the ocean) and 3 edges ... easily 3-edge-colorable
+    # If the graph is already reduced (2 vertices and 3 edges = 3 faces, included the ocean)
     if len(g_faces) == 3:
 
-        # Graph reduced
+        # Graph already reduced
         is_the_end_of_the_reduction_process = True
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph is already reduced")
 
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("--------------------------")
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph has been reduced")
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("--------------------------")
+    while is_the_end_of_the_reduction_process is False:
+
+        logger.info("BEGIN %s: Main loop", i_global_counter)
         log_faces(g_faces)
 
-    # END of main loop (-1 because the counte has been just incremented)
-    logger.info("END %s: Main loop - len(ariadne_string) = %s", i_global_counter, len(ariadne_string))
+        # Deep debug: Log all faces
+        # log_faces(g_faces)
+
+        # f1, f2, edge_to_remove, rotated_edge_to_remove, len_of_the_face_to_reduce will be valid during the rest of this "while" loop after the first block ("Select an edge") has been executed
+        f1 = []
+        f2 = []
+        edge_to_remove = ()
+        f1_plus_f2_temp = []  # It is used to speed up computation. At the beginning is used to see it the graph is_the_graph_one_edge_connected() and then reused
+
+        # Select an edge from the graph
+        # This is one of the most important function to work on, to apply different strategies
+        edge_to_remove, f1, f2, f1_plus_f2_temp = select_edge_to_remove(g_faces, choices, i_global_counter)
+
+        # Check if math is right :-) An edge to remove must exist
+        if edge_to_remove is ():
+            logger.error("Unexpected condition (a suitable edge has not been found). Mario you'd better go back to paper")
+            logger.info("TODO: For now I considered only the first selected face < F6. I may search the right edge in other faces < F6")
+            logger.info("TODO: Should be easier to prove that among all faces < F6, an edge exists that if removed does not make the graph 1-edge-connected")
+            exit(-1)
+
+        # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
+        len_of_the_face_to_reduce_f1 = len(f1)
+        len_of_the_face_to_reduce_f2 = len(f2)
+
+        # Remove the edge of an F2 (multiple edge)
+        if len_of_the_face_to_reduce_f1 == 2:
+
+            logger.info("BEGIN %s: Remove a multiple edge (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+
+            # Get the two vertices to join
+            # It may also happen that at the end of the process, I'll get a loop: From ---CO to ---O
+            v1 = edge_to_remove[0]
+            v2 = edge_to_remove[1]
+
+            # >--0--<
+            #
+            # F2 is the zero in the center (in the drawing)
+            vertex_to_join_near_v1 = next(edge for edge in f2 if edge[0] == v1)[1]
+            vertex_to_join_near_v2 = next(edge for edge in f2 if edge[1] == v2)[0]
+
+            # f1 and f2 have been joined before to test 1-edge-connectivity ... I can use that!
+            g_faces.remove(f1)
+            g_faces.remove(f2)
+            g_faces.insert(-1, f1_plus_f2_temp)
+
+            # I already prepared f1 and f2, but when these two faces are joined also the other face that has the two vertices has to be updated
+            # A vertex is shared by three faces (two of these are f1 and f2). For this F2 case, the two vertices belong to only a third face
+            # NOTE: For F3, F4, F5 ... v1 and v2 may have two different faces (other than f1 and f2)
+            third_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v1))
+            remove_vertex_from_face(third_face_to_update, v1)
+            remove_vertex_from_face(third_face_to_update, v2)  # For this F2 case, the two vertices belong to only a third face
+
+            # Ariadne ball of thread. First parameter == 2, will tell that it was a multiple edge
+            # [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
+            ariadne_step = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
+            ariadne_s_thread.append(ariadne_step)
+            # if logger.isEnabledFor(logging.DEBUG): logger.debug("ariadne_step: %s", ariadne_step)
+
+            # Do one thing at a time and return at the beginning of the main loop
+            logger.info("END %s: Remove a multiple edge (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+
+        # Remove an F3 or F4 or F5
+        else:
+
+            logger.info("BEGIN %s: Remove an F3, F4 or F5 (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+
+            # Get the vertices at the ends of the edge to remove
+            # And find the other four neighbors :>.---.<: (If the --- is the removed edge, the four external dots represent the vertices I'm looking for)
+            v1 = edge_to_remove[0]
+            v2 = edge_to_remove[1]
+
+            vertex_to_join_near_v1_on_the_face = next(edge for edge in f1 if edge[1] == v1)[0]
+            vertex_to_join_near_v2_on_the_face = next(edge for edge in f1 if edge[0] == v2)[1]
+            vertex_to_join_near_v1_not_on_the_face = next(edge for edge in f2 if edge[0] == v1)[1]
+            vertex_to_join_near_v2_not_on_the_face = next(edge for edge in f2 if edge[1] == v2)[0]
+
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v1_on_the_face: %s", vertex_to_join_near_v1_on_the_face)
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v2_on_the_face: %s", vertex_to_join_near_v2_on_the_face)
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v1_not_on_the_face: %s", vertex_to_join_near_v1_not_on_the_face)
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("vertex_to_join_near_v2_not_on_the_face: %s", vertex_to_join_near_v2_not_on_the_face)
+
+            # f1 and f2 have been joined before to test 1-edge-connectivity ... I can use that!
+            g_faces.remove(f1)
+            g_faces.remove(f2)
+            g_faces.insert(-1, f1_plus_f2_temp)
+
+            # I already prepared f1 and f2, but when these two faces are joined also the other faces that has the two vertices have to be updated
+            # A vertex is shared by three faces (two of these are f1 and f2)
+            # NOTE: For F3, F4, F5 ... v1 and v2, most of the times will have f3 and f4 different ... but they can also be the same face
+            third_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v1))
+            fourth_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v2))
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("third_face_to_update: %s", third_face_to_update)
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("fourth_face_to_update: %s", fourth_face_to_update)
+
+            remove_vertex_from_face(third_face_to_update, v1)
+            remove_vertex_from_face(fourth_face_to_update, v2)
+
+            # Ariadne ball of thread
+            # First parameter == len_of_the_face_to_reduce, will tell that it was a Fx face that has been removed (x = 3, 4 or 5)
+            # [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
+            ariadne_step = [len_of_the_face_to_reduce_f1, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
+            ariadne_s_thread.append(ariadne_step)
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("ariadne_step: %s", ariadne_step)
+
+            # Do one thing at a time and return at the beginning of the main loop
+            logger.info("END %s: Remove an F3, F4 or F5 (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+
+        # Check 3-regularity (I commented this slow procedure
+        # I did it run for a while, now I feel confident about this first part of the code)
+        #
+        # if check_regularity(g_faces) is False:
+        #    logger.error("Unexpected condition (check_regularity is False). Mario you'd better go back to paper")
+        #    log_faces(g_faces)
+        #    exit(-1)
+
+        # At this point the graph has 3 faces (an island with 2 lands + the ocean) and 3 edges ... easily 3-edge-colorable
+        if len(g_faces) == 3:
+
+            # Graph reduced
+            is_the_end_of_the_reduction_process = True
+
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("--------------------------")
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph has been reduced")
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("--------------------------")
+            log_faces(g_faces)
+
+        # END of main loop (-1 because the counte has been just incremented)
+        logger.info("END %s: Main loop - len(ariadne_s_thread) = %s", i_global_counter, len(ariadne_s_thread))
+        logger.info("")
+
+        # If not reduced, continue
+        if is_the_end_of_the_reduction_process is False:
+            i_global_counter += 1
+
+    logger.info("--------------------")
+    logger.info("END: Reduction phase")
+    logger.info("--------------------")
     logger.info("")
 
-    # If not reduced, continue
-    if is_the_end_of_the_reduction_process is False:
-        i_global_counter += 1
+    return ariadne_s_thread
 
-logger.info("--------------------")
-logger.info("END: Reduction phase")
-logger.info("--------------------")
-logger.info("")
 
-# logger.info("-----------------------------------------")
-# logger.info("BEGIN: Print Ariadne's string information")
-# logger.info("-----------------------------------------")
-#
-# # Log Ariadne's string information
-# for step in ariadne_string:
-#     logger.info("ariadne_string: %s", step)
-#
-# logger.info("---------------------------------------")
-# logger.info("END: Print Ariadne's string information")
-# logger.info("---------------------------------------")
-# logger.info("")
+def rebuild(g_faces, ariadne_s_thread):
+    """
+    Restore the edges one at a time and apply the half Kempe-cycle color switching method.\n
+    Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
 
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-# 4CT: Restore the edges one at a time and apply the half Kempe-cycle color switching method
-# 4CT: Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
+    Parameters
+    ----------
+        g_faces: The planar representation of the graph
+        ariadne_s_thread: You would better study the classics
 
-logger.info("---------------------------")
-logger.info("BEGIN: Reconstruction phase")
-logger.info("---------------------------")
+    Returns
+    -------
+        the_colored_graph: The colored graph
+    """
 
-# At this point the graph has 3 faces (an island with 2 lands + the ocean) and 3 edges ... easily 3-edge-colorable
-# WARNING: the color of the edges of a multiedge graph cannot be changed, so during the process it is necessary to delete and re-insert edges
-the_colored_graph = Graph(sparse=True)
-the_colored_graph.allow_loops(False)
-the_colored_graph.allow_multiple_edges(True)  # During the process I need this to be set to true
+    logger.info("---------------------------")
+    logger.info("BEGIN: Reconstruction phase")
+    logger.info("---------------------------")
 
-# Only 2 vertices have to be in the graph
-all_vertices = [element for face in g_faces for edge in face for element in edge]
-all_vertices = sorted(set(all_vertices))
+    # At this point the graph has 3 faces (an island with 2 lands + the ocean) and 3 edges ... easily 3-edge-colorable
+    # WARNING: the color of the edges of a multiedge graph cannot be changed, so during the process it is necessary to delete and re-insert edges
+    the_colored_graph = Graph(sparse=True)
+    the_colored_graph.allow_loops(False)
+    the_colored_graph.allow_multiple_edges(True)  # During the process I need this to be set to true
 
-if len(all_vertices) != 2:
-    logger.error("Unexpected condition (vertices left are not 2). Mario you'd better go back to paper")
-    exit(-1)
+    # Only 2 vertices have to be in the graph
+    all_vertices = [element for face in g_faces for edge in face for element in edge]
+    all_vertices = sorted(set(all_vertices))
 
-# Aliases
-v1 = all_vertices[0]
-v2 = all_vertices[1]
-
-# At this point the graph is that of an island perfectly slit in two (just to visualize it)
-# I now rebuild a new graph and, at the end of the rebuilding process, I'll check if it is isomorphic to the original
-#
-# NOTE: For the first step, it is NOT important to create the new graph selecting a particular order for the vertices ... they would all generate exactly the same graph
-the_colored_graph.add_edge(v1, v2, "red")
-the_colored_graph.add_edge(v1, v2, "green")
-the_colored_graph.add_edge(v1, v2, "blue")
-
-# Check if I need to start the rebuilding process
-if ariadne_step == []:
-    is_the_end_of_the_rebuild_process = True
-else:
-    is_the_end_of_the_rebuild_process = False
-
-i_global_rebuilding_counter = 0
-
-# Start the rebuilding process
-while is_the_end_of_the_rebuild_process is False:
-
-    i_global_rebuilding_counter += 1
-
-    # Get the string to walk back home
-    ariadne_step = ariadne_string.pop()
-    logger.info("ariadne_step (%s/%s): %s", i_global_rebuilding_counter, i_global_counter, ariadne_step)
-
-    # F2 = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
-    # F3, 4, 5 = [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-    if ariadne_step[0] == 2:
-        ariadne_case_f2(the_colored_graph, ariadne_step, stats)
-    elif ariadne_step[0] == 3:
-        ariadne_case_f3(the_colored_graph, ariadne_step, stats)
-    elif ariadne_step[0] == 4:
-        ariadne_case_f4(the_colored_graph, ariadne_step, stats)
-    elif ariadne_step[0] == 5:
-        ariadne_case_f5(the_colored_graph, ariadne_step, stats)
-
-    # Separator
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("")
-
-    # After all cases attempt of a single step back to the original graph (one ariadne step), better to ckeck if the coloring is good
-    if not is_well_colored(the_colored_graph):
-        logger.error("Unexpected condition (coloring is not valid). Mario you'd better go back to paper or learn to code")
+    if len(all_vertices) != 2:
+        logger.error("Unexpected condition (vertices left are not 2). Mario you'd better go back to paper")
         exit(-1)
 
-    # If no other edges have to be restored, then I'm done
-    if len(ariadne_string) == 0:
+    # Aliases
+    v1 = all_vertices[0]
+    v2 = all_vertices[1]
+
+    # At this point the graph is that of an island perfectly slit in two (just to visualize it)
+    # I now rebuild a new graph and, at the end of the rebuilding process, I'll check if it is isomorphic to the original
+    #
+    # NOTE: For the first step, it is NOT important to create the new graph selecting a particular order for the vertices ... they would all generate exactly the same graph
+    the_colored_graph.add_edge(v1, v2, "red")
+    the_colored_graph.add_edge(v1, v2, "green")
+    the_colored_graph.add_edge(v1, v2, "blue")
+
+    # Check if I need to start the rebuilding process
+    if ariadne_s_thread == []:
         is_the_end_of_the_rebuild_process = True
+    else:
+        is_the_end_of_the_rebuild_process = False
 
-stats['time_ELABORATION_END'] = time.ctime()
-stats['time_ELABORATION'] = (datetime.datetime.now() - stats['time_ELABORATION']).seconds
-logger.info("-------------------------")
-logger.info("END: Reconstruction phase")
-logger.info("-------------------------")
-logger.info("")
+    i_global_rebuilding_counter = 0
+    number_of_steps_to_take = len(ariadne_s_thread)
+
+    # Start the rebuilding process
+    while is_the_end_of_the_rebuild_process is False:
+
+        i_global_rebuilding_counter += 1
+
+        # Get the string to walk back home
+        ariadne_step = ariadne_s_thread.pop()
+        logger.info("ariadne_step (%s/%s): %s", i_global_rebuilding_counter, number_of_steps_to_take, ariadne_step)
+
+        # F2 = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
+        # F3, 4, 5 = [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
+        if ariadne_step[0] == 2:
+            ariadne_case_f2(the_colored_graph, ariadne_step)
+        elif ariadne_step[0] == 3:
+            ariadne_case_f3(the_colored_graph, ariadne_step)
+        elif ariadne_step[0] == 4:
+            ariadne_case_f4(the_colored_graph, ariadne_step)
+        elif ariadne_step[0] == 5:
+            ariadne_case_f5(the_colored_graph, ariadne_step)
+
+        # Separator
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("")
+
+        # After all cases attempt of a single step back to the original graph (one ariadne step), better to ckeck if the coloring is good
+        if not is_well_colored(the_colored_graph):
+            logger.error("Unexpected condition (coloring is not valid). Mario you'd better go back to paper or learn to code")
+            exit(-1)
+
+        # If no other edges have to be restored, then I'm done
+        if len(ariadne_s_thread) == 0:
+            is_the_end_of_the_rebuild_process = True
+
+    stats['time_ELABORATION_END'] = time.ctime()
+    stats['time_ELABORATION'] = (datetime.datetime.now() - stats['time_ELABORATION']).seconds
+    logger.info("-------------------------")
+    logger.info("END: Reconstruction phase")
+    logger.info("-------------------------")
+    logger.info("")
+
+    return the_colored_graph
+
 
 ######
 ######
-# 4CT: Show the restored and 4 colored map and check for mistakes
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+# 4CT: MAIN FUNCTION Create/upload the graph to color. it has to be planar and initially without loops and multiple edges
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
 ######
 ######
 
-logger.info("------------------------------------------")
-logger.info("BEGIN: Show the restored and 4 colored map")
-logger.info("------------------------------------------")
+def execute_4ct_algorithm():
 
-# Check if the recreated graph is isomorphic to the original
-logger.info("BEGIN: Check if isomorphic")
-if the_graph.is_isomorphic(the_colored_graph) is True:
-    logger.info("Recreated graph is equal to the original")
-else:
-    logger.error("Unexpected condition (recreated graph is different from the original). Mario you'd better go back to paper")
-logger.info("END: Check if isomorphic")
+    ###############
+    # Read options:
+    ###############
+    # (-r <vertices> or -i <file> or -p <planar embedding (json file)>) -o <file>
+    parser = argparse.ArgumentParser(description='4ct args')
+    group_input = parser.add_mutually_exclusive_group(required=True)
+    group_input.add_argument("-r", "--rand", help="Random graph: dual of a triangulation of N vertices", type=int)
+    group_input.add_argument("-e", "--edgelist", help="Load a .edgelist file (networkx)")
+    group_input.add_argument("-p", "--planar", help="Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
+    parser.add_argument("-o", "--output", help="Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
+    parser.add_argument("-c", "--choices", help="Sequence of the Fs to choose (2345, 2354, 2435, 2453, 2534, 2543)", type=int, default=2345, choices=[2345, 2354, 2435, 2453, 2534, 2543], required=False)
+    parser.add_argument("-s", "--shuffle", help="Shuffle the list at the beginning. Most of the times it solves the infinite loop condition", action='store_true')
+    args = parser.parse_args()
 
-logger.info("BEGIN: print_graph (Original)")
-print_graph(the_graph)
-logger.info("END: print_graph (Original)")
+    # Initialize statistics (stats is global)
+    initialize_statistics()
 
-logger.info("BEGIN: print_graph (Colored)")
-print_graph(the_colored_graph)
-logger.info("END: print_graph (Colored)")
+    logger.info("--------------------------------")
+    logger.info("BEGIN: Create the graph to color")
+    logger.info("--------------------------------")
+    stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
 
-logger.info("----------------------------------------")
-logger.info("END: Show the restored and 4 colored map")
-logger.info("----------------------------------------")
+    # 1) Handmade
+    #
+    # the_graph = Graph(sparse = True)
+    # the_graph.allow_loops(False)
+    # the_graph.allow_multiple_edges(True)
+    # the_graph.add_edge(1,2)
+    # the_graph.add_edge(2,3)
+    # the_graph.add_edge(3,4)
+    # the_graph.add_edge(4,5)
+    # the_graph.add_edge(5,1)
+    # the_graph.add_edge(1,6)
+    # the_graph.add_edge(2,10)
+    # the_graph.add_edge(3,12)
+    # the_graph.add_edge(4,11)
+    # the_graph.add_edge(5,7)
+    # the_graph.add_edge(6,7)
+    # the_graph.add_edge(6,8)
+    # the_graph.add_edge(8,10)
+    # the_graph.add_edge(10,12)
+    # the_graph.add_edge(12,11)
+    # the_graph.add_edge(7,9)
+    # the_graph.add_edge(8,9)
+    # the_graph.add_edge(9,11)
+    # the_graph.relabel()
 
-# Save the output graph
-if args.output is not None:
-    export_graph(the_colored_graph, args.output)
+    # Create the graph
+    if args.rand is not None:  # Random - Dual of a triangulation
+        the_graph, g_faces = create_from_random(args.rand, args.shuffle)
+    elif args.edgelist is not None:  # edgelist - Load a graph stored in edgelist format
+        the_graph, g_faces = create_from_edge_list(args.edgelist, args.shuffle)
+    elif args.planar is not None:  # Planar - Load a planar embedding of the graph
+        the_graph, g_faces = create_from_planar(args.planar, args.shuffle)
 
-# Print statistics
-print_stats(stats)
+    stats['time_GRAPH_CREATION_END'] = time.ctime()
+    logger.info("------------------------------")
+    logger.info("END: Create the graph to color")
+    logger.info("------------------------------")
+    logger.info("")
 
-exit(0)
+    ######
+    ######
+    # 4CT: AT THE BEGINNING THE GRAPH HAS TO BE CUBIC AND PLANAR WITH NO LOOPS
+    # 4CT: NOTE: It can have multiple edges but some software is not able to compute planarity
+    ######
+    ######
+
+    logger.info("------------------------")
+    logger.info("BEGIN: Graph information")
+    logger.info("------------------------")
+
+    # Log faces
+    log_faces(g_faces)
+
+    logger.info("----------------------")
+    logger.info("END: Graph information")
+    logger.info("----------------------")
+    logger.info("")
+
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    # 4CT: Method similar to the Kempe reduction "patching" method
+    # 4CT: For each loop remove an edge from a face <= F5, until the graph will have only four faces (an island with three lands)
+    ######
+    # 4CT: Restore the edges one at a time and apply the half Kempe-cycle color switching method
+    # 4CT: Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+    ######
+
+    ariadne_s_thread = reduce(g_faces, args.choices)
+    the_colored_graph = rebuild(g_faces, ariadne_s_thread)
+
+    ######
+    ######
+    # 4CT: Show the restored and 4 colored map and check for mistakes
+    ######
+    ######
+
+    logger.info("------------------------------------------")
+    logger.info("BEGIN: Show the restored and 4 colored map")
+    logger.info("------------------------------------------")
+
+    # Check if the recreated graph is isomorphic to the original
+    logger.info("BEGIN: Check if isomorphic")
+    if the_graph.is_isomorphic(the_colored_graph) is True:
+        logger.info("Recreated graph is equal to the original")
+    else:
+        logger.error("Unexpected condition (recreated graph is different from the original). Mario you'd better go back to paper")
+    logger.info("END: Check if isomorphic")
+
+    logger.info("BEGIN: print_graph (Original)")
+    print_graph(the_graph)
+    logger.info("END: print_graph (Original)")
+
+    logger.info("BEGIN: print_graph (Colored)")
+    print_graph(the_colored_graph)
+    logger.info("END: print_graph (Colored)")
+
+    logger.info("----------------------------------------")
+    logger.info("END: Show the restored and 4 colored map")
+    logger.info("----------------------------------------")
+
+    # Save the output graph
+    if args.output is not None:
+        export_graph(the_colored_graph, args.output)
+
+    # Print statistics
+    print_stats()
+
+    exit(0)
+
+
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+# 4CT: MAIN FUNCTION Create/upload the graph to color. it has to be planar and initially without loops and multiple edges
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+
+if __name__ == '__main__':
+
+    # Statistics
+    stats = {}
+
+    # Set logging facilities
+    logger = logging.getLogger()
+    logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
+
+    # Go
+    execute_4ct_algorithm()

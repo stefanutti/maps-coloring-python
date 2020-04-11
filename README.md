@@ -32,14 +32,19 @@ Definition of "planar embedding":
 Some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos
 
-## Pre-requìrements
+## Pre-requirements
 - docker
 
 ## Download a docker instance (I used sagemath latest = 9.0, python 3.7)
 - docker run -it sagemath/sagemath:latest bash
-  - sudo apt-get update
-  - sudo apt-get install git
-  - sudo apt-get install vim
+- Alternative
+  - docker run -it --name 4ct -p 8888:8888 -p 5000:5000 -p 7777:7777 sagemath/sagemath:latest sage-jupyter
+
+## Updates
+
+- sudo apt-get update
+- sudo apt-get install git
+- sudo apt-get install vim
 
 ### Download personal repo
 - cd
@@ -77,6 +82,11 @@ Some videos of the running Python and Java programs:
 - cd maps-coloring-python
 - cd ct
 - python3 ct_convert_planar_to_other.py -p new_map_test_100.planar -o new_map_test_100
+
+## Useful for cut&paste:
+- sudo apt-get install python3
+- sudo apt-get -y install python3-pip
+- pip install Flask
 
 ## To be finished:
 - What I've done that needs to be changed:

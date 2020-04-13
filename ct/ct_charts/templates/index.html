@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>4ct</title>
+  <script src="https://www.chartjs.org/dist/2.9.3/Chart.min.js"></script>
+</head>
+
+<body onload="onLoad()">
+  <div class="container">
+    <canvas id="bar_chart"></canvas>
+  </div>
+
+  <script>
+
+    chart_data = {
+      labels: [],
+      datasets: [{
+        label: 'Distribution of the F',
+        backgroundColor: 'rgba(200, 200, 200, 0.75)',
+        borderColor: 'rgba(200, 200, 200, 0.75)',
+        hoverBackgroundColor: 'rgba(200, 200, 200, 1)',
+        hoverBorderColor: 'rgba(200, 200, 200, 1)',
+				borderWidth: 3,
+        data: []
+      }]
+    }
+
+    window.onload = function () {
+
+      var ctx = document.getElementById("bar_chart");
+
+      window.barChart = new Chart(ctx, {
+        type: 'bar',
+        data: chart_data,
+        options: {
+          responsive: true,
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Chart.js Bar Chart'
+          },
+          scales: {
+            yAxes: [{
+              ticks: {
+                min: 0,
+                suggestedMax: 50,
+                beginAtZero: true
+              }
+            }]
+          }
+        }
+      });
+
+      const source = new EventSource("/stream");
+
+      source.onmessage = function(event) {
+        const json_data = JSON.parse(event.data);
+
+        new_labels = []
+        new_data = []
+        for (var key in json_data) {
+          new_labels.push(key)
+          new_data.push(json_data[key])
+        }
+  
+        chart_data.labels = new_labels;
+        chart_data.datasets[0].data = new_data;
+  
+        window.barChart.update();
+      };
+    }
+  </script>
+
+</body>
+
+</html>

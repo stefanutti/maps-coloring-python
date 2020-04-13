@@ -245,9 +245,10 @@ def print_graph(graph):
     ----------
         graph: The graph to print
     """
-    for vertex in graph.vertex_iterator():
-        edges = graph.edges_incident(vertex)
-        logger.info("vertex: %s, edges: %s, is well colored: %s, len(edges): %s", vertex, edges, are_incident_edges_well_colored(graph, vertex), len(edges))
+    if logger.isEnabledFor(logging.DEBUG):
+        for vertex in graph.vertex_iterator():
+            edges = graph.edges_incident(vertex)
+            logger.debug("vertex: %s, edges: %s, is well colored: %s, len(edges): %s", vertex, edges, are_incident_edges_well_colored(graph, vertex), len(edges))
 
     return
 
@@ -857,7 +858,7 @@ def get_the_other_colors(colors):
     return [x for x in VALID_COLORS if x not in colors]
 
 
-def log_faces(faces):
+def log_faces(g_faces):
     """
     Log faces (DEBUG)
 
@@ -867,7 +868,22 @@ def log_faces(faces):
     """
 
     if logger.isEnabledFor(logging.DEBUG):
-        for face in faces:
+        for face in g_faces:
             logger.debug("Face: %s", face)
+
+    return
+
+
+def log_faces_info(g_faces):
+    """
+    Log faces (DEBUG)
+
+    Parameters
+    ----------
+        faces: The faces of the map to print for debugging
+    """
+
+    for face in g_faces:
+        logger.info("Face: %s", face)
 
     return

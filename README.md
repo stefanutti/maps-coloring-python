@@ -35,18 +35,20 @@ Some videos of the running Python and Java programs:
 ## Pre-requirements
 - docker
 
-## Download a docker instance (I used sagemath latest = 9.0, python 3.7)
+## Download a Docker instance (I used sagemath latest = 9.0, python 3.7) - ONLY ONCE
 - docker run -it sagemath/sagemath:latest bash
 - Alternative
   - docker run -it --name 4ct -p 8888:8888 -p 5000:5000 -p 7777:7777 sagemath/sagemath:latest sage-jupyter
 
-## Updates
+## Enter into the Docker instance
+- docker exec -it 4ct bash
 
+## Updates - ONLY ONCE
 - sudo apt-get update
 - sudo apt-get install git
 - sudo apt-get install vim
 
-### Download personal repo
+### Download personal repo - ONLY ONCE
 - cd
 - mkdir prj
 - cd prj
@@ -60,10 +62,11 @@ Some videos of the running Python and Java programs:
 - sage 4ct.py --help
 - sage 4ct.py -r 100
   - Random graph: dual of a triangulation of N vertices
-- other parameters
+- other parameters (see at the end of this doc)
   - -i <file .edgelist> (Load a .edgelist file - networkx)
   - -p <file .serialized> (Load a .serialized planar embedding of the graph)
   - -o <file name without extension> (Save a .edgelist file (networkx), plus a .dot file (networkx)
+  - ...
 
 ## Run ct_create_random_maps_from_2v.py
 - cd
@@ -102,3 +105,28 @@ Some videos of the running Python and Java programs:
     - Manually compute the faces() representation of the graph
 
 Bye
+
+<pre>
+sage 4ct.py --help
+usage: 4ct.py [-h] (-r RAND | -e EDGELIST | -p PLANAR) [-o OUTPUT]
+              [-c {2345,2354,2435,2453,2534,2543}] [-s]
+
+4ct args
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -r RAND, --rand RAND  Random graph: dual of a triangulation of N vertices
+  -e EDGELIST, --edgelist EDGELIST
+                        Load a .edgelist file (networkx)
+  -p PLANAR, --planar PLANAR
+                        Load a planar embedding (json) of the graph G.faces()
+                        - Automatically saved at each run
+  -o OUTPUT, --output OUTPUT
+                        Save a .edgelist file (networkx), plus a .dot file
+                        (networkx). Specify the file without extension
+  -c {2345,2354,2435,2453,2534,2543}, --choices {2345,2354,2435,2453,2534,2543}
+                        Sequence of the Fs to choose (2345, 2354, 2435, 2453,
+                        2534, 2543)
+  -s, --shuffle         Shuffle the list at the beginning. Most of the times
+                        it solves the infinite loop condition
+</pre>

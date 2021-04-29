@@ -12,7 +12,7 @@ This is an example of a graph colored with the Python program:
 </p>
 
 The graph has 1996 vertices and 2994 edges and, starting from the planar representation of it, it took about 10 seconds to be colored:
-- https://4coloring.wordpress.com/2017/07/09/four-color-theorem-a-fast-algorithm-2/
+- https://4coloring.wordpress.com/2017/07/09/four-color-theorem-a-fast-algorithm-2
 
 The input .dot file used can be downloaded here: <a href="https://github.com/stefanutti/maps-coloring-python/blob/master/graphs_created_and_colored/Test-1996-Vertices-2994-Edges.dot">Test-1996-Vertices-2994-Edges.dot</a>
 - From an .edgelist graph (<a href="https://networkx.github.io/documentation/networkx-1.9.1/reference/readwrite.edgelist.html">networkx</a>) I generated an embedding of the graph on the plane. I used the Sage function is_planar(set_embedding = True)) 

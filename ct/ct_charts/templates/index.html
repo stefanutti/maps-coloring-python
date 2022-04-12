@@ -3,15 +3,104 @@
 
 <head>
   <title>4ct</title>
-  <script src="https://www.chartjs.org/dist/2.9.3/Chart.min.js"></script>
+  <script type="text/javascript " src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+  <script type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.min.js"></script>
 </head>
 
 <body onload="onLoad()">
-  <div class="container">
-    <canvas id="bar_chart"></canvas>
+  <div style="display: inline-block;">
+    <label>Animation speed (sleep in millisec)</label>
+    <input type="range" min="5" max="5000" value="500" class="slider" id="speed_slider" onload="speed_event(this.value)" onchange="speed_event(this.value)">
+    <input type="text" id="speed_value" readonly value="500">
+  </div>
+  <div>
+    <label>4F2 + 3F3 + 2F4 + 1F5 + 0F6 -1F7 -2F8 -3F9 .... = 12</label>
+    <input type="checkbox" id="euler_weight_checkbox"><label>Consider only the number of faces of each type (by number of edges) and not the weight in the formula</label>
+  </div>
+  <div id="drop-area">
+    <form class="my-form">
+      <p>Upload multiple files with the file dialog or by dragging and dropping images onto the dashed region</p>
+      <input type="file" id="fileElem" multiple accept="image/*" onchange="handleFiles(this.files)">
+      <label class="button" for="fileElem">Select some files</label>
+    </form>
+  </div>
+  <div>
+    <label>minY e maxY for the Chart</label>
+    <label>Min:</label><input type="text" id="min_y" value="-500">
+    <button type="button" onclick="min_y_minus_100()">-100</button>
+    <button type="button" onclick="min_y_plus_100()">+100</button>
+
+    <label>Max:</label><input type="text" id="max_y" value="500">
+    <button type="button" onclick="max_y_minus_100()">-100</button>
+    <button type="button" onclick="max_y_plus_100()">+100</button>
+
+    <button type="button" onclick="set_min_max()">Set fixed Min/Max</button>
+    <button type="button" onclick="reset_min_max()">Set adapt mode</button>
+  </div>
+
+  <div class="container" style="width: 90%;">
+    <canvas id="bar_chart_canvas"></canvas>
   </div>
 
   <script>
+    // const source = new EventSource("/stream");
+    var socket_io = io.connect()
+
+    function speed_event(speed) {
+      value = parseInt(speed, 10) / 1000;
+      document.getElementById('speed_value').value = speed;
+      socket_io.emit('speed_event', { "speed": value });
+    };
+
+    function min_y_minus_100() {
+      var value = parseInt(document.getElementById("min_y").value, 10) - 100;
+      window.barChart.options.scales.yAxes[0].ticks.min = value;
+      document.getElementById("min_y").setAttribute('value', value);
+
+      window.barChart.update();
+    };
+
+    function min_y_plus_100() {
+      var value = parseInt(document.getElementById("min_y").value, 10) + 100;
+      window.barChart.options.scales.yAxes[0].ticks.min = value;
+      document.getElementById("min_y").setAttribute('value', value.toString());
+
+      window.barChart.update();
+    };
+
+    function max_y_minus_100() {
+      var value = parseInt(document.getElementById("max_y").value, 10) - 100;
+      window.barChart.options.scales.yAxes[0].ticks.max = value;
+      document.getElementById("max_y").setAttribute('value', value.toString());
+
+      window.barChart.update();
+    };
+
+    function max_y_plus_100() {
+      var value = parseInt(document.getElementById("max_y").value, 10) + 100;
+      window.barChart.options.scales.yAxes[0].ticks.max = value;
+      document.getElementById("max_y").setAttribute('value', value.toString());
+
+      window.barChart.update();
+    };
+
+    function set_min_max() {
+      var min_y = parseInt(document.getElementById('min_y').value, 10);
+      var max_y = parseInt(document.getElementById('max_y').value, 10);
+
+      window.barChart.options.scales.yAxes[0].ticks.min = min_y;
+      window.barChart.options.scales.yAxes[0].ticks.max = max_y;
+
+      window.barChart.update();
+    };
+
+    function reset_min_max() {
+      delete window.barChart.options.scales.yAxes[0].ticks.min;
+      delete window.barChart.options.scales.yAxes[0].ticks.max;
+
+      window.barChart.update();
+    };
 
     chart_data = {
       labels: [],
@@ -21,59 +110,124 @@
         borderColor: 'rgba(200, 200, 200, 0.75)',
         hoverBackgroundColor: 'rgba(200, 200, 200, 1)',
         hoverBorderColor: 'rgba(200, 200, 200, 1)',
-				borderWidth: 3,
-        data: []
+        borderWidth: 0,
+        barThickness: 'flex',
+        data: [],
+        backgroundColor: []
       }]
     }
 
     window.onload = function () {
 
-      var ctx = document.getElementById("bar_chart");
+      // The chart
+      var bar_chart_canvas = document.getElementById("bar_chart_canvas");
 
-      window.barChart = new Chart(ctx, {
+      // Global setting
+      Chart.defaults.global.tooltips.enabled = false;
+
+      // Bar chart
+      window.barChart = new Chart(bar_chart_canvas, {
         type: 'bar',
         data: chart_data,
         options: {
           responsive: true,
+          tooltips: {
+            enable: false
+          },
           legend: {
-            position: 'top',
+            position: 'top'
           },
           title: {
             display: true,
-            text: 'Chart.js Bar Chart'
+            text: 'A variant of the Euler formula for polyhedrons'
           },
           scales: {
             yAxes: [{
               ticks: {
-                min: 0,
-                suggestedMax: 50,
                 beginAtZero: true
+              }
+            }],
+            xAxes: [{
+              ticks: {
+                autoSkip: false
+              },
+              gridLines: {
+                offsetGridLines: true
               }
             }]
           }
         }
       });
-
-      const source = new EventSource("/stream");
-
-      source.onmessage = function(event) {
-        const json_data = JSON.parse(event.data);
-
-        new_labels = []
-        new_data = []
-        for (var key in json_data) {
-          new_labels.push(key)
-          new_data.push(json_data[key])
-        }
-  
-        chart_data.labels = new_labels;
-        chart_data.datasets[0].data = new_data;
-  
-        window.barChart.update();
-      };
     }
-  </script>
 
+    // TODO: Add slider for speed
+    // TODO: Add flag for put a weight to each bar, based on: 4F4 + 3F3 + 2F4 + 1F5 + 0F6 - 1F7 - 2F8 - 3F9 - 4F10 - ...
+    socket_io.on('readings', function (json_data) {
+
+      var euler_weight_flag = document.getElementById('euler_weight_checkbox').checked;
+      // console.log("euler_weight_flag: " + euler_weight_flag);
+
+      // Save what was there before
+      var previous_data = chart_data.datasets[0].data;
+
+      // New data to plot
+      var new_labels = [];
+      var new_data = [];
+      var new_backgroundColor = [];
+
+      // Fill the holes index
+      var i_holes_tracker = 2;
+
+      // Prepare the data
+      for (var key in json_data) {
+        key_to_int = parseInt(key, 10);
+        if (key_to_int > i_holes_tracker) {
+          for (var i = 0; i < (key_to_int - i_holes_tracker); i++) {
+            new_labels.push(i_holes_tracker + i);
+            new_data.push(0);
+            new_backgroundColor.push('red');
+            i_holes_tracker++;
+          }
+        }
+
+        // Move the tracker
+        i_holes_tracker = key_to_int + 1;
+
+        // Set the new values
+        new_labels.push(key);
+        if (key_to_int == 6) {
+          new_data.push(json_data[key]);
+          new_backgroundColor.push('blue');
+        }
+        else {
+          if (euler_weight_flag) {
+            new_data.push(json_data[key]);
+          }
+          else {
+            new_data.push(json_data[key] * (6 - key_to_int));
+          }
+          if (new_data[key_to_int - 2] === undefined) {
+            new_backgroundColor.push('black');
+          }
+          else {
+            new_backgroundColor.push(new_data[key_to_int - 2] == previous_data[key_to_int - 2] ? 'black' : 'red');
+          }
+          // console.log("key: " + key + " - curr: " + new_data[key_to_int - 2] + ", prev: " + previous_data[key_to_int - 2]);
+        }
+      }
+
+      chart_data.labels = new_labels;
+      chart_data.datasets[0].data = new_data;
+      chart_data.datasets[0].backgroundColor = new_backgroundColor;
+
+      // console.log("chart_data.labels: " + chart_data.labels);
+      // console.log("previous_data: " + previous_data);
+      // console.log("json_data: " + JSON.stringify(json_data));
+      // console.log("-------------------------");
+
+      window.barChart.update();
+    })
+  </script>
 </body>
 
 </html>

@@ -1,0 +1,1 @@
+print(*["Grande","Aniello","Spinelli"])

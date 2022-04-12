@@ -68,6 +68,7 @@ import networkx as nx
 from networkx.readwrite.edgelist import write_edgelist
 from networkx.drawing.nx_pydot import write_dot
 
+
 def export_graph(graph_to_export, name_of_file_without_extension):
     """
     Export the graph to file (.dot and .edgelist)
@@ -144,14 +145,15 @@ args = parser.parse_args()
 
 # Open the file
 logger.info("BEGIN: Load the planar graph: %s", args.planar)
-with open(args.planar, 'r') as fp: g_faces = json.load(fp)
+with open(args.planar, 'r') as fp:
+    g_faces = json.load(fp)
 logger.info("END: Load the planar graph: %s", args.planar)
 
 # Cast back to tuples. json.dump write the "list of list of tuples" as "list of list of list"
 #
 # Original: [[(3,2),(3,5)],[(2,4),(1,3),(1,3)], ... ,[(1,2),(3,4),(6,7)]]
 # Saved as: [[[3,2],[3,5]],[[2,4],[1,3],[1,3]], ... ,[[1,2],[3,4],[6,7]]]
-g_faces = [[tuple(l) for l in L] for L in g_faces]
+g_faces = [[tuple(edge) for edge in face] for face in g_faces]
 
 # Create the graph from the list of faces (flat them)
 logger.info("BEGIN: all duplicated edges (each edge is listed many times in a planar representation)")

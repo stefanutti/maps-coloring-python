@@ -181,7 +181,7 @@ from numpy.random import randint
 ######
 
 # BEGIN BUG-001
-# 
+#
 # BAD:
 # ----
 # 2020-04-12 14:59:17,282 - root - INFO - END 94: Main loop - len(ariadne_s_thread) = 95

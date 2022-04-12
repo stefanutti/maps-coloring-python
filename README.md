@@ -35,10 +35,10 @@ Some videos of the running Python and Java programs:
 ## Pre-requirements
 - docker
 
-## Download a Docker instance (I used sagemath latest = 9.0, python 3.7) - ONLY ONCE
-- docker run -it sagemath/sagemath:latest bash
+## Download a Docker instance (I used sagemath version = 9.0 with python 3.7, but you can try using latest) - ONLY ONCE
+- docker run -it sagemath/sagemath:9.0 bash
 - Alternative
-  - docker run -it --name 4ct -p 8888:8888 -p 5000:5000 -p 7777:7777 sagemath/sagemath:latest sage-jupyter
+  - docker run -it --name 4ct -p 8888:8888 -p 5000:5000 -p 7777:7777 sagemath/sagemath:9.0 sage-jupyter
 
 ## Enter into the Docker instance
 - docker exec -it 4ct bash

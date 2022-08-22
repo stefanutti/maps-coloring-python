@@ -185,7 +185,6 @@ $RECYCLE.BIN/
 # Mac crap
 .DS_Store
 
-
 #############
 ## Python
 #############
@@ -217,3 +216,5 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 .vscode/.ropeproject/objectdb
+
+/ct/debug/

@@ -1547,10 +1547,11 @@ def main():
     parser.add_argument("-o", "--output", help="Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
     parser.add_argument("-c", "--choices", help="Sequence of the Fs to choose (2345, 2354, 2435, 2453, 2534, 2543)", type=int, default=2345, choices=[2345, 2354, 2435, 2453, 2534, 2543], required=False)
     parser.add_argument("-s", "--shuffle", help="Shuffle the list at the beginning. Most of the times it solves the infinite loop condition", action='store_true')
+    parser.add_argument("-n", "--num_executions", help="The entire process will be executed N times", type=int, default=1, required=False)
     args = parser.parse_args()
 
     # Execute n times the program to see if it is deterministic
-    for executions in range(0, 10):
+    for executions in range(args.num_executions):
    
         # Initialize statistics (stats is global)
         initialize_statistics()

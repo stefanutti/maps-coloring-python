@@ -6,7 +6,7 @@ group_input = parser.add_mutually_exclusive_group(required=False)
 group_input.add_argument("-r", "--random", help="Random graph: dual of a triangulation of N vertices", type=int, default=100)
 group_input.add_argument("-i", "--input", help="Input edgelist filename (networkx)")
 group_input.add_argument("-p", "--planar", help="Load a planar embedding of the graph G.faces() - Automatically saved at each run: input_planar_file.serialized")
-parser.add_argument("-o", "--output", help="Output edgelist filename (networkx)", required=False)
+parser.add_argument("-o", "--output", help="Output edgelist filename (networkx)", required=True)
 
 print(parser.parse_args())
 # Namespace(input=None, output=None, planar=None, random=100)

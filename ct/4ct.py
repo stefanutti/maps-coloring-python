@@ -1125,7 +1125,7 @@ def create_from_planar(planar_filename, shuffle_the_planar_representation):
 def reduce_faces(g_faces, choices):
     """
     Method similar to the Kempe reduction "patching" method.\n
-    For each loop remove an edge from a face <= F5, until the graph will have only four faces (an island with three lands)
+    For each loop remove an edge from a face <= F5, until the graph will have only three faces (an island with two lands)
 
     Parameters
     ----------
@@ -1549,131 +1549,134 @@ def main():
     parser.add_argument("-s", "--shuffle", help="Shuffle the list at the beginning. Most of the times it solves the infinite loop condition", action='store_true')
     args = parser.parse_args()
 
-    # Initialize statistics (stats is global)
-    initialize_statistics()
+    # Execute n times the program to see if it is deterministic
+    for executions in range(0, 10):
+   
+        # Initialize statistics (stats is global)
+        initialize_statistics()
 
-    logger.info("--------------------------------")
-    logger.info("BEGIN: Create the graph to color")
-    logger.info("--------------------------------")
-    stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
+        logger.info("--------------------------------")
+        logger.info("BEGIN: Create the graph to color")
+        logger.info("--------------------------------")
+        stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
 
-    # Create the graph
-    if args.rand is not None:  # Random - Dual of a triangulation
-        the_graph, g_faces = create_from_random(args.rand, args.shuffle)
-    elif args.edgelist is not None:  # edgelist - Load a graph stored in edgelist format
-        the_graph, g_faces = create_from_edge_list(args.edgelist, args.shuffle)
-    elif args.planar is not None:  # Planar - Load a planar embedding of the graph
-        the_graph, g_faces = create_from_planar(args.planar, args.shuffle)
+        # Create the graph
+        if args.rand is not None:  # Random - Dual of a triangulation
+            the_graph, g_faces = create_from_random(args.rand, args.shuffle)
+        elif args.edgelist is not None:  # edgelist - Load a graph stored in edgelist format
+            the_graph, g_faces = create_from_edge_list(args.edgelist, args.shuffle)
+        elif args.planar is not None:  # Planar - Load a planar embedding of the graph
+            the_graph, g_faces = create_from_planar(args.planar, args.shuffle)
 
-    stats['time_GRAPH_CREATION_END'] = time.ctime()
-    logger.info("------------------------------")
-    logger.info("END: Create the graph to color")
-    logger.info("------------------------------")
-    logger.info("")
+        stats['time_GRAPH_CREATION_END'] = time.ctime()
+        logger.info("------------------------------")
+        logger.info("END: Create the graph to color")
+        logger.info("------------------------------")
+        logger.info("")
 
-    # Keep track of the distribution of faces length
-    init_f_distribution(g_faces)
+        # Keep track of the distribution of faces length
+        init_f_distribution(g_faces)
 
-    ######
-    ######
-    # 4CT: AT THE BEGINNING THE GRAPH HAS TO BE CUBIC AND PLANAR WITH NO LOOPS
-    # 4CT: NOTE: It can have multiple edges but some software is not able to compute planarity
-    ######
-    ######
+        ######
+        ######
+        # 4CT: AT THE BEGINNING THE GRAPH HAS TO BE CUBIC AND PLANAR WITH NO LOOPS
+        # 4CT: NOTE: It can have multiple edges but some software is not able to compute planarity
+        ######
+        ######
 
-    logger.debug("------------------------")
-    logger.debug("BEGIN: Graph information")
-    logger.debug("------------------------")
+        logger.debug("------------------------")
+        logger.debug("BEGIN: Graph information")
+        logger.debug("------------------------")
 
-    # Log faces
-    log_faces(g_faces)
+        # Log faces
+        log_faces(g_faces)
 
-    logger.debug("----------------------")
-    logger.debug("END: Graph information")
-    logger.debug("----------------------")
-    logger.debug("")
+        logger.debug("----------------------")
+        logger.debug("END: Graph information")
+        logger.debug("----------------------")
+        logger.debug("")
 
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    # 4CT: Method similar to the Kempe reduction "patching" method
-    # 4CT: For each loop remove an edge from a face <= F5, until the graph will have only four faces (an island with three lands)
-    ######
-    # 4CT: Restore the edges one at a time and apply the half Kempe-cycle color switching method
-    # 4CT: Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
-    ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        # 4CT: Method similar to the Kempe reduction "patching" method
+        # 4CT: For each loop remove an edge from a face <= F5, until the graph will have only three faces (an island with two lands)
+        ######
+        # 4CT: Restore the edges one at a time and apply the half Kempe-cycle color switching method
+        # 4CT: Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
+        ######
 
-    ariadne_s_thread = reduce_faces(g_faces, args.choices)
-    the_colored_graph = rebuild_faces(g_faces, ariadne_s_thread)
+        ariadne_s_thread = reduce_faces(g_faces, args.choices)
+        the_colored_graph = rebuild_faces(g_faces, ariadne_s_thread)
 
-    ######
-    ######
-    # 4CT: Show the restored and 4 colored map and check for mistakes
-    ######
-    ######
+        ######
+        ######
+        # 4CT: Show the restored and 4 colored map and check for mistakes
+        ######
+        ######
 
-    logger.info("------------------------------------------")
-    logger.info("BEGIN: Show the restored and 4 colored map")
-    logger.info("------------------------------------------")
+        logger.info("------------------------------------------")
+        logger.info("BEGIN: Show the restored and 4 colored map")
+        logger.info("------------------------------------------")
 
-    # Check if the recreated graph is isomorphic to the original
-    logger.info("BEGIN: Check if isomorphic")
-    if the_graph.is_isomorphic(the_colored_graph) is True:
-        logger.info("Recreated graph is equal to the original")
-    else:
-        logger.error("Unexpected condition (recreated graph is different from the original). Mario you'd better go back to paper")
-    logger.info("END: Check if isomorphic")
+        # Check if the recreated graph is isomorphic to the original
+        logger.info("BEGIN: Check if isomorphic")
+        if the_graph.is_isomorphic(the_colored_graph) is True:
+            logger.info("Recreated graph is equal to the original")
+        else:
+            logger.error("Unexpected condition (recreated graph is different from the original). Mario you'd better go back to paper")
+        logger.info("END: Check if isomorphic")
 
-    logger.debug("BEGIN: print_graph (Original)")
-    print_graph(the_graph)
-    logger.debug("END: print_graph (Original)")
+        logger.debug("BEGIN: print_graph (Original)")
+        print_graph(the_graph)
+        logger.debug("END: print_graph (Original)")
 
-    logger.debug("BEGIN: print_graph (Colored)")
-    print_graph(the_colored_graph)
-    logger.debug("END: print_graph (Colored)")
+        logger.debug("BEGIN: print_graph (Colored)")
+        print_graph(the_colored_graph)
+        logger.debug("END: print_graph (Colored)")
 
-    logger.debug("----------------------------------------")
-    logger.debug("END: Show the restored and 4 colored map")
-    logger.debug("----------------------------------------")
-    logger.info("")
+        logger.debug("----------------------------------------")
+        logger.debug("END: Show the restored and 4 colored map")
+        logger.debug("----------------------------------------")
+        logger.info("")
 
-    # Save the output graph
-    if args.output is not None:
-        export_graph(the_colored_graph, args.output)
+        # Save the output graph
+        if args.output is not None:
+            export_graph(the_colored_graph, args.output)
 
-    # Print statistics
-    print_stats()
+        # Print statistics
+        print_stats()
 
     exit(0)
 

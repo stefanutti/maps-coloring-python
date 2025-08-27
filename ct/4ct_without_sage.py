@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env sage
 
 ###
 #
@@ -117,6 +117,7 @@ import json
 from random import shuffle
 
 import networkx
+from sage.all import *
 
 from ct.ct_graph_utils_without_sage import check_graph_planarity_3_regularity_no_loops
 from ct.ct_graph_utils_without_sage import kempe_chain_color_swap
@@ -140,6 +141,102 @@ from ct.ct_graph_utils_without_sage import log_faces_info
 
 from numpy.random import randint
 
+
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+# 4CT: BUGS
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+######
+
+# BEGIN BUG-001
+#
+# BAD:
+# ----
+# 2020-04-12 14:59:17,282 - root - INFO - END 94: Main loop - len(ariadne_s_thread) = 95
+# 2020-04-12 14:59:17,283 - root - INFO - BEGIN 95: Main loop
+# 2020-04-12 14:59:17,283 - root - INFO - BEGIN 95: Search the right edge to remove (faces left: 5)
+# 2020-04-12 14:59:17,283 - root - INFO - END 95: Search the right edge to remove. Found: (129, 194) (case: 3, 4)
+# 2020-04-12 14:59:17,283 - root - INFO - BEGIN 95: Remove an F3, F4 or F5 (case: 3, 4)
+# 2020-04-12 14:59:17,283 - root - INFO - XXXXXX. f3: [(73, 180), (180, 56), (56, 73)], f4: [(73, 56), (56, 185), (185, 73)]
+# 2020-04-12 14:59:17,283 - root - INFO - END 95: Remove an F3, F4 or F5 (case: 3, 4)
+# 2020-04-12 14:59:17,283 - root - INFO - XXX. stats['F#']: {3: 4, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0}
+# 2020-04-12 14:59:17,283 - ct.ct_graph_utils - INFO - Face: [(73, 56), (56, 185), (185, 73)]
+# 2020-04-12 14:59:17,283 - ct.ct_graph_utils - INFO - Face: [(73, 180), (180, 56), (56, 73)]
+# 2020-04-12 14:59:17,283 - ct.ct_graph_utils - INFO - Face: [(56, 180), (180, 185), (185, 56)]
+# 2020-04-12 14:59:17,283 - ct.ct_graph_utils - INFO - Face: [(185, 180), (180, 73), (73, 185)]
+# 2020-04-12 14:59:17,284 - root - INFO -
+# 2020-04-12 14:59:17,284 - root - INFO - END 95: Main loop - len(ariadne_s_thread) = 96
+# 2020-04-12 14:59:17,284 - root - INFO - BEGIN 96: Main loop
+# 2020-04-12 14:59:17,284 - root - INFO - BEGIN 96: Search the right edge to remove (faces left: 4)
+# 2020-04-12 14:59:17,284 - root - INFO - END 96: Search the right edge to remove. Found: (73, 56) (case: 3, 3)
+# 2020-04-12 14:59:17,284 - root - INFO - BEGIN 96: Remove an F3, F4 or F5 (case: 3, 3)
+# 2020-04-12 14:59:17,284 - root - INFO - XXXXXX. f3: [(185, 180), (180, 185)], f4: [(185, 180), (180, 185)]
+# 2020-04-12 14:59:17,284 - root - INFO - END 96: Remove an F3, F4 or F5 (case: 3, 3)
+# 2020-04-12 14:59:17,284 - root - INFO - XXX. stats['F#']: {2: 2, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0}
+# 2020-04-12 14:59:17,284 - ct.ct_graph_utils - INFO - Face: [(185, 180), (180, 185)]
+# 2020-04-12 14:59:17,285 - ct.ct_graph_utils - INFO - Face: [(185, 180), (180, 185)]
+# 2020-04-12 14:59:17,285 - ct.ct_graph_utils - INFO - Face: [(185, 180), (180, 185)]
+#
+# GOOD:
+# -----
+# 2020-04-12 15:00:14,269 - root - INFO - END 94: Main loop - len(ariadne_s_thread) = 95
+# 2020-04-12 15:00:14,269 - root - INFO - BEGIN 95: Main loop
+# 2020-04-12 15:00:14,269 - root - INFO - BEGIN 95: Search the right edge to remove (faces left: 5)
+# 2020-04-12 15:00:14,269 - root - INFO - END 95: Search the right edge to remove. Found: (91, 192) (case: 3, 4)
+# 2020-04-12 15:00:14,269 - root - INFO - BEGIN 95: Remove an F3, F4 or F5 (case: 3, 4)
+# 2020-04-12 15:00:14,269 - root - INFO - XXXXXX. f3: [(157, 170), (170, 108), (108, 157)], f4: [(108, 170), (170, 101), (101, 108)]
+# 2020-04-12 15:00:14,269 - root - INFO - END 95: Remove an F3, F4 or F5 (case: 3, 4)
+# 2020-04-12 15:00:14,269 - root - INFO - XXX. stats['F#']: {3: 4, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0}
+# 2020-04-12 15:00:14,270 - ct.ct_graph_utils - INFO - Face: [(108, 170), (170, 101), (101, 108)]
+# 2020-04-12 15:00:14,270 - ct.ct_graph_utils - INFO - Face: [(157, 170), (170, 108), (108, 157)]
+# 2020-04-12 15:00:14,270 - ct.ct_graph_utils - INFO - Face: [(170, 157), (157, 101), (101, 170)]
+# 2020-04-12 15:00:14,270 - ct.ct_graph_utils - INFO - Face: [(157, 108), (108, 101), (101, 157)]
+#
+# 2020-04-12 15:00:14,270 - root - INFO - END 95: Main loop - len(ariadne_s_thread) = 96
+# 2020-04-12 15:00:14,270 - root - INFO - BEGIN 96: Main loop
+# 2020-04-12 15:00:14,270 - root - INFO - BEGIN 96: Search the right edge to remove (faces left: 4)
+# 2020-04-12 15:00:14,270 - root - INFO - END 96: Search the right edge to remove. Found: (108, 170) (case: 3, 3)
+# 2020-04-12 15:00:14,270 - root - INFO - BEGIN 96: Remove an F3, F4 or F5 (case: 3, 3)
+# 2020-04-12 15:00:14,271 - root - INFO - XXXXXX. f3: [(157, 101), (101, 157)], f4: [(101, 157), (157, 101)]
+# 2020-04-12 15:00:14,271 - root - INFO - END 96: Remove an F3, F4 or F5 (case: 3, 3)
+# 2020-04-12 15:00:14,271 - root - INFO - XXX. stats['F#']: {2: 3, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0}
+# 2020-04-12 15:00:14,271 - ct.ct_graph_utils - INFO - Face: [(101, 157), (157, 101)]
+# 2020-04-12 15:00:14,271 - ct.ct_graph_utils - INFO - Face: [(101, 157), (157, 101)]
+# 2020-04-12 15:00:14,271 - ct.ct_graph_utils - INFO - Face: [(157, 101), (101, 157)]
+#
+# END BUG-001
 
 ######
 ######
@@ -1449,7 +1546,7 @@ def main():
     group_input.add_argument("-p", "--planar", help="Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
     parser.add_argument("-o", "--output", help="Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
     parser.add_argument("-c", "--choices", help="Sequence of the Fs to choose (2345, 2354, 2435, 2453, 2534, 2543)", type=int, default=2345, choices=[2345, 2354, 2435, 2453, 2534, 2543], required=False)
-    parser.add_argument("-s", "--shuffle", help="Shuffle the list (planar representation) at the beginning. Most of the times it solves the infinite loop condition", action='store_true')
+    parser.add_argument("-s", "--shuffle", help="Shuffle the list at the beginning. Most of the times it solves the infinite loop condition", action='store_true')
     parser.add_argument("-n", "--num_executions", help="The entire process will be executed N times", type=int, default=1, required=False)
     args = parser.parse_args()
 

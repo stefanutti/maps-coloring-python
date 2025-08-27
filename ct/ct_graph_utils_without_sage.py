@@ -20,6 +20,8 @@ __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_
 
 import logging
 
+from sage.all import *
+
 logger = logging.getLogger(__name__)
 
 # Valid colors
@@ -46,37 +48,45 @@ def echo_function(text):
 
 def check_graph_planarity_3_regularity_no_loops(graph):
     """
-    Check if the graph is suitable: must be planar, 3-regular (cubic), and without loops.
+    Check if I can work with this graph: has to be planar and 3 regular (planar cubic graph)
 
     Parameters
     ----------
-        graph: a networkx.MultiGraph instance
+        graph: The graph to check
     """
 
-    # Check 3-regularity: every node must have degree 3
-    if not all(graph.degree(n) == 3 for n in graph.nodes()):
+    # Check 3-regularity
+    if graph.is_regular(3) is False:
         logger.error("Error: The graph is not 3-regular")
         exit(-1)
     else:
         logger.info("OK. The graph is 3-regular")
 
-    # Check for loops (multiple edges from a node to itself)
-    if any(u == v for u, v, _ in graph.edges(keys=True)):
-        logger.error("ERROR: The graph has loops, which are not supported")
+    # Check loops
+    if graph.has_loops() is True:
+        logger.error("ERROR: It seems that loops are difficult to handle during reduction and recoloring, so start without them and avoid their creation during the reduction process")
         exit(-1)
     else:
-        logger.info("OK. The graph does not have loops")
+        logger.info("OK. The graph does not have loops. Consider that this program will avoid their creation during the reduction process")
 
-    # Check for planarity using networkx built-in method
-    is_planar, _ = nx.check_planarity(graph)
-    if not is_planar:
+    # Check multiple edges
+    # It maybe important because many sofrware do not work with planarity algorithms when multiple edhes are present
+    # But the algorithm that I implemented works also with multiple edges ... hence for now I comment this
+    # if graph.has_multiple_edges() is True:
+    #     logger.error("ERROR: The graph has multiple edges. At the beginning multiple edges are not permitted")
+    #     exit(-1)
+    # else:
+    #     logger.info("OK. The graph does not have multiple edges. Consider that this program will also handle multiple edges during the reduction and reconstruction process")
+
+    # Check if the graph is planar
+    if graph.is_planar() is False:
         logger.error("ERROR: The graph is not planar")
         exit(-1)
     else:
         logger.info("OK. The graph is planar")
 
-    # Log graph size
-    logger.info("The graph has %s vertices and %s edges", graph.number_of_nodes(), graph.number_of_edges())
+    # Additional info
+    logger.info("The graph has %s vertices and %s edges", graph.order(), graph.size())
 
     return
 
@@ -349,7 +359,7 @@ def get_edge_color(graph, edge):
 
 def is_multiedge(graph, v1, v2):
     """
-    NX. Are the two vertices connected by more than one edge?
+    Are the two vertices connected by more than one edge?
 
     Parameters
     ----------
@@ -359,10 +369,15 @@ def is_multiedge(graph, v1, v2):
 
     Returns
     -------
-        bool: True or False it the two vertices are connected by more than one edge
+        is_multiedge: True or False it the two vertices are connected by more than one edge
     """
 
-    return graph.number_of_edges(v1, v2) > 1
+    is_multiedge = False
+
+    if len(graph.edge_boundary([v1], [v2])) > 1:
+        is_multiedge = True
+
+    return is_multiedge
 
 
 def check_if_vertex_is_in_face(face, vertex):

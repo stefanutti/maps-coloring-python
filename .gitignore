@@ -221,3 +221,7 @@ pip-log.txt
 
 # generated / large outputs
 ct/planar_inputs/plantri_output_params-d-m5-T.planar
+
+# plantri binaries (built artifacts)
+ct/plantri/plantri55_modified/fullgen
+ct/plantri/plantri55_modified/plantri

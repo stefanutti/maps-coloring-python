@@ -3,7 +3,7 @@
 
 <head>
   <title>4ct</title>
-  <script type="text/javascript " src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.min.js"></script>
   <script type="text/javascript"
     src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.min.js"></script>
 </head>
@@ -11,19 +11,14 @@
 <body onload="onLoad()">
   <div style="display: inline-block;">
     <label>Animation speed (sleep in millisec)</label>
-    <input type="range" min="5" max="5000" value="500" class="slider" id="speed_slider" onload="speed_event(this.value)" onchange="speed_event(this.value)">
+    <input type="range" min="5" max="5000" value="500" class="slider" id="speed_slider" onload="speed_event(this.value)"
+      onchange="speed_event(this.value)">
     <input type="text" id="speed_value" readonly value="500">
   </div>
   <div>
     <label>4F2 + 3F3 + 2F4 + 1F5 + 0F6 -1F7 -2F8 -3F9 .... = 12</label>
-    <input type="checkbox" id="euler_weight_checkbox"><label>Consider only the number of faces of each type (by number of edges) and not the weight in the formula</label>
-  </div>
-  <div id="drop-area">
-    <form class="my-form">
-      <p>Upload multiple files with the file dialog or by dragging and dropping images onto the dashed region</p>
-      <input type="file" id="fileElem" multiple accept="image/*" onchange="handleFiles(this.files)">
-      <label class="button" for="fileElem">Select some files</label>
-    </form>
+    <input type="checkbox" id="euler_weight_checkbox"><label>Consider only the number of faces of each type (by number
+      of edges) and not the weight in the formula</label>
   </div>
   <div>
     <label>minY e maxY for the Chart</label>

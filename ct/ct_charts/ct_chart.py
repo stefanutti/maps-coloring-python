@@ -6,7 +6,7 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO
 
 application = Flask(__name__)
-socket_io = SocketIO(application, logger=False, engineio_logger=False)
+socket_io = SocketIO(application, logger=False, engineio_logger=False, manage_session=False)
 
 
 @application.route('/')

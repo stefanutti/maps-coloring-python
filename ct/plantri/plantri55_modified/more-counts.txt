@@ -1,0 +1,1552 @@
+
+Guide to using plantri (version 5.1) (supplement)
+=================================================
+
+Gunnar Brinkmann    
+  University of Gent
+  Gunnar.Brinkmann@ugent.be
+
+Brendan McKay 
+  Australian National University
+  brendan.mckay@anu.edu.au
+
+
+Here we give some additional counts that do not appear in the main
+part of the guide for lack of space.
+
+
+A. CONVEX POLYTOPES (plantri -p) isomorphism classes.
+
+ 4 vertices: 1
+ With  6 edges: 1
+
+ 5 vertices: 2
+ With  8 edges: 1
+ With  9 edges: 1
+
+ 6 vertices: 7
+ With  9 edges: 1
+ With 10 edges: 2
+ With 11 edges: 2
+ With 12 edges: 2
+
+ 7 vertices: 34
+ With 11 edges: 2
+ With 12 edges: 8
+ With 13 edges: 11
+ With 14 edges: 8
+ With 15 edges: 5
+
+ 8 vertices: 257
+ With 12 edges: 2
+ With 13 edges: 11
+ With 14 edges: 42
+ With 15 edges: 74
+ With 16 edges: 76
+ With 17 edges: 38
+ With 18 edges: 14
+
+ 9 vertices: 2606
+ With 14 edges: 8
+ With 15 edges: 74
+ With 16 edges: 296
+ With 17 edges: 633
+ With 18 edges: 768
+ With 19 edges: 558
+ With 20 edges: 219
+ With 21 edges: 50
+
+10 vertices: 32300
+ With 15 edges: 5
+ With 16 edges: 76
+ With 17 edges: 633
+ With 18 edges: 2635
+ With 19 edges: 6134
+ With 20 edges: 8822
+ With 21 edges: 7916
+ With 22 edges: 4442
+ With 23 edges: 1404
+ With 24 edges: 233
+
+11 vertices: 440564
+ With 17 edges: 38
+ With 18 edges: 768
+ With 19 edges: 6134
+ With 20 edges: 25626
+ With 21 edges: 64439
+ With 22 edges: 104213
+ With 23 edges: 112082
+ With 24 edges: 79773
+ With 25 edges: 36528
+ With 26 edges: 9714
+ With 27 edges: 1249
+
+12 vertices: 6384634
+ With 18 edges: 14
+ With 19 edges: 558
+ With 20 edges: 8822
+ With 21 edges: 64439
+ With 22 edges: 268394
+ With 23 edges: 709302
+ With 24 edges: 1263032
+ With 25 edges: 1556952
+ With 26 edges: 1338853
+ With 27 edges: 789749
+ With 28 edges: 306470
+ With 29 edges: 70454
+ With 30 edges: 7595
+
+13 vertices: 96262938
+ With 20 edges: 219
+ With 21 edges: 7916
+ With 22 edges: 104213
+ With 23 edges: 709302
+ With 24 edges: 2937495
+ With 25 edges: 8085725
+ With 26 edges: 15535572
+ With 27 edges: 21395274
+ With 28 edges: 21317178
+ With 29 edges: 15287112
+ With 30 edges: 7706577
+ With 31 edges: 2599554
+ With 32 edges: 527235
+ With 33 edges: 49566
+
+14 vertices: 1496225352
+ With 21 edges: 50
+ With 22 edges: 4442
+ With 23 edges: 112082
+ With 24 edges: 1263032
+ With 25 edges: 8085725
+ With 26 edges: 33310550
+ With 27 edges: 94713809
+ With 28 edges: 193794051
+ With 29 edges: 292182191
+ With 30 edges: 328192346
+ With 31 edges: 274542869
+ With 32 edges: 168992630
+ With 33 edges: 74424566
+ With 34 edges: 22229616
+ With 35 edges: 4037671
+ With 36 edges: 339722
+
+15 vertices: 23833988129
+ With 23 edges: 1404
+ With 24 edges: 79773
+ With 25 edges: 1556952
+ With 26 edges: 15535572
+ With 27 edges: 94713809
+ With 28 edges: 388431688
+ With 29 edges: 1134914458
+ With 30 edges: 2447709924
+ With 31 edges: 3981512855
+ With 32 edges: 4939809506
+ With 33 edges: 4686995652
+ With 34 edges: 3380569040
+ With 35 edges: 1823658612
+ With 36 edges: 713331098
+ With 37 edges: 191283058
+ With 38 edges: 31477887
+ With 39 edges: 2406841
+
+16 vertices: 387591510244
+ With 24 edges: 233
+ With 25 edges: 36528
+ With 26 edges: 1338853
+ With 27 edges: 21395274
+ With 28 edges: 193794051
+ With 29 edges: 1134914458
+ With 30 edges: 4637550072
+ With 31 edges: 13865916560
+ With 32 edges: 31277856206
+ With 33 edges: 54271705726
+ With 34 edges: 73247405678
+ With 35 edges: 77220397213
+ With 36 edges: 63443012728
+ With 37 edges: 40232230880
+ With 38 edges: 19322611431
+ With 39 edges: 6799902944
+ With 40 edges: 1654924768
+ With 41 edges: 249026400
+ With 42 edges: 17490241
+
+17 vertices: 6415851530241
+ With 26 edges: 9714
+ With 27 edges: 789749
+ With 28 edges: 21317178
+ With 29 edges: 292182191
+ With 30 edges: 2447709924
+ With 31 edges: 13865916560
+ With 32 edges: 56493493990
+ With 33 edges: 172301697581
+ With 34 edges: 404008232288
+ With 35 edges: 741171341224
+ With 36 edges: 1075323264149
+ With 37 edges: 1240159791730
+ With 38 edges: 1136847700529
+ With 39 edges: 823788552428
+ With 40 edges: 466224664031
+ With 41 edges: 201829738768
+ With 42 edges: 64563924319
+ With 43 edges: 14386939428
+ With 44 edges: 1994599707
+ With 45 edges: 129664753
+
+18 vertices: 107854282197058
+ With 27 edges and 11 faces: 1249
+ With 28 edges and 12 faces: 306470
+ With 29 edges and 13 faces: 15287112
+ With 30 edges and 14 faces: 328192346
+ With 31 edges and 15 faces: 3981512855
+ With 32 edges and 16 faces: 31277856206
+ With 33 edges and 17 faces: 172301697581
+ With 34 edges and 18 faces: 700335433295
+ With 35 edges and 19 faces: 2173270387051
+ With 36 edges and 20 faces: 5270785332349
+ With 37 edges and 21 faces: 10150757285258
+ With 38 edges and 22 faces: 15683069986564
+ With 39 edges and 23 faces: 19547663107721
+ With 40 edges and 24 faces: 19682306885581
+ With 41 edges and 25 faces: 15962912975720
+ With 42 edges and 26 faces: 10348108651919
+ With 43 edges and 27 faces: 5288847843415
+ With 44 edges and 28 faces: 2084335836704
+ With 45 edges and 29 faces: 611239308239
+ With 46 edges and 30 faces: 125619037674
+ With 47 edges and 31 faces: 16147744792
+ With 48 edges and 32 faces: 977526957
+
+
+B. CONVEX POLYTOPES (plantri -op) O-P isomorphism classes.
+
+plantri -pouv 4 
+1 triangulations generated
+1 isomorphism classes; 1 reflection invariant
+
+plantri -pouv 5 
+ With  8 edges and  5 faces: 1 (1 classes)
+ With  9 edges and  6 faces: 1 (1 classes)
+2 polytopes generated
+2 isomorphism classes; 2 reflection invariant
+
+plantri -pouv 6 
+ With  9 edges and  5 faces: 1 (1 classes)
+ With 10 edges and  6 faces: 3 (2 classes)
+ With 11 edges and  7 faces: 2 (2 classes)
+ With 12 edges and  8 faces: 2 (2 classes)
+8 polytopes generated
+7 isomorphism classes; 6 reflection invariant
+
+plantri -pouv 7 
+ With 11 edges and  6 faces: 2 (2 classes)
+ With 12 edges and  7 faces: 11 (8 classes)
+ With 13 edges and  8 faces: 16 (11 classes)
+ With 14 edges and  9 faces: 10 (8 classes)
+ With 15 edges and 10 faces: 6 (5 classes)
+45 polytopes generated
+34 isomorphism classes; 23 reflection invariant
+
+plantri -pouv 8 
+ With 12 edges and  6 faces: 2 (2 classes)
+ With 13 edges and  7 faces: 16 (11 classes)
+ With 14 edges and  8 faces: 69 (42 classes)
+ With 15 edges and  9 faces: 127 (74 classes)
+ With 16 edges and 10 faces: 128 (76 classes)
+ With 17 edges and 11 faces: 60 (38 classes)
+ With 18 edges and 12 faces: 17 (14 classes)
+419 polytopes generated
+257 isomorphism classes; 95 reflection invariant
+
+plantri -pouv 9 
+ With 14 edges and  7 faces: 10 (8 classes)
+ With 15 edges and  8 faces: 127 (74 classes)
+ With 16 edges and  9 faces: 541 (296 classes)
+ With 17 edges and 10 faces: 1188 (633 classes)
+ With 18 edges and 11 faces: 1441 (768 classes)
+ With 19 edges and 12 faces: 1032 (558 classes)
+ With 20 edges and 13 faces: 386 (219 classes)
+ With 21 edges and 14 faces: 73 (50 classes)
+4798 polytopes generated
+2606 isomorphism classes; 414 reflection invariant
+
+plantri -pouv 10 
+ With 15 edges and  7 faces: 6 (5 classes)
+ With 16 edges and  8 faces: 128 (76 classes)
+ With 17 edges and  9 faces: 1188 (633 classes)
+ With 18 edges and 10 faces: 5096 (2635 classes)
+ With 19 edges and 11 faces: 11982 (6134 classes)
+ With 20 edges and 12 faces: 17265 (8822 classes)
+ With 21 edges and 13 faces: 15466 (7916 classes)
+ With 22 edges and 14 faces: 8582 (4442 classes)
+ With 23 edges and 15 faces: 2652 (1404 classes)
+ With 24 edges and 16 faces: 389 (233 classes)
+62754 polytopes generated
+32300 isomorphism classes; 1846 reflection invariant
+
+plantri -pouv 11 
+ With 17 edges and  8 faces: 60 (38 classes)
+ With 18 edges and  9 faces: 1441 (768 classes)
+ With 19 edges and 10 faces: 11982 (6134 classes)
+ With 20 edges and 11 faces: 50586 (25626 classes)
+ With 21 edges and 12 faces: 127765 (64439 classes)
+ With 22 edges and 13 faces: 206880 (104213 classes)
+ With 23 edges and 14 faces: 222472 (112082 classes)
+ With 24 edges and 15 faces: 158057 (79773 classes)
+ With 25 edges and 16 faces: 71980 (36528 classes)
+ With 26 edges and 17 faces: 18914 (9714 classes)
+ With 27 edges and 18 faces: 2274 (1249 classes)
+872411 polytopes generated
+440564 isomorphism classes; 8717 reflection invariant
+
+plantri -pouv 12 
+ With 18 edges and  8 faces: 17 (14 classes)
+ With 19 edges and  9 faces: 1032 (558 classes)
+ With 20 edges and 10 faces: 17265 (8822 classes)
+ With 21 edges and 11 faces: 127765 (64439 classes)
+ With 22 edges and 12 faces: 534292 (268394 classes)
+ With 23 edges and 13 faces: 1414264 (709302 classes)
+ With 24 edges and 14 faces: 2519753 (1263032 classes)
+ With 25 edges and 15 faces: 3106586 (1556952 classes)
+ With 26 edges and 16 faces: 2670345 (1338853 classes)
+ With 27 edges and 17 faces: 1573849 (789749 classes)
+ With 28 edges and 18 faces: 609084 (306470 classes)
+ With 29 edges and 19 faces: 139264 (70454 classes)
+ With 30 edges and 20 faces: 14502 (7595 classes)
+12728018 polytopes generated
+6384634 isomorphism classes; 41250 reflection invariant
+
+plantri -pouv 13 
+ With 20 edges and  9 faces: 386 (219 classes)
+ With 21 edges and 10 faces: 15466 (7916 classes)
+ With 22 edges and 11 faces: 206880 (104213 classes)
+ With 23 edges and 12 faces: 1414264 (709302 classes)
+ With 24 edges and 13 faces: 5865150 (2937495 classes)
+ With 25 edges and 14 faces: 16154030 (8085725 classes)
+ With 26 edges and 15 faces: 31044880 (15535572 classes)
+ With 27 edges and 16 faces: 42757876 (21395274 classes)
+ With 28 edges and 17 faces: 42599870 (21317178 classes)
+ With 29 edges and 18 faces: 30543400 (15287112 classes)
+ With 30 edges and 19 faces: 15391064 (7706577 classes)
+ With 31 edges and 20 faces: 5185408 (2599554 classes)
+ With 32 edges and 21 faces: 1048947 (527235 classes)
+ With 33 edges and 22 faces: 97033 (49566 classes)
+192324654 polytopes generated
+96262938 isomorphism classes; 201222 reflection invariant
+
+plantri -puov 14
+ With 21 edges and  9 faces: 73 (50 classes)
+ With 22 edges and 10 faces: 8582 (4442 classes)
+ With 23 edges and 11 faces: 222472 (112082 classes)
+ With 24 edges and 12 faces: 2519753 (1263032 classes)
+ With 25 edges and 13 faces: 16154030 (8085725 classes)
+ With 26 edges and 14 faces: 66582243 (33310550 classes)
+ With 27 edges and 15 faces: 189357113 (94713809 classes)
+ With 28 edges and 16 faces: 387478495 (193794051 classes)
+ With 29 edges and 17 faces: 584222152 (292182191 classes)
+ With 30 edges and 18 faces: 656222622 (328192346 classes)
+ With 31 edges and 19 faces: 548932992 (274542869 classes)
+ With 32 edges and 20 faces: 337857349 (168992630 classes)
+ With 33 edges and 21 faces: 148765545 (74424566 classes)
+ With 34 edges and 22 faces: 44410011 (22229616 classes)
+ With 35 edges and 23 faces: 8057026 (4037671 classes)
+ With 36 edges and 24 faces: 672781 (339722 classes)
+2991463239 polytopes generated
+1496225352 isomorphism classes; 987465 reflection invariant
+
+plantri -puov 15
+ With 23 edges and 10 faces: 2652 (1404 classes)
+ With 24 edges and 11 faces: 158057 (79773 classes)
+ With 25 edges and 12 faces: 3106586 (1556952 classes)
+ With 26 edges and 13 faces: 31044880 (15535572 classes)
+ With 27 edges and 14 faces: 189357113 (94713809 classes)
+ With 28 edges and 15 faces: 776705379 (388431688 classes)
+ With 29 edges and 16 faces: 2269538208 (1134914458 classes)
+ With 30 edges and 17 faces: 4894956314 (2447709924 classes)
+ With 31 edges and 18 faces: 7962395520 (3981512855 classes)
+ With 32 edges and 19 faces: 9878872040 (4939809506 classes)
+ With 33 edges and 20 faces: 9373223282 (4686995652 classes)
+ With 34 edges and 21 faces: 6760462428 (3380569040 classes)
+ With 35 edges and 22 faces: 3646797274 (1823658612 classes)
+ With 36 edges and 23 faces: 1426340694 (713331098 classes)
+ With 37 edges and 24 faces: 382390200 (191283058 classes)
+ With 38 edges and 25 faces: 62893270 (31477887 classes)
+ With 39 edges and 26 faces: 4792530 (2406841 classes)
+47663036427 polytopes generated
+23833988129 isomorphism classes; 4939831 reflection invariant
+
+plantri -puov 16
+ With 24 edges and 10 faces: 389 (233 classes)
+ With 25 edges and 11 faces: 71980 (36528 classes)
+ With 26 edges and 12 faces: 2670345 (1338853 classes)
+ With 27 edges and 13 faces: 42757876 (21395274 classes)
+ With 28 edges and 14 faces: 387478495 (193794051 classes)
+ With 29 edges and 15 faces: 2269538208 (1134914458 classes)
+ With 30 edges and 16 faces: 9274453627 (4637550072 classes)
+ With 31 edges and 17 faces: 27730625000 (13865916560 classes)
+ With 32 edges and 18 faces: 62553740764 (31277856206 classes)
+ With 33 edges and 19 faces: 108540645892 (54271705726 classes)
+ With 34 edges and 20 faces: 146491362077 (73247405678 classes)
+ With 35 edges and 21 faces: 154437090617 (77220397213 classes)
+ With 36 edges and 22 faces: 126882463218 (63443012728 classes)
+ With 37 edges and 23 faces: 80461570728 (40232230880 classes)
+ With 38 edges and 24 faces: 38643116145 (19322611431 classes)
+ With 39 edges and 25 faces: 13598589828 (6799902944 classes)
+ With 40 edges and 26 faces: 3309214738 (1654924768 classes)
+ With 41 edges and 27 faces: 497840520 (249026400 classes)
+ With 42 edges and 28 faces: 34911786 (17490241 classes)
+775158142233 polytopes generated
+387591510244 isomorphism classes; 24878255 reflection invariant
+
+plantri -puov 17
+ With 26 edges and 11 faces: 18914 (9714 classes)
+ With 27 edges and 12 faces: 1573849 (789749 classes)
+ With 28 edges and 13 faces: 42599870 (21317178 classes)
+ With 29 edges and 14 faces: 584222152 (292182191 classes)
+ With 30 edges and 15 faces: 4894956314 (2447709924 classes)
+ With 31 edges and 16 faces: 27730625000 (13865916560 classes)
+ With 32 edges and 17 faces: 112984297173 (56493493990 classes)
+ With 33 edges and 18 faces: 344598307174 (172301697581 classes)
+ With 34 edges and 19 faces: 808008004874 (404008232288 classes)
+ With 35 edges and 20 faces: 1482330409238 (741171341224 classes)
+ With 36 edges and 21 faces: 2150630733021 (1075323264149 classes)
+ With 37 edges and 22 faces: 2480301615624 (1240159791730 classes)
+ With 38 edges and 23 faces: 2273677366634 (1136847700529 classes)
+ With 39 edges and 24 faces: 1647561027749 (823788552428 classes)
+ With 40 edges and 25 faces: 932436981890 (466224664031 classes)
+ With 41 edges and 26 faces: 403651052112 (201829738768 classes)
+ With 42 edges and 27 faces: 129123206316 (64563924319 classes)
+ With 43 edges and 28 faces: 28771596080 (14386939428 classes)
+ With 44 edges and 29 faces: 3988465676 (1994599707 classes)
+ With 45 edges and 30 faces: 259106122 (129664753 classes)
+12831576165782 polytopes generated
+6415851530241 isomorphism classes; 126894700 reflection invariant
+
+
+C.  DISK TRIANGULATIONS (plantri -P) counts by outside face.
+
+plantri -uovP 3 
+0 disk triangulations generated
+0 isomorphism classes; 0 reflection invariant
+plantri -uovPc2x 3 
+0 disk triangulations generated
+0 isomorphism classes; 0 reflection invariant
+plantri -uovPc2xm2 3 
+ With  3-gon: 1 (1 classes)
+1 disk triangulations generated
+1 isomorphism classes; 1 reflection invariant
+
+plantri -uovP 4 
+ With  3-gon: 1 (1 classes)
+1 disk triangulations generated
+1 isomorphism classes; 1 reflection invariant
+plantri -uovPc2x 4 
+0 disk triangulations generated
+0 isomorphism classes; 0 reflection invariant
+plantri -uovPc2xm2 4 
+ With  4-gon: 1 (1 classes)
+1 disk triangulations generated
+1 isomorphism classes; 1 reflection invariant
+
+plantri -uovP 5 
+ With  3-gon: 1 (1 classes)
+ With  4-gon: 1 (1 classes)
+2 disk triangulations generated
+2 isomorphism classes; 2 reflection invariant
+plantri -uovPc2x 5 
+0 disk triangulations generated
+0 isomorphism classes; 0 reflection invariant
+plantri -uovPc2xm2 5 
+ With  4-gon: 1 (1 classes)
+ With  5-gon: 1 (1 classes)
+2 disk triangulations generated
+2 isomorphism classes; 2 reflection invariant
+
+plantri -uovP 6 
+ With  3-gon: 5 (4 classes)
+ With  4-gon: 2 (2 classes)
+ With  5-gon: 1 (1 classes)
+8 disk triangulations generated
+7 isomorphism classes; 6 reflection invariant
+plantri -uovPc2x 6 
+ With  4-gon: 1 (1 classes)
+1 disk triangulations generated
+1 isomorphism classes; 1 reflection invariant
+plantri -uovPc2xm2 6 
+ With  4-gon: 4 (3 classes)
+ With  5-gon: 4 (3 classes)
+ With  6-gon: 4 (3 classes)
+12 disk triangulations generated
+9 isomorphism classes; 6 reflection invariant
+
+plantri -uovP 7 
+ With  3-gon: 24 (16 classes)
+ With  4-gon: 10 (8 classes)
+ With  5-gon: 2 (2 classes)
+ With  6-gon: 1 (1 classes)
+37 disk triangulations generated
+27 isomorphism classes; 17 reflection invariant
+plantri -uovPc2x 7 
+ With  4-gon: 3 (2 classes)
+ With  5-gon: 2 (2 classes)
+5 disk triangulations generated
+4 isomorphism classes; 3 reflection invariant
+plantri -uovPc2xm2 7 
+ With  4-gon: 16 (10 classes)
+ With  5-gon: 19 (12 classes)
+ With  6-gon: 15 (10 classes)
+ With  7-gon: 6 (4 classes)
+56 disk triangulations generated
+36 isomorphism classes; 16 reflection invariant
+
+plantri -uovP 8 
+ With  3-gon: 133 (78 classes)
+ With  4-gon: 60 (38 classes)
+ With  5-gon: 16 (12 classes)
+ With  6-gon: 3 (3 classes)
+ With  7-gon: 1 (1 classes)
+213 disk triangulations generated
+132 isomorphism classes; 51 reflection invariant
+plantri -uovPc2x 8 
+ With  4-gon: 19 (12 classes)
+ With  5-gon: 16 (10 classes)
+ With  6-gon: 7 (5 classes)
+42 disk triangulations generated
+27 isomorphism classes; 12 reflection invariant
+plantri -uovPc2xm2 8 
+ With  4-gon: 87 (50 classes)
+ With  5-gon: 103 (57 classes)
+ With  6-gon: 85 (50 classes)
+ With  7-gon: 47 (27 classes)
+ With  8-gon: 19 (12 classes)
+341 disk triangulations generated
+196 isomorphism classes; 51 reflection invariant
+
+plantri -uovP 9 
+ With  3-gon: 846 (457 classes)
+ With  4-gon: 386 (219 classes)
+ With  5-gon: 122 (73 classes)
+ With  6-gon: 28 (20 classes)
+ With  7-gon: 3 (3 classes)
+ With  8-gon: 1 (1 classes)
+1386 disk triangulations generated
+773 isomorphism classes; 160 reflection invariant
+plantri -uovPc2x 9 
+ With  4-gon: 107 (59 classes)
+ With  5-gon: 111 (62 classes)
+ With  6-gon: 58 (33 classes)
+ With  7-gon: 13 (9 classes)
+289 disk triangulations generated
+163 isomorphism classes; 37 reflection invariant
+plantri -uovPc2xm2 9 
+ With  4-gon: 506 (270 classes)
+ With  5-gon: 613 (323 classes)
+ With  6-gon: 510 (275 classes)
+ With  7-gon: 327 (175 classes)
+ With  8-gon: 163 (90 classes)
+ With  9-gon: 49 (27 classes)
+2168 disk triangulations generated
+1160 isomorphism classes; 152 reflection invariant
+
+plantri -uovP 10 
+ With  3-gon: 5661 (2938 classes)
+ With  4-gon: 2652 (1404 classes)
+ With  5-gon: 925 (503 classes)
+ With  6-gon: 242 (140 classes)
+ With  7-gon: 39 (27 classes)
+ With  8-gon: 4 (4 classes)
+ With  9-gon: 1 (1 classes)
+9524 disk triangulations generated
+5017 isomorphism classes; 510 reflection invariant
+plantri -uovPc2x 10 
+ With  4-gon: 694 (368 classes)
+ With  5-gon: 762 (399 classes)
+ With  6-gon: 473 (253 classes)
+ With  7-gon: 169 (92 classes)
+ With  8-gon: 32 (19 classes)
+2130 disk triangulations generated
+1131 isomorphism classes; 132 reflection invariant
+plantri -uovPc2xm2 10 
+ With  4-gon: 3224 (1667 classes)
+ With  5-gon: 3905 (2000 classes)
+ With  6-gon: 3326 (1727 classes)
+ With  7-gon: 2271 (1169 classes)
+ With  8-gon: 1298 (681 classes)
+ With  9-gon: 558 (290 classes)
+ With 10-gon: 150 (82 classes)
+14732 disk triangulations generated
+7616 isomorphism classes; 500 reflection invariant
+
+plantri -uovP 11 
+ With  3-gon: 39556 (20118 classes)
+ With  4-gon: 18914 (9714 classes)
+ With  5-gon: 7066 (3661 classes)
+ With  6-gon: 2039 (1089 classes)
+ With  7-gon: 419 (235 classes)
+ With  8-gon: 58 (39 classes)
+ With  9-gon: 4 (4 classes)
+ With 10-gon: 1 (1 classes)
+68057 disk triangulations generated
+34861 isomorphism classes; 1665 reflection invariant
+plantri -uovPc2x 11 
+ With  4-gon: 4611 (2363 classes)
+ With  5-gon: 5317 (2720 classes)
+ With  6-gon: 3576 (1836 classes)
+ With  7-gon: 1609 (835 classes)
+ With  8-gon: 458 (241 classes)
+ With  9-gon: 60 (35 classes)
+15631 disk triangulations generated
+8030 isomorphism classes; 429 reflection invariant
+plantri -uovPc2xm2 11 
+ With  4-gon: 21576 (10953 classes)
+ With  5-gon: 26187 (13244 classes)
+ With  6-gon: 22557 (11471 classes)
+ With  7-gon: 16081 (8150 classes)
+ With  8-gon: 9824 (5012 classes)
+ With  9-gon: 5001 (2544 classes)
+ With 10-gon: 1951 (1003 classes)
+ With 11-gon: 442 (228 classes)
+103619 disk triangulations generated
+52605 isomorphism classes; 1591 reflection invariant
+
+plantri -uovP 12 
+ With  3-gon: 286000 (144113 classes)
+ With  4-gon: 139264 (70454 classes)
+ With  5-gon: 54560 (27715 classes)
+ With  6-gon: 17138 (8796 classes)
+ With  7-gon: 4101 (2149 classes)
+ With  8-gon: 711 (392 classes)
+ With  9-gon: 78 (51 classes)
+ With 10-gon: 5 (5 classes)
+ With 11-gon: 1 (1 classes)
+501858 disk triangulations generated
+253676 isomorphism classes; 5494 reflection invariant
+plantri -uovPc2x 12 
+ With  4-gon: 32088 (16253 classes)
+ With  5-gon: 37921 (19147 classes)
+ With  6-gon: 27161 (13759 classes)
+ With  7-gon: 13819 (7006 classes)
+ With  8-gon: 5037 (2576 classes)
+ With  9-gon: 1162 (600 classes)
+ With 10-gon: 131 (71 classes)
+117319 disk triangulations generated
+59412 isomorphism classes; 1505 reflection invariant
+plantri -uovPc2xm2 12 
+ With  4-gon: 150756 (75927 classes)
+ With  5-gon: 182776 (91856 classes)
+ With  6-gon: 159216 (80242 classes)
+ With  7-gon: 116481 (58587 classes)
+ With  8-gon: 74676 (37686 classes)
+ With  9-gon: 41637 (20967 classes)
+ With 10-gon: 19499 (9871 classes)
+ With 11-gon: 6871 (3470 classes)
+ With 12-gon: 1424 (733 classes)
+753336 disk triangulations generated
+379339 isomorphism classes; 5342 reflection invariant
+
+plantri -uovP 13 
+ With  3-gon: 2123329 (1065328 classes)
+ With  4-gon: 1048947 (527235 classes)
+ With  5-gon: 426462 (214664 classes)
+ With  6-gon: 142802 (72204 classes)
+ With  7-gon: 38166 (19419 classes)
+ With  8-gon: 7801 (4050 classes)
+ With  9-gon: 1128 (610 classes)
+ With 10-gon: 106 (68 classes)
+ With 11-gon: 5 (5 classes)
+ With 12-gon: 1 (1 classes)
+3788747 disk triangulations generated
+1903584 isomorphism classes; 18421 reflection invariant
+plantri -uovPc2x 13 
+ With  4-gon: 229585 (115434 classes)
+ With  5-gon: 276394 (138836 classes)
+ With  6-gon: 206249 (103688 classes)
+ With  7-gon: 113964 (57338 classes)
+ With  8-gon: 47809 (24101 classes)
+ With  9-gon: 14568 (7378 classes)
+ With 10-gon: 2846 (1451 classes)
+ With 11-gon: 251 (135 classes)
+891666 disk triangulations generated
+448361 isomorphism classes; 5056 reflection invariant
+plantri -uovPc2xm2 13 
+ With  4-gon: 1087541 (545525 classes)
+ With  5-gon: 1317126 (660107 classes)
+ With  6-gon: 1155930 (579994 classes)
+ With  7-gon: 862074 (432194 classes)
+ With  8-gon: 570821 (286545 classes)
+ With  9-gon: 337557 (169308 classes)
+ With 10-gon: 174982 (87912 classes)
+ With 11-gon: 75577 (37945 classes)
+ With 12-gon: 24519 (12349 classes)
+ With 13-gon: 4522 (2282 classes)
+5610649 disk triangulations generated
+2814161 isomorphism classes; 17673 reflection invariant
+
+plantri -uovP 14 
+ With  3-gon: 16112057 (8068332 classes)
+ With  4-gon: 8057026 (4037671 classes)
+ With  5-gon: 3372291 (1691049 classes)
+ With  6-gon: 1188412 (596906 classes)
+ With  7-gon: 345099 (173779 classes)
+ With  8-gon: 79908 (40485 classes)
+ With  9-gon: 13992 (7196 classes)
+ With 10-gon: 1740 (932 classes)
+ With 11-gon: 135 (85 classes)
+ With 12-gon: 6 (6 classes)
+ With 13-gon: 1 (1 classes)
+29170667 disk triangulations generated
+14616442 isomorphism classes; 62217 reflection invariant
+plantri -uovPc2x 14 
+ With  4-gon: 1686345 (845452 classes)
+ With  5-gon: 2055165 (1029655 classes)
+ With  6-gon: 1581690 (792867 classes)
+ With  7-gon: 925083 (463718 classes)
+ With  8-gon: 427582 (214569 classes)
+ With  9-gon: 153656 (77165 classes)
+ With 10-gon: 40532 (20423 classes)
+ With 11-gon: 6777 (3430 classes)
+ With 12-gon: 522 (271 classes)
+6877352 disk triangulations generated
+3447550 isomorphism classes; 17748 reflection invariant
+plantri -uovPc2xm2 14 
+ With  4-gon: 8056228 (4034057 classes)
+ With  5-gon: 9742174 (4876132 classes)
+ With  6-gon: 8600426 (4307049 classes)
+ With  7-gon: 6504711 (3256164 classes)
+ With  8-gon: 4413260 (2210550 classes)
+ With  9-gon: 2716736 (1360178 classes)
+ With 10-gon: 1505900 (754536 classes)
+ With 11-gon: 730491 (365837 classes)
+ With 12-gon: 294134 (147514 classes)
+ With 13-gon: 88005 (44113 classes)
+ With 14-gon: 14924 (7528 classes)
+42666989 disk triangulations generated
+21363658 isomorphism classes; 60327 reflection invariant
+
+plantri -uovP 15 
+ With  3-gon: 124512556 (62297808 classes)
+ With  4-gon: 62893270 (31477887 classes)
+ With  5-gon: 26956270 (13494718 classes)
+ With  6-gon: 9898491 (4958736 classes)
+ With  7-gon: 3067938 (1538221 classes)
+ With  8-gon: 782210 (393123 classes)
+ With  9-gon: 158030 (79752 classes)
+ With 10-gon: 24100 (12332 classes)
+ With 11-gon: 2570 (1360 classes)
+ With 12-gon: 176 (109 classes)
+ With 13-gon: 6 (6 classes)
+ With 14-gon: 1 (1 classes)
+228295618 disk triangulations generated
+114254053 isomorphism classes; 212488 reflection invariant
+plantri -uovPc2x 15 
+ With  4-gon: 12649525 (6332201 classes)
+ With  5-gon: 15556876 (7785597 classes)
+ With  6-gon: 12251137 (6132274 classes)
+ With  7-gon: 7474474 (3741456 classes)
+ With  8-gon: 3700160 (1852763 classes)
+ With  9-gon: 1486318 (744514 classes)
+ With 10-gon: 469700 (235460 classes)
+ With 11-gon: 108662 (54574 classes)
+ With 12-gon: 15888 (8003 classes)
+ With 13-gon: 1018 (527 classes)
+53713758 disk triangulations generated
+26887369 isomorphism classes; 60980 reflection invariant
+plantri -uovPc2xm2 15 
+ With  4-gon: 60985696 (30512590 classes)
+ With  5-gon: 73635221 (36834645 classes)
+ With  6-gon: 65292499 (32668963 classes)
+ With  7-gon: 49925208 (24975566 classes)
+ With  8-gon: 34504324 (17265325 classes)
+ With  9-gon: 21879025 (10945874 classes)
+ With 10-gon: 12705092 (6358043 classes)
+ With 11-gon: 6648646 (3326596 classes)
+ With 12-gon: 3037334 (1520331 classes)
+ With 13-gon: 1144060 (572588 classes)
+ With 14-gon: 318443 (159518 classes)
+ With 15-gon: 49536 (24834 classes)
+330125084 disk triangulations generated
+165164873 isomorphism classes; 204662 reflection invariant
+
+plantri -Puov 16 
+ With  3-gon: 977227830 (488755938 classes)
+ With  4-gon: 497840520 (249026400 classes)
+ With  5-gon: 217614820 (108864742 classes)
+ With  6-gon: 82665138 (41365110 classes)
+ With  7-gon: 27002151 (13516342 classes)
+ With  8-gon: 7433635 (3723976 classes)
+ With  9-gon: 1676410 (841107 classes)
+ With 10-gon: 298527 (150349 classes)
+ With 11-gon: 39835 (20280 classes)
+ With 12-gon: 3728 (1961 classes)
+ With 13-gon: 216 (132 classes)
+ With 14-gon: 7 (7 classes)
+ With 15-gon: 1 (1 classes)
+1811802818 disk triangulations generated
+906266345 isomorphism classes; 729872 reflection invariant
+plantri -Puovc2x 16 
+ With  4-gon: 96639422 (48345998 classes)
+ With  5-gon: 119641093 (59844620 classes)
+ With  6-gon: 95918574 (47983140 classes)
+ With  7-gon: 60439788 (30234284 classes)
+ With  8-gon: 31507764 (15763911 classes)
+ With  9-gon: 13706854 (6858257 classes)
+ With 10-gon: 4901469 (2453349 classes)
+ With 11-gon: 1383013 (692472 classes)
+ With 12-gon: 285000 (142881 classes)
+ With 13-gon: 36648 (18409 classes)
+ With 14-gon: 2073 (1055 classes)
+424461698 disk triangulations generated
+212338376 isomorphism classes; 215054 reflection invariant
+plantri -Puovc2m2x 16 
+ With  4-gon: 470176810 (235156222 classes)
+ With  5-gon: 566813702 (283464202 classes)
+ With  6-gon: 504329410 (252242502 classes)
+ With  7-gon: 388977699 (194532712 classes)
+ With  8-gon: 272790506 (136440990 classes)
+ With  9-gon: 176930200 (88487079 classes)
+ With 10-gon: 106345833 (53192844 classes)
+ With 11-gon: 58687379 (29351947 classes)
+ With 12-gon: 29146162 (14579796 classes)
+ With 13-gon: 12584510 (6294519 classes)
+ With 14-gon: 4458185 (2230728 classes)
+ With 15-gon: 1158943 (579834 classes)
+ With 16-gon: 167367 (83898 classes)
+2592566706 disk triangulations generated
+1296637273 isomorphism classes; 707840 reflection invariant
+
+plantri -Puov 17
+ With  3-gon: 7772368380 (3886672165 classes)
+ With  4-gon: 3988465676 (1994599707 classes)
+ With  5-gon: 1772645420 (886520081 classes)
+ With  6-gon: 692726420 (346477770 classes)
+ With  7-gon: 236287142 (118196961 classes)
+ With  8-gon: 69234070 (34643445 classes)
+ With  9-gon: 17042564 (8531852 classes)
+ With 10-gon: 3424716 (1716784 classes)
+ With 11-gon: 540768 (271824 classes)
+ With 12-gon: 63832 (32402 classes)
+ With 13-gon: 5226 (2727 classes)
+ With 14-gon: 270 (163 classes)
+ With 15-gon: 7 (7 classes)
+ With 16-gon: 1 (1 classes)
+14552804492 disk triangulations generated
+7277665889 isomorphism classes; 2527286 reflection invariant
+plantri -Puovc2x 17
+ With  4-gon: 749965370 (375071543 classes)
+ With  5-gon: 933117038 (466642440 classes)
+ With  6-gon: 758729377 (379446167 classes)
+ With  7-gon: 490428080 (245265348 classes)
+ With  8-gon: 266116557 (133093368 classes)
+ With  9-gon: 122950273 (61493407 classes)
+ With 10-gon: 48071288 (24045362 classes)
+ With 11-gon: 15531264 (7769869 classes)
+ With 12-gon: 3958580 (1980930 classes)
+ With 13-gon: 731798 (366476 classes)
+ With 14-gon: 83730 (41984 classes)
+ With 15-gon: 4089 (2079 classes)
+3389687444 disk triangulations generated
+1695218973 isomorphism classes; 750502 reflection invariant
+plantri -Puovc2m2x 17
+ With  4-gon: 3681648180 (1841054971 classes)
+ With  5-gon: 4431613550 (2216003748 classes)
+ With  6-gon: 3953724380 (1977127062 classes)
+ With  7-gon: 3070885342 (1535594128 classes)
+ With  8-gon: 2179143678 (1089728681 classes)
+ With  9-gon: 1438886911 (719520818 classes)
+ With 10-gon: 888036628 (444087992 classes)
+ With 11-gon: 509738508 (254899674 classes)
+ With 12-gon: 268560800 (134304821 classes)
+ With 13-gon: 126986100 (63502321 classes)
+ With 14-gon: 52003522 (26008179 classes)
+ With 15-gon: 17383853 (8693925 classes)
+ With 16-gon: 4241687 (2121844 classes)
+ With 17-gon: 570285 (285357 classes)
+20623423424 disk triangulations generated
+10312933521 isomorphism classes; 2443618 reflection invariant
+
+plantri -Puov 18
+ With  3-gon: 62535450861 (31269417102 classes)
+ With  4-gon: 32292955800 (16147744792 classes)
+ With  5-gon: 14557912005 (7279644889 classes)
+ With  6-gon: 5827533378 (2914165157 classes)
+ With  7-gon: 2061253740 (1030817669 classes)
+ With  8-gon: 636012850 (318100415 classes)
+ With  9-gon: 168150829 (84115317 classes)
+ With 10-gon: 37231392 (18632278 classes)
+ With 11-gon: 6704285 (3358231 classes)
+ With 12-gon: 945580 (474809 classes)
+ With 13-gon: 99177 (50195 classes)
+ With 14-gon: 7220 (3753 classes)
+ With 15-gon: 325 (194 classes)
+ With 16-gon: 8 (8 classes)
+ With 17-gon: 1 (1 classes)
+118124257451 disk triangulations generated
+59066524810 isomorphism classes; 8792169 reflection invariant
+plantri -Puovc2x 18
+ With  4-gon: 5900285820 (2950457198 classes)
+ With  5-gon: 7368941125 (3684759295 classes)
+ With  6-gon: 6060300404 (3030439895 classes)
+ With  7-gon: 3998559848 (1999458418 classes)
+ With  8-gon: 2240227894 (1120242493 classes)
+ With  9-gon: 1084805094 (542467974 classes)
+ With 10-gon: 453873197 (226974827 classes)
+ With 11-gon: 161795651 (80913983 classes)
+ With 12-gon: 47733612 (23874432 classes)
+ With 13-gon: 11073943 (5539452 classes)
+ With 14-gon: 1851452 (926597 classes)
+ With 15-gon: 189467 (94903 classes)
+ With 16-gon: 8248 (4159 classes)
+27329645755 disk triangulations generated
+13666153626 isomorphism classes; 2661497 reflection invariant
+plantri -Puovc2m2x 18
+ With  4-gon: 29217390960 (14609497743 classes)
+ With  5-gon: 35117659815 (17559506426 classes)
+ With  6-gon: 31398074670 (15699956234 classes)
+ With  7-gon: 24528427560 (12264735985 classes)
+ With  8-gon: 17575448330 (8788273322 classes)
+ With  9-gon: 11774416741 (5887478740 classes)
+ With 10-gon: 7420804820 (3710652453 classes)
+ With 11-gon: 4390580893 (2195399947 classes)
+ With 12-gon: 2417329370 (1208757208 classes)
+ With 13-gon: 1219475179 (609772940 classes)
+ With 14-gon: 550489204 (275272094 classes)
+ With 15-gon: 214400699 (107208898 classes)
+ With 16-gon: 67866910 (33939457 classes)
+ With 17-gon: 15598972 (7800701 classes)
+ With 18-gon: 1965058 (983244 classes)
+165909929181 disk triangulations generated
+82959235392 isomorphism classes; 8541603 reflection invariant
+
+plantri -Puov 19
+ With  3-gon: 508271324688 (254141551498 classes)
+ With  4-gon: 263910215250 (131959532817 classes)
+ With  5-gon: 120446430162 (60225617740 classes)
+ With  6-gon: 49221189621 (24612003577 classes)
+ With  7-gon: 17956440333 (8978893401 classes)
+ With  8-gon: 5787195024 (2893940026 classes)
+ With  9-gon: 1623684120 (811986876 classes)
+ With 10-gon: 389260393 (194694490 classes)
+ With 11-gon: 77907225 (38976990 classes)
+ With 12-gon: 12641470 (6329547 classes)
+ With 13-gon: 1600650 (802914 classes)
+ With 14-gon: 150375 (75971 classes)
+ With 15-gon: 9741 (5035 classes)
+ With 16-gon: 394 (233 classes)
+ With 17-gon: 8 (8 classes)
+ With 18-gon: 1 (1 classes)
+967698049455 disk triangulations generated
+483864411124 isomorphism classes; 30772793 reflection invariant
+plantri -Puovc2x 19
+ With  4-gon: 46980413859 (23491292990 classes)
+ With  5-gon: 58843167903 (29422598776 classes)
+ With  6-gon: 48844745541 (24423381321 classes)
+ With  7-gon: 32775891947 (16388582980 classes)
+ With  8-gon: 18847870154 (9424390207 classes)
+ With  9-gon: 9477544917 (4739014475 classes)
+ With 10-gon: 4181750576 (2091015776 classes)
+ With 11-gon: 1606513539 (803321384 classes)
+ With 12-gon: 527343782 (263702165 classes)
+ With 13-gon: 143092726 (71558211 classes)
+ With 14-gon: 30400297 (15204210 classes)
+ With 15-gon: 4618419 (2310524 classes)
+ With 16-gon: 425654 (213063 classes)
+ With 17-gon: 16376 (8255 classes)
+222263795690 disk triangulations generated
+111136594337 isomorphism classes; 9392984 reflection invariant
+plantri -Puovc2m2x 19
+ With  4-gon: 234586764504 (117296159984 classes)
+ With  5-gon: 281567178363 (140785942576 classes)
+ With  6-gon: 252179257131 (126092810235 classes)
+ With  7-gon: 197958659067 (98981153490 classes)
+ With  8-gon: 142999465596 (71501644523 classes)
+ With  9-gon: 96955097898 (48478505378 classes)
+ With 10-gon: 62155053607 (31078409017 classes)
+ With 11-gon: 37669406379 (18835101315 classes)
+ With 12-gon: 21457409462 (10729039517 classes)
+ With 13-gon: 11362406928 (5681339289 classes)
+ With 14-gon: 5500735281 (2750471577 classes)
+ With 15-gon: 2375784627 (1187929288 classes)
+ With 16-gon: 882233504 (441141286 classes)
+ With 17-gon: 265182517 (132598476 classes)
+ With 18-gon: 57620595 (28813729 classes)
+ With 19-gon: 6823410 (3412420 classes)
+1347979078869 disk triangulations generated
+674004472100 isomorphism classes; 29865331 reflection invariant
+
+plantri -Puov 20
+ With  3-gon: 4168218286276 (2084129777764 classes)
+ With  4-gon: 2174723058816 (1087376999834 classes)
+ With  5-gon: 1003264150080 (501640531350 classes)
+ With  6-gon: 417412172800 (208711039484 classes)
+ With  7-gon: 156385227189 (78195020683 classes)
+ With  8-gon: 52311447783 (26156948260 classes)
+ With  9-gon: 15432374408 (7716723656 classes)
+ With 10-gon: 3953746953 (1977111485 classes)
+ With 11-gon: 863173090 (431679397 classes)
+ With 12-gon: 156875550 (78472632 classes)
+ With 13-gon: 23044560 (11534001 classes)
+ With 14-gon: 2634412 (1320704 classes)
+ With 15-gon: 222607 (112259 classes)
+ With 16-gon: 12965 (6684 classes)
+ With 17-gon: 464 (272 classes)
+ With 18-gon: 9 (9 classes)
+ With 19-gon: 1 (1 classes)
+7992746427963 disk triangulations generated
+3996427278475 isomorphism classes; 108128987 reflection invariant
+plantri -Pc2xuov 20
+ With  4-gon: 378068351184 (189038030208 classes)
+ With  5-gon: 474569405337 (237288248179 classes)
+ With  6-gon: 396970401899 (198488796260 classes)
+ With  7-gon: 270147767361 (135076129503 classes)
+ With  8-gon: 158744674722 (79373992608 classes)
+ With  9-gon: 82329483331 (41165612888 classes)
+ With 10-gon: 37915437658 (18958252328 classes)
+ With 11-gon: 15449204446 (7724844633 classes)
+ With 12-gon: 5501717386 (2750984344 classes)
+ With 13-gon: 1674496560 (837296192 classes)
+ With 14-gon: 420173252 (210107058 classes)
+ With 15-gon: 82111089 (41061527 classes)
+ With 16-gon: 11391835 (5697851 classes)
+ With 17-gon: 949808 (475239 classes)
+ With 18-gon: 32887 (16511 classes)
+1821885598755 disk triangulations generated
+910959545329 isomorphism classes; 33491903 reflection invariant
+plantri -Pc2m2xuov 20
+ With  4-gon: 1902882320460 (951450904000 classes)
+ With  5-gon: 2280950552976 (1140483474900 classes)
+ With  6-gon: 2045749275224 (1022885788716 classes)
+ With  7-gon: 1612474650321 (806243699081 classes)
+ With  8-gon: 1172841797052 (586427642158 classes)
+ With  9-gon: 803245710817 (401626230026 classes)
+ With 10-gon: 522251569047 (261128946429 classes)
+ With 11-gon: 322760223370 (161381544174 classes)
+ With 12-gon: 188897551550 (94450014706 classes)
+ With 13-gon: 103862724504 (51931868479 classes)
+ With 14-gon: 53000375780 (26500597685 classes)
+ With 15-gon: 24667474733 (12333884023 classes)
+ With 16-gon: 10213537774 (5106879660 classes)
+ With 17-gon: 3624160711 (1812112536 classes)
+ With 18-gon: 1037169751 (518607023 classes)
+ With 19-gon: 213680471 (106844382 classes)
+ With 20-gon: 23884366 (11944614 classes)
+11048696658907 disk triangulations generated
+5524400982592 isomorphism classes; 105306277 reflection invariant
+
+plantri -Puov 21
+ With  3-gon: 34455941596060 (17228043363781 classes)
+ With  4-gon: 18053970236196 (9027039627035 classes)
+ With  5-gon: 8408233633984 (4204146605148 classes)
+ With  6-gon: 3553723666154 (1776879432103 classes)
+ With  7-gon: 1362637717152 (681327413862 classes)
+ With  8-gon: 470692723102 (235350802898 classes)
+ With  9-gon: 144959490840 (72481691648 classes)
+ With 10-gon: 39289170900 (19645485120 classes)
+ With 11-gon: 9225455525 (4613078117 classes)
+ With 12-gon: 1841245387 (920764755 classes)
+ With 13-gon: 305104686 (152599770 classes)
+ With 14-gon: 40758314 (20395455 classes)
+ With 15-gon: 4225132 (2116934 classes)
+ With 16-gon: 323099 (162749 classes)
+ With 17-gon: 16944 (8700 classes)
+ With 18-gon: 552 (321 classes)
+ With 19-gon: 9 (9 classes)
+ With 20-gon: 1 (1 classes)
+66500865364037 disk triangulations generated
+33250623548406 isomorphism classes; 381732775 reflection invariant
+Number with trivial group: 66500480916362
+plantri -Pc2xuov 21
+ With  4-gon: 3071318737256 (1535672885883 classes)
+ With  5-gon: 3861686921536 (1930856012990 classes)
+ With  6-gon: 3251059825931 (1625542592089 classes)
+ With  7-gon: 2238836803146 (1119426441171 classes)
+ With  8-gon: 1339747454034 (669879639653 classes)
+ With  9-gon: 712979641319 (356493015546 classes)
+ With 10-gon: 340127865101 (170065888104 classes)
+ With 11-gon: 145339206441 (72670535494 classes)
+ With 12-gon: 55192547445 (27596757130 classes)
+ With 13-gon: 18341044498 (9170724774 classes)
+ With 14-gon: 5201917926 (2601044848 classes)
+ With 15-gon: 1211878164 (605970057 classes)
+ With 16-gon: 218658861 (109339016 classes)
+ With 17-gon: 27803088 (13904482 classes)
+ With 18-gon: 2107672 (1054302 classes)
+ With 19-gon: 65527 (32895 classes)
+15041292477945 disk triangulations generated
+7520705838434 isomorphism classes; 119198923 reflection invariant
+89902490090860 rooted triangulations
+Number with trivial group: 15041172835592
+plantri -Pc2xm2uov 21
+ With  4-gon: 15572004205169 (7786036253723 classes)
+ With  5-gon: 18647292333340 (9323674973606 classes)
+ With  6-gon: 16743687755012 (8371882964298 classes)
+ With  7-gon: 13243707997248 (6621876466592 classes)
+ With  8-gon: 9689846939360 (4844947208785 classes)
+ With  9-gon: 6693475919865 (3346749964453 classes)
+ With 10-gon: 4403932453028 (2201977468402 classes)
+ With 11-gon: 2766164857885 (1383087618708 classes)
+ With 12-gon: 1655007415243 (827508191518 classes)
+ With 13-gon: 937726049374 (468864921390 classes)
+ With 14-gon: 498564084886 (249283569233 classes)
+ With 15-gon: 245543956980 (122772563539 classes)
+ With 16-gon: 110041049643 (55020957286 classes)
+ With 17-gon: 43755099681 (21877695882 classes)
+ With 18-gon: 14865947116 (7433067113 classes)
+ With 19-gon: 4059928941 (2029990765 classes)
+ With 20-gon: 795270643 (397647255 classes)
+ With 21-gon: 84155478 (42080170 classes)
+91274524809807 disk triangulations generated
+45637448298918 isomorphism classes; 371788029 reflection invariant
+606516101312444 rooted triangulations
+Number with trivial group: 91274150876614
+
+
+D. CONVEX POLYTOPES WITH MINIMUM DEGREE AT LEAST 4 (plantri -pm4)
+
+plantri -uopvm4 6 
+ With 12 edges and  8 faces: 1 (1 classes)
+1 polytopes generated; 
+1 isomorphism classes; 1 reflection invariant
+
+plantri -uopvm4 7 
+ With 15 edges and 10 faces: 1 (1 classes)
+1 polytopes generated; 
+1 isomorphism classes; 1 reflection invariant
+
+plantri -uopvm4 8 
+ With 16 edges and 10 faces: 1 (1 classes)
+ With 17 edges and 11 faces: 1 (1 classes)
+ With 18 edges and 12 faces: 2 (2 classes)
+4 polytopes generated; 
+4 isomorphism classes; 4 reflection invariant
+
+plantri -uopvm4 9 
+ With 18 edges and 11 faces: 1 (1 classes)
+ With 19 edges and 12 faces: 5 (4 classes)
+ With 20 edges and 13 faces: 5 (4 classes)
+ With 21 edges and 14 faces: 5 (5 classes)
+16 polytopes generated; 
+14 isomorphism classes; 12 reflection invariant
+
+plantri -uopvm4 10 
+ With 20 edges and 12 faces: 4 (3 classes)
+ With 21 edges and 13 faces: 15 (10 classes)
+ With 22 edges and 14 faces: 39 (25 classes)
+ With 23 edges and 15 faces: 27 (17 classes)
+ With 24 edges and 16 faces: 14 (12 classes)
+99 polytopes generated; 
+67 isomorphism classes; 35 reflection invariant
+
+plantri -uopvm4 11 
+ With 22 edges and 13 faces: 3 (3 classes)
+ With 23 edges and 14 faces: 58 (36 classes)
+ With 24 edges and 15 faces: 186 (107 classes)
+ With 25 edges and 16 faces: 276 (159 classes)
+ With 26 edges and 17 faces: 152 (89 classes)
+ With 27 edges and 18 faces: 45 (34 classes)
+720 polytopes generated; 
+428 isomorphism classes; 136 reflection invariant
+
+plantri -uopvm4 12 
+ With 24 edges and 14 faces: 15 (11 classes)
+ With 25 edges and 15 faces: 211 (119 classes)
+ With 26 edges and 16 faces: 1080 (580 classes)
+ With 27 edges and 17 faces: 2087 (1095 classes)
+ With 28 edges and 18 faces: 2035 (1089 classes)
+ With 29 edges and 19 faces: 909 (491 classes)
+ With 30 edges and 20 faces: 194 (130 classes)
+6531 polytopes generated; 
+3515 isomorphism classes; 499 reflection invariant
+
+plantri -uopvm4 13 
+ With 26 edges and 15 faces: 25 (18 classes)
+ With 27 edges and 16 faces: 843 (456 classes)
+ With 28 edges and 17 faces: 5444 (2815 classes)
+ With 29 edges and 18 faces: 14765 (7562 classes)
+ With 30 edges and 19 faces: 19791 (10096 classes)
+ With 31 edges and 20 faces: 14520 (7485 classes)
+ With 32 edges and 21 faces: 5398 (2806 classes)
+ With 33 edges and 22 faces: 891 (525 classes)
+61677 polytopes generated; 
+31763 isomorphism classes; 1849 reflection invariant
+
+plantri -uopvm4 14 
+ With 28 edges and 16 faces: 92 (58 classes)
+ With 29 edges and 17 faces: 3280 (1714 classes)
+ With 30 edges and 18 faces: 27691 (14102 classes)
+ With 31 edges and 19 faces: 94823 (47890 classes)
+ With 32 edges and 20 faces: 170029 (85805 classes)
+ With 33 edges and 21 faces: 172780 (87124 classes)
+ With 34 edges and 22 faces: 102171 (51844 classes)
+ With 35 edges and 23 faces: 32422 (16534 classes)
+ With 36 edges and 24 faces: 4499 (2472 classes)
+607787 polytopes generated; 
+307543 isomorphism classes; 7299 reflection invariant
+
+plantri -uopvm4 15 
+ With 30 edges and 17 faces: 234 (139 classes)
+ With 31 edges and 18 faces: 13024 (6678 classes)
+ With 32 edges and 19 faces: 134140 (67651 classes)
+ With 33 edges and 20 faces: 574277 (288534 classes)
+ With 34 edges and 21 faces: 1298861 (651596 classes)
+ With 35 edges and 22 faces: 1735951 (870969 classes)
+ With 36 edges and 23 faces: 1420596 (712861 classes)
+ With 37 edges and 24 faces: 705869 (355286 classes)
+ With 38 edges and 25 faces: 195245 (98587 classes)
+ With 39 edges and 26 faces: 23603 (12400 classes)
+6101800 polytopes generated; 
+3064701 isomorphism classes; 27602 reflection invariant
+
+plantri -uopvm4 16 
+ With 32 edges and 18 faces: 803 (451 classes)
+ With 33 edges and 19 faces: 51346 (26053 classes)
+ With 34 edges and 20 faces: 640157 (321633 classes)
+ With 35 edges and 21 faces: 3304524 (1655945 classes)
+ With 36 edges and 22 faces: 9178285 (4596362 classes)
+ With 37 edges and 23 faces: 15370991 (7694805 classes)
+ With 38 edges and 24 faces: 16380369 (8201794 classes)
+ With 39 edges and 25 faces: 11228632 (5623132 classes)
+ With 40 edges and 26 faces: 4822966 (2419038 classes)
+ With 41 edges and 27 faces: 1182790 (594236 classes)
+ With 42 edges and 28 faces: 127887 (65619 classes)
+62288750 polytopes generated; 
+31199068 isomorphism classes; 109386 reflection invariant
+
+plantri -uopvm4 17 
+ With 34 edges and 19 faces: 2469 (1326 classes)
+ With 35 edges and 20 faces: 202921 (102303 classes)
+ With 36 edges and 21 faces: 2984594 (1495862 classes)
+ With 37 edges and 22 faces: 18304658 (9162421 classes)
+ With 38 edges and 23 faces: 60865282 (30452356 classes)
+ With 39 edges and 24 faces: 124072684 (62068706 classes)
+ With 40 edges and 25 faces: 164721872 (82398857 classes)
+ With 41 edges and 26 faces: 146113658 (73098873 classes)
+ With 42 edges and 27 faces: 86258968 (43159731 classes)
+ With 43 edges and 28 faces: 32670411 (16358800 classes)
+ With 44 edges and 29 faces: 7198627 (3607916 classes)
+ With 45 edges and 30 faces: 705770 (357504 classes)
+644101914 polytopes generated; 
+322264655 isomorphism classes; 427396 reflection invariant
+
+plantri -uopvm4 18
+ With 36 edges and 20 faces: 8512 (4461 classes)
+ With 37 edges and 21 faces: 799894 (401839 classes)
+ With 38 edges and 22 faces: 13724201 (6871117 classes)
+ With 39 edges and 23 faces: 98250487 (49151202 classes)
+ With 40 edges and 24 faces: 384298704 (192208694 classes)
+ With 41 edges and 25 faces: 931575989 (465884287 classes)
+ With 42 edges and 26 faces: 1496024456 (748153542 classes)
+ With 43 edges and 27 faces: 1645223548 (822759274 classes)
+ With 44 edges and 28 faces: 1251042907 (625673674 classes)
+ With 45 edges and 29 faces: 649108896 (324655428 classes)
+ With 46 edges and 30 faces: 220069087 (110109217 classes)
+ With 47 edges and 31 faces: 44040684 (22046012 classes)
+ With 48 edges and 32 faces: 3959653 (1992985 classes)
+6738127018 polytopes generated;
+3369911732 isomorphism classes; 1696446 reflection invariant
+
+plantri -uopvm4 19
+ With 38 edges and 21 faces: 28290 (14554 classes)
+ With 39 edges and 22 faces: 3152716 (1580624 classes)
+ With 40 edges and 23 faces: 62247109 (31144629 classes)
+ With 41 edges and 24 faces: 514091455 (257114746 classes)
+ With 42 edges and 25 faces: 2330464143 (1165392704 classes)
+ With 43 edges and 26 faces: 6602256719 (3301434495 classes)
+ With 44 edges and 27 faces: 12541919157 (6271404415 classes)
+ With 45 edges and 28 faces: 16605547117 (8303354116 classes)
+ With 46 edges and 29 faces: 15593472680 (7797302305 classes)
+ With 47 edges and 30 faces: 10384273735 (5192671355 classes)
+ With 48 edges and 31 faces: 4809128447 (2404902987 classes)
+ With 49 edges and 32 faces: 1476613802 (738539257 classes)
+ With 50 edges and 33 faces: 270757489 (135456226 classes)
+ With 51 edges and 34 faces: 22494163 (11284042 classes)
+71216447022 polytopes generated
+35611596455 isomorphism classes; 6745888 reflection invariant
+
+plantri -uopvm4 20
+ With 40 edges and 22 faces: 98148 (49957 classes)
+ With 41 edges and 23 faces: 12413412 (6216228 classes)
+ With 42 edges and 24 faces: 279440528 (139772014 classes)
+ With 43 edges and 25 faces: 2633118911 (1316733885 classes)
+ With 44 edges and 26 faces: 13670629344 (6835771143 classes)
+ With 45 edges and 27 faces: 44627575118 (22314671743 classes)
+ With 46 edges and 28 faces: 98584249961 (49293619937 classes)
+ With 47 edges and 29 faces: 153748652342 (76876264695 classes)
+ With 48 edges and 30 faces: 173177527208 (86591104361 classes)
+ With 49 edges and 31 faces: 141965438774 (70984826506 classes)
+ With 50 edges and 32 faces: 84144667518 (42074212402 classes)
+ With 51 edges and 33 faces: 35207381912 (17604812790 classes)
+ With 52 edges and 34 faces: 9882727713 (4942097075 classes)
+ With 53 edges and 35 faces: 1672603778 (836535543 classes)
+ With 54 edges and 36 faces: 129227103 (64719885 classes)
+759735751770 polytopes generated
+379881408164 isomorphism classes; 27064558 reflection invariant
+
+plantri -upvm4 21
+ With 42 edges and 23 faces: 171159
+ With 43 edges and 24 faces: 24454736
+ With 44 edges and 25 faces: 621638040
+ With 45 edges and 26 faces: 6623527353
+ With 46 edges and 27 faces: 38988464261
+ With 47 edges and 28 faces: 144986607904
+ With 48 edges and 29 faces: 367384415512
+ With 49 edges and 30 faces: 663656374611
+ With 50 edges and 31 faces: 877516979065
+ With 51 edges and 32 faces: 860271765669
+ With 52 edges and 33 faces: 626038224719
+ With 53 edges and 34 faces: 334467204910
+ With 54 edges and 35 faces: 127681045881
+ With 55 edges and 36 faces: 33020478701
+ With 56 edges and 37 faces: 5190532666
+ With 57 edges and 38 faces: 375126827
+4086847012014 polytopes generated;
+
+
+D. CONVEX POLYTOPES WITH MINIMUM DEGREE AT LEAST 5 (plantri -pm5)
+
+plantri -m5puov 12 
+ With 30 edges and 20 faces: 1 (1 classes)
+1 polytopes generated
+1 isomorphism classes; 1 reflection invariant
+
+plantri -m5puov 13 
+0 polytopes generated
+0 isomorphism classes; 0 reflection invariant
+
+plantri -m5puov 14 
+ With 36 edges and 24 faces: 1 (1 classes)
+1 polytopes generated
+1 isomorphism classes; 1 reflection invariant
+
+plantri -m5puov 15 
+ With 39 edges and 26 faces: 1 (1 classes)
+1 polytopes generated
+1 isomorphism classes; 1 reflection invariant
+
+plantri -m5puov 16 
+ With 40 edges and 26 faces: 1 (1 classes)
+ With 41 edges and 27 faces: 1 (1 classes)
+ With 42 edges and 28 faces: 4 (3 classes)
+6 polytopes generated
+5 isomorphism classes; 4 reflection invariant
+
+plantri -m5puov 17 
+ With 43 edges and 28 faces: 1 (1 classes)
+ With 44 edges and 29 faces: 3 (3 classes)
+ With 45 edges and 30 faces: 4 (4 classes)
+8 polytopes generated
+8 isomorphism classes; 8 reflection invariant
+
+plantri -m5puov 18 
+ With 45 edges and 29 faces: 2 (1 classes)
+ With 46 edges and 30 faces: 12 (7 classes)
+ With 47 edges and 31 faces: 15 (10 classes)
+ With 48 edges and 32 faces: 17 (12 classes)
+46 polytopes generated
+30 isomorphism classes; 14 reflection invariant
+
+plantri -m5puov 19 
+ With 48 edges and 31 faces: 4 (3 classes)
+ With 49 edges and 32 faces: 40 (24 classes)
+ With 50 edges and 33 faces: 58 (35 classes)
+ With 51 edges and 34 faces: 33 (23 classes)
+135 polytopes generated
+85 isomorphism classes; 35 reflection invariant
+
+plantri -m5puov 20 
+ With 50 edges and 32 faces: 9 (6 classes)
+ With 51 edges and 33 faces: 63 (37 classes)
+ With 52 edges and 34 faces: 244 (136 classes)
+ With 53 edges and 35 faces: 253 (140 classes)
+ With 54 edges and 36 faces: 117 (73 classes)
+686 polytopes generated
+392 isomorphism classes; 98 reflection invariant
+
+plantri -m5puov 21
+ With 53 edges and 34 faces: 45 (26 classes)
+ With 54 edges and 35 faces: 433 (231 classes)
+ With 55 edges and 36 faces: 1135 (598 classes)
+ With 56 edges and 37 faces: 1017 (540 classes)
+ With 57 edges and 38 faces: 331 (192 classes)
+2961 polytopes generated
+1587 isomorphism classes; 213 reflection invariant
+
+plantri -m5puov 22
+ With 55 edges and 35 faces: 24 (14 classes)
+ With 56 edges and 36 faces: 616 (325 classes)
+ With 57 edges and 37 faces: 3005 (1550 classes)
+ With 58 edges and 38 faces: 5734 (2955 classes)
+ With 59 edges and 39 faces: 4185 (2162 classes)
+ With 60 edges and 40 faces: 1180 (651 classes)
+14744 polytopes generated
+7657 isomorphism classes; 570 reflection invariant
+
+plantri -m5puov 23
+ With 58 edges and 37 faces: 365 (196 classes)
+ With 59 edges and 38 faces: 5058 (2591 classes)
+ With 60 edges and 39 faces: 18274 (9270 classes)
+ With 61 edges and 40 faces: 26814 (13615 classes)
+ With 62 edges and 41 faces: 16797 (8549 classes)
+ With 63 edges and 42 faces: 3899 (2070 classes)
+71207 polytopes generated
+36291 isomorphism classes; 1375 reflection invariant
+
+plantri -m5puov 24
+ With 60 edges and 38 faces: 173 (96 classes)
+ With 61 edges and 39 faces: 5497 (2810 classes)
+ With 62 edges and 40 faces: 39974 (20206 classes)
+ With 63 edges and 41 faces: 104898 (52823 classes)
+ With 64 edges and 42 faces: 125146 (63095 classes)
+ With 65 edges and 43 faces: 67568 (34124 classes)
+ With 66 edges and 44 faces: 14052 (7290 classes)
+357308 polytopes generated
+180444 isomorphism classes; 3580 reflection invariant
+
+plantri -m5puov 25
+ With 63 edges and 40 faces: 3307 (1694 classes)
+ With 64 edges and 41 faces: 56820 (28649 classes)
+ With 65 edges and 42 faces: 275764 (138525 classes)
+ With 66 edges and 43 faces: 567010 (284520 classes)
+ With 67 edges and 44 faces: 565701 (284102 classes)
+ With 68 edges and 45 faces: 269342 (135439 classes)
+ With 69 edges and 46 faces: 49667 (25381 classes)
+1787611 polytopes generated
+898310 isomorphism classes; 9009 reflection invariant
+
+plantri -m5puov 26
+ With 65 edges and 41 faces: 990 (518 classes)
+ With 66 edges and 42 faces: 54028 (27247 classes)
+ With 67 edges and 43 faces: 501717 (251687 classes)
+ With 68 edges and 44 faces: 1764979 (884431 classes)
+ With 69 edges and 45 faces: 2943645 (1474446 classes)
+ With 70 edges and 46 faces: 2524800 (1265456 classes)
+ With 71 edges and 47 faces: 1071577 (537493 classes)
+ With 72 edges and 48 faces: 180502 (91441 classes)
+9042238 polytopes generated
+4532719 isomorphism classes; 23200 reflection invariant
+
+plantri -m5puov 27
+ With 68 edges and 43 faces: 29075 (14674 classes)
+ With 69 edges and 44 faces: 628215 (315002 classes)
+ With 70 edges and 45 faces: 3880657 (1943074 classes)
+ With 71 edges and 46 faces: 10560455 (5285560 classes)
+ With 72 edges and 47 faces: 14761187 (7387374 classes)
+ With 73 edges and 48 faces: 11080030 (5547143 classes)
+ With 74 edges and 49 faces: 4245308 (2126514 classes)
+ With 75 edges and 50 faces: 654674 (329824 classes)
+45839601 polytopes generated
+22949165 isomorphism classes; 58729 reflection invariant
+
+plantri -m5puov 28
+ With 70 edges and 44 faces: 7689 (3917 classes)
+ With 71 edges and 45 faces: 522777 (262170 classes)
+ With 72 edges and 46 faces: 6121002 (3064076 classes)
+ With 73 edges and 47 faces: 27332100 (13674643 classes)
+ With 74 edges and 48 faces: 60132817 (30081720 classes)
+ With 75 edges and 49 faces: 72069944 (36052160 classes)
+ With 76 edges and 50 faces: 48089612 (24062148 classes)
+ With 77 edges and 51 faces: 16782891 (8400155 classes)
+ With 78 edges and 52 faces: 2398527 (1204737 classes)
+233457359 polytopes generated
+116805726 isomorphism classes; 154093 reflection invariant
+
+plantri -m5puov 29
+ With 73 edges and 46 faces: 258217 (129558 classes)
+ With 74 edges and 47 faces: 6784218 (3395462 classes)
+ With 75 edges and 48 faces: 51937427 (25980495 classes)
+ With 76 edges and 49 faces: 178953032 (89502100 classes)
+ With 77 edges and 50 faces: 328554612 (164317521 classes)
+ With 78 edges and 51 faces: 344079630 (172082986 classes)
+ With 79 edges and 52 faces: 206511268 (103295735 classes)
+ With 80 edges and 53 faces: 66186792 (33113060 classes)
+ With 81 edges and 54 faces: 8800984 (4412031 classes)
+1192066180 polytopes generated
+596228948 isomorphism classes; 391716 reflection invariant
+
+plantri -m5puov 30
+ With 75 edges and 47 faces: 59206 (29821 classes)
+ With 76 edges and 48 faces: 5075116 (2540458 classes)
+ With 77 edges and 49 faces: 72280336 (36153637 classes)
+ With 78 edges and 50 faces: 398489524 (199284603 classes)
+ With 79 edges and 51 faces: 1106343494 (553245996 classes)
+ With 80 edges and 52 faces: 1736780076 (868499404 classes)
+ With 81 edges and 53 faces: 1612816382 (806515573 classes)
+ With 82 edges and 54 faces: 879491006 (439841613 classes)
+ With 83 edges and 55 faces: 260584336 (130336575 classes)
+ With 84 edges and 56 faces: 32447008 (16248772 classes)
+6104366484 polytopes generated
+3052696452 isomorphism classes; 1026420 reflection invariant
+
+plantri -m5puov 31
+ With 78 edges and 49 faces: 2287156 (1145111 classes)
+ With 79 edges and 50 faces: 72031083 (36028132 classes)
+ With 80 edges and 51 faces: 667247944 (333673154 classes)
+ With 81 edges and 52 faces: 2825865636 (1413054897 classes)
+ With 82 edges and 53 faces: 6528731430 (3264576190 classes)
+ With 83 edges and 54 faces: 8930094363 (4465329366 classes)
+ With 84 edges and 55 faces: 7443174579 (3721853265 classes)
+ With 85 edges and 56 faces: 3718075225 (1859260375 classes)
+ With 86 edges and 57 faces: 1024362305 (512281901 classes)
+ With 87 edges and 58 faces: 119883207 (59995535 classes)
+31331752928 polytopes generated
+15667197926 isomorphism classes; 2642924 reflection invariant
+
+plantri -m5puov 32
+ With 80 edges and 50 faces: 479446 (240430 classes)
+ With 81 edges and 51 faces: 48918024 (24468620 classes)
+ With 82 edges and 52 faces: 832689068 (416399311 classes)
+ With 83 edges and 53 faces: 5534305556 (2767321897 classes)
+ With 84 edges and 54 faces: 18823569658 (9412162103 classes)
+ With 85 edges and 55 faces: 37081796296 (18541480725 classes)
+ With 86 edges and 56 faces: 44865765346 (22433623830 classes)
+ With 87 edges and 57 faces: 33900894153 (16951098902 classes)
+ With 88 edges and 58 faces: 15621888283 (7811471882 classes)
+ With 89 edges and 59 faces: 4021998166 (2011226628 classes)
+ With 90 edges and 60 faces: 444226539 (222231424 classes)
+161176530535 polytopes generated
+80591725752 isomorphism classes; 6920969 reflection invariant
+
+plantri -pm5uov 33
+ With 83 edges and 52 faces: 20295368 (10152741 classes)
+ With 84 edges and 53 faces: 753810321 (376951752 classes)
+ With 85 edges and 54 faces: 8298153553 (4149278837 classes)
+ With 86 edges and 55 faces: 42221707361 (21111408725 classes)
+ With 87 edges and 56 faces: 119140021626 (59571105445 classes)
+ With 88 edges and 57 faces: 203983308997 (101993247858 classes)
+ With 89 edges and 58 faces: 221009334051 (110506546904 classes)
+ With 90 edges and 59 faces: 152667508151 (76335350545 classes)
+ With 91 edges and 60 faces: 65285438093 (32643939837 classes)
+ With 92 edges and 61 faces: 15775800762 (7888416533 classes)
+ With 93 edges and 62 faces: 1649550311 (825028656 classes)
+415411427833 isomorphism classes; 17927072 reflection invariant
+830804928594 polytopes generated
+
+plantri -pm5uov 34 #/1000
+ With 85 edges and 53 faces: 3910515 (1957382 classes)
+ With 86 edges and 54 faces: 469623164 (234846981 classes)
+ With 87 edges and 55 faces: 9395720509 (4698066344 classes)
+ With 88 edges and 56 faces: 73945022947 (36973254903 classes)
+ With 89 edges and 57 faces: 301216777356 (150610142121 classes)
+ With 90 edges and 58 faces: 722797642328 (361402022519 classes)
+ With 91 edges and 59 faces: 1092105078640 (546056821115 classes)
+ With 92 edges and 60 faces: 1070446321676 (535227995999 classes)
+ With 93 edges and 61 faces: 680819405952 (340413582639 classes)
+ With 94 edges and 62 faces: 271578632193 (135792191605 classes)
+ With 95 edges and 63 faces: 61829568488 (30915951931 classes)
+ With 96 edges and 64 faces: 6138874486 (3069993552 classes)
+2145396827091 isomorphism classes
+4290746578254 polytopes generated
+
+plantri -pm5uov 35
+ With 88 edges and 55 faces: 180309786 (90171828 classes)
+ With 89 edges and 56 faces: 7799068373 (3899705466 classes)
+ With 90 edges and 57 faces: 100504272959 (50252955201 classes)
+ With 91 edges and 58 faces: 603515614576 (301760294018 classes)
+ With 92 edges and 59 faces: 2033897372915 (1016954066033 classes)
+ With 93 edges and 60 faces: 4231358798972 (2115688345019 classes)
+ With 94 edges and 61 faces: 5712927114015 (2856474952904 classes)
+ With 95 edges and 62 faces: 5109255971021 (2554640081343 classes)
+ With 96 edges and 63 faces: 3010312797687 (1505165810142 classes)
+ With 97 edges and 64 faces: 1125185937779 (562599608075 classes)
+ With 98 edges and 65 faces: 242171956724 (121088625406 classes)
+ With 99 edges and 66 faces: 22890091062 (11446245342 classes)
+11100060860777 isomorphism classes
+22199999305869 polytopes generated

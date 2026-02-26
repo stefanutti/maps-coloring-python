@@ -1,0 +1,42 @@
+{
+    "service": "microservice-a",
+    "timestamp": "2025-08-06T10:35:00Z",
+    "status": "NORMAL",
+    "metadata": {
+        "cpu": "45%",
+        "memory": "210MB",
+        "quello-che-ti-pare-descritto-con-tutti-livelli-json-che-vuoi": null
+    },
+    "sub-modules": [
+        {
+            "name": "sub-module-a",
+            "status": "NORMAL",
+            "metadata": {
+                "quello-che-ti-pare-descritto-con-tutti-livelli-json-che-vuoi": null
+            }
+        },
+        {
+            "name": "sub-module-b",
+            "status": "WARNING",
+            "metadata": {
+                "quello-che-ti-pare-descritto-con-tutti-livelli-json-che-vuoi": null
+            },
+            "sub-modules": [
+                {
+                    "name": "sub-module-b-a",
+                    "status": "NORMAL",
+                    "metadata": {
+                        "quello-che-ti-pare-descritto-con-tutti-livelli-json-che-vuoi": null
+                    }
+                },
+                {
+                    "name": "sub-module-b-b",
+                    "status": "CRITICAL",
+                    "metadata": {
+                        "quello-che-ti-pare-descritto-con-tutti-livelli-json-che-vuoi": null
+                    }
+                }
+            ]
+        }
+    ]
+}

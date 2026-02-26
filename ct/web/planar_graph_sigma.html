@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Incremental Planar Graph - Cytoscape.js</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg-header: #1e1f22;
+      --bg-panel: #26272b;
+      --bg-panel-alt: #2e3034;
+      --border: #3a3c41;
+      --border-accent: #4d7cff;
+      --text: #e7e9ed;
+      --text-dim: #9aa0ab;
+      --accent: #4d7cff;
+      --accent-hover: #6a94ff;
+      --danger: #d45555;
+      --radius: 10px;
+      --transition: 160ms cubic-bezier(.4, .2, .2, 1);
+      --focus-ring: 0 0 0 2px #121316, 0 0 0 4px var(--accent);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: #111;
+      color: var(--text);
+    }
+
+    h1 {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: .5px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+    }
+
+    h1 span.brand {
+      background: linear-gradient(135deg, #ffd54f, #ff9800);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 700;
+    }
+
+    header {
+      background: var(--bg-header);
+      border-bottom: 1px solid var(--border);
+      padding: .65rem .9rem;
+      display: flex;
+      align-items: stretch;
+      gap: .9rem;
+      box-shadow: 0 2px 4px -2px #000 inset, 0 1px 0 #2c2d30;
+      z-index: 10;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-auto-flow: column;
+      gap: .75rem;
+      align-items: stretch;
+      width: 100%;
+    }
+
+    .group {
+      position: relative;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: .55rem .75rem .6rem;
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      gap: .55rem;
+      min-width: 150px;
+    }
+
+    .group {
+      height: 100%;
+    }
+
+    .group.compact {
+      min-width: 120px;
+    }
+
+    .group-title {
+      font-size: .6rem;
+      letter-spacing: .12em;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    .inline-controls {
+      display: flex;
+      gap: .45rem;
+      flex-wrap: wrap;
+    }
+
+    .kv {
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+      min-width: 110px;
+    }
+
+    .kv label {
+      font-size: .6rem;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    input[type=number],
+    input[type=color] {
+      background: var(--bg-panel-alt);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: .4rem .55rem;
+      border-radius: 6px;
+      font-size: .75rem;
+      width: 100%;
+      transition: var(--transition);
+      min-height: 2.4rem;
+    }
+
+    input[type=color] {
+      padding: .3rem;
+      cursor: pointer;
+    }
+
+    input[type=number]:focus,
+    input[type=color]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: var(--focus-ring);
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(150px, 1fr));
+      gap: .6rem;
+    }
+
+    .config-column {
+      display: flex;
+      flex-direction: column;
+      gap: .55rem;
+    }
+
+    .config-group {
+      min-width: 560px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+    }
+
+    .control-row input[type=number],
+    .control-row input[type=color],
+    .control-row select {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .control-row input[type=color] {
+      padding: .3rem;
+      height: 100%;
+    }
+
+    select {
+      background: var(--bg-panel-alt);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: .4rem .55rem;
+      border-radius: 6px;
+      font-size: .72rem;
+      appearance: none;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: var(--focus-ring);
+    }
+
+    button {
+      position: relative;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      border: 1px solid var(--accent);
+      font-weight: 600;
+      font-size: .7rem;
+      padding: .5rem .95rem;
+      border-radius: 7px;
+      letter-spacing: .05em;
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      line-height: 1;
+      transition: var(--transition);
+    }
+
+    button.secondary {
+      background: var(--bg-panel-alt);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    button.secondary:hover {
+      background: #35373c;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    button:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    button.reset-btn {
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-panel-alt);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    button.reset-btn:hover {
+      background: #35373c;
+    }
+
+    button.reset-btn svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
+    .control-row .reset-btn {
+      margin-left: auto;
+      flex: 0 0 auto;
+    }
+
+    button.compact {
+      padding: .32rem .6rem;
+      font-size: .6rem;
+      border-radius: 6px;
+    }
+
+    #graph-container {
+      flex: 1;
+      position: relative;
+      background: #fafafa;
+    }
+
+    .badge-stack {
+      display: flex;
+      gap: .4rem;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: linear-gradient(#303237, #26272b);
+      border: 1px solid var(--border);
+      padding: .35rem .55rem;
+      font-size: .65rem;
+      border-radius: 6px;
+      display: inline-flex;
+      gap: .35rem;
+      align-items: center;
+      letter-spacing: .04em;
+    }
+
+    .badge strong {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      font-size: .63rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .switch input {
+      appearance: none;
+      width: 34px;
+      height: 18px;
+      background: #3a3c41;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      position: relative;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .switch input:after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff;
+      transition: var(--transition);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .6);
+    }
+
+    .switch input:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .switch input:checked:after {
+      transform: translateX(16px);
+    }
+
+    .switch input:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    .labels-column {
+      display: flex;
+      flex-direction: column;
+      gap: .55rem;
+    }
+
+    @media (max-width:1280px) {
+      .config-grid {
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+      }
+
+      .config-group {
+        min-width: 100%;
+      }
+    }
+
+    @media (max-width:720px) {
+      .config-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width:980px) {
+      .toolbar {
+        grid-auto-flow: row;
+      }
+
+      .group {
+        flex: 1;
+      }
+
+      header {
+        align-items: flex-start;
+      }
+    }
+  </style>
+  <!-- Cytoscape.js + Graphology CDN -->
+  <script src="https://unpkg.com/graphology@0.25.4/dist/graphology.umd.min.js"></script>
+  <script src="https://unpkg.com/cytoscape@3.27.0/dist/cytoscape.min.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1><span class="brand">4CT</span> Incremental Planar Graph</h1>
+    <div class="toolbar" id="controls">
+      <div class="group compact" id="group-labels">
+        <div class="group-title">Labels</div>
+        <div class="labels-column">
+          <label class="switch">Nodes<input type="checkbox" id="toggleNodeLabels" /></label>
+          <label class="switch">Edges<input type="checkbox" id="toggleEdgeLabels" /></label>
+          <label class="switch">Debug<input type="checkbox" id="toggleDebug" /></label>
+        </div>
+      </div>
+      <!-- Nuovo pannello trasformazione -->
+      <div class="group" id="group-transform">
+        <div class="group-title">Commands</div>
+        <div class="kv">
+          <label for="edgeSplitInput">Edge ids (n, m)</label>
+          <input id="edgeSplitInput" type="text" value="0, 1" />
+        </div>
+        <button id="btnSplitEdges" class="secondary">Split & Bridge</button>
+        <button id="btnExportDot" class="secondary">Save as .dot</button>
+      </div>
+      <div class="group config-group" id="group-config">
+        <div class="group-title">Parameters</div>
+        <div class="config-grid">
+          <div class="config-column">
+            <div class="kv">
+              <label for="cfgEdgeWidth">Edge width</label>
+              <div class="control-row">
+                <input id="cfgEdgeWidth" type="number" min="1" step="1" value="1" />
+                <button type="button" class="reset-btn" data-reset-target="cfgEdgeWidth" aria-label="Reset to default"
+                  title="Reset to default">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="kv">
+              <label for="cfgNodeWidth">Node width</label>
+              <div class="control-row">
+                <input id="cfgNodeWidth" type="number" min="2" step="1" value="5" />
+                <button type="button" class="reset-btn" data-reset-target="cfgNodeWidth" aria-label="Reset to default"
+                  title="Reset to default">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="kv">
+              <label for="cfgPhysicsSpringLength">Spring length</label>
+              <div class="control-row">
+                <input id="cfgPhysicsSpringLength" type="number" min="0" step="1" value="1" />
+                <button type="button" class="reset-btn" data-reset-target="cfgPhysicsSpringLength"
+                  aria-label="Reset to default" title="Reset to default">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="config-column">
+            <div class="kv">
+              <label for="cfgPhysicsRepulsion">Repulsion</label>
+              <div class="control-row">
+                <input id="cfgPhysicsRepulsion" type="number" min="0" step="1" value="0" />
+                <button type="button" class="reset-btn" data-reset-target="cfgPhysicsRepulsion"
+                  aria-label="Reset to default" title="Reset to default">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="kv">
+              <label for="cfgPhysicsSpringStrength">Spring strength</label>
+              <div class="control-row">
+                <input id="cfgPhysicsSpringStrength" type="number" min="0" step="1" value="2" />
+                <button type="button" class="reset-btn" data-reset-target="cfgPhysicsSpringStrength"
+                  aria-label="Reset to default" title="Reset to default">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="kv">
+              <label for="cfgPhysicsDamping">Damping</label>
+              <div class="control-row">
+                <input id="cfgPhysicsDamping" type="number" min="0" max="1" step="0.01" value="0" />
+                <button type="button" class="reset-btn" data-reset-target="cfgPhysicsDamping"
+                  aria-label="Reset to default" title="Reset to default">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="config-column">
+            <div class="kv">
+              <label for="cfgPhysicsMaxVelocity">Max velocity</label>
+              <div class="control-row">
+                <input id="cfgPhysicsMaxVelocity" type="number" min="1" step="1" value="5" />
+                <button type="button" class="reset-btn" data-reset-target="cfgPhysicsMaxVelocity"
+                  aria-label="Reset to default" title="Reset to default">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="kv">
+              <label for="cfgNodeColor">Node color</label>
+              <div class="control-row">
+                <input id="cfgNodeColor" type="color" value="#33cc66" />
+                <button type="button" class="reset-btn" data-reset-target="cfgNodeColor" aria-label="Reset to default"
+                  title="Reset to default">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="kv">
+              <label for="cfgEdgeColor">Edge color</label>
+              <div class="control-row">
+                <input id="cfgEdgeColor" type="color" value="#999999" />
+                <button type="button" class="reset-btn" data-reset-target="cfgEdgeColor" aria-label="Reset to default"
+                  title="Reset to default">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div id="graph-container"></div>
+
+  <script>
+    // Incremental planar graph generator with multi-edge visualization.
+    // Uses Cytoscape.js + Graphology and a simple geometric intersection heuristic for planarity.
+
+    // Configurazione e stato globale
+    const container = document.getElementById('graph-container');
+
+    // Stato applicazione
+    const state = {
+      graph: new window.graphology.MultiUndirectedGraph(),
+      cy: null,
+      nextNodeId: 0,
+      nextEdgeId: 0,
+      showNodeLabels: false,
+      showEdgeLabels: true,
+      initialized: false,
+      currentLayout: 'preset'
+    };
+
+    const DEFAULT_CONFIG = {
+      edgeBaseWidth: 1,
+      edgeBaseColor: '#999999',
+      positionScale: 300,
+      nodeBaseSize: 5,
+      nodeColor: '#33cc66',
+      physics: {
+        repulsion: 0,        // arrotondato da 0.002
+        springStrength: 2,   // da 2.08
+        springLength: 1,     // da 1.2
+        damping: 0,          // da 0.3
+        maxVelocity: 5,
+        timeStepCap: 0.03,   // interno, lasciato decimale
+        boundary: 6
+      }
+    };
+
+    const config = {
+      edgeBaseWidth: DEFAULT_CONFIG.edgeBaseWidth,
+      edgeBaseColor: DEFAULT_CONFIG.edgeBaseColor,
+      positionScale: DEFAULT_CONFIG.positionScale,
+      nodeBaseSize: DEFAULT_CONFIG.nodeBaseSize,
+      nodeColor: DEFAULT_CONFIG.nodeColor,
+      physics: { ...DEFAULT_CONFIG.physics }
+    };
+
+    state.config = config;
+
+    const physics = {
+      velocities: new Map(),
+      running: false,
+      rafId: null,
+      lastTimestamp: null,
+      stopTimer: null
+    };
+
+    // === DEBUG helper (aggiunto) ===
+    // Debug enable/disable
+    let DEBUG_ENABLED = false;
+    function setDebugEnabled(v) {
+      const next = !!v;
+      if (DEBUG_ENABLED === next) return;
+      DEBUG_ENABLED = next;
+      console.log(`[DBG][control] debug ${DEBUG_ENABLED ? 'enabled' : 'disabled'}`);
+    }
+    let __dbgSeq = 0;
+    function debug(tag, info = '') {
+      if (!DEBUG_ENABLED) return;
+      const line = `[DBG ${++__dbgSeq}][${tag}] ${info}`;
+      if (typeof console !== 'undefined') console.log(line);
+    }
+    window.__setDebugEnabled = setDebugEnabled;
+
+    // Costruisce attributi edge con merge opzionale
+    function edgeAttributes(extra = {}) { return { size: config.edgeBaseWidth, ...extra }; }
+
+    // Resetta i contatori id nodo/edge
+    function resetIdCounters() {
+      state.nextNodeId = 0;
+      state.nextEdgeId = 0;
+    }
+
+    // Genera prossimo id nodo (stringa)
+    function nextNodeId() { return String(state.nextNodeId++); }
+
+    // Genera prossimo key edge (prefisso 'e')
+    function nextEdgeKey() { return 'e' + String(state.nextEdgeId++); }
+
+    // Aggiunge edge con label numerica auto (versione corretta: niente add diretto a Cytoscape)
+    function addEdgeAuto(source, target) {
+      debug('addEdgeAuto.begin', `adding edge between ${source}-${target} nextEdgeId=${state.nextEdgeId}`);
+      const preCount = countEdgesBetween(source, target);
+      const labelNum = state.nextEdgeId;
+      const key = nextEdgeKey();
+      state.graph.addEdgeWithKey(
+        key,
+        source,
+        target,
+        edgeAttributes({ label: String(labelNum) })
+      );
+      debug('addEdgeAuto.added', `edgeKey=${key} preCount=${preCount} nowCount=${countEdgesBetween(source, target)}`);
+      if (preCount >= 1) {
+        debug('addEdgeAuto.recomputeParallel', `${source}-${target}`);
+        updateParallelEdgeGeometry(source, target);
+      }
+      return key;
+    }
+
+    // Azzera tutte le velocità
+    function resetPhysicsVelocities() {
+      physics.velocities.clear();
+      state.graph.forEachNode(nodeId => {
+        physics.velocities.set(nodeId, { x: 0, y: 0 });
+      });
+    }
+
+    // Crea voce velocità se assente
+    function ensureVelocityEntry(nodeId) {
+      if (!physics.velocities.has(nodeId)) {
+        physics.velocities.set(nodeId, { x: 0, y: 0 });
+      }
+      return physics.velocities.get(nodeId);
+    }
+
+    // Garantisce coerenza mappa velocità con nodi correnti
+    function ensurePhysicsVelocities() {
+      const existing = new Set(state.graph.nodes());
+      existing.forEach(nodeId => ensureVelocityEntry(nodeId));
+      physics.velocities.forEach((_, nodeId) => {
+        if (!existing.has(nodeId)) physics.velocities.delete(nodeId);
+      });
+    }
+
+    // Log info sintetiche sul nodo
+    function logNodeInfo(nodeId, prefix = 'Node info') {
+      if (!state.graph.hasNode(nodeId)) {
+        debug('info', `${prefix}: nodo ${nodeId} non trovato.`);
+        return;
+      }
+      const degree = state.graph.degree(nodeId) ?? 0;
+      debug('info', `${prefix}: id=${nodeId}, degree=${degree}`);
+    }
+
+    // Log info sintetiche sull'edge
+    function logEdgeInfo(edgeId, prefix = 'Edge info') {
+      if (!state.graph.hasEdge(edgeId)) {
+        debug('info', `${prefix}: edge ${edgeId} non trovata.`);
+        return;
+      }
+      const source = state.graph.source(edgeId);
+      const target = state.graph.target(edgeId);
+      const attrs = state.graph.getEdgeAttributes(edgeId) || {};
+      const label = attrs.label ? ` label=${attrs.label}` : '';
+      const parallels = countEdgesBetween(source, target);
+      debug('info', `${prefix}: id=${edgeId}${label}, source=${source}, target=${target}, parallels=${parallels}`);
+    }
+
+    // Numero di edge parallele tra due nodi (reintrodotta)
+    function countEdgesBetween(u, v) {
+      const { graph } = state;
+      if (!graph || !graph.hasNode(u) || !graph.hasNode(v)) return 0;
+      if (typeof graph.undirectedEdges === 'function') {
+        try { return graph.undirectedEdges(u, v).length; } catch { /* noop */ }
+      }
+      let c = 0;
+      graph.forEachEdge((eid, attrs, s, t) => {
+        if ((s === u && t === v) || (s === v && t === u)) c++;
+      });
+      return c;
+    }
+
+    // Esegue un passo della simulazione fisica
+    function stepPhysicsSimulation(dt) {
+      // debug('physics.step', `dt=${dt.toFixed(4)}`);
+      const nodes = state.graph.nodes();
+      const nodeCount = nodes.length;
+      if (!nodeCount || !state.cy) return;
+      const physicsConfig = config.physics;
+      const positionScale = config.positionScale;
+
+      const positions = [];
+      const forces = [];
+      const indexByNode = new Map();
+
+      for (let i = 0; i < nodeCount; i++) {
+        const nodeId = nodes[i];
+        const x = state.graph.getNodeAttribute(nodeId, 'x') ?? 0;
+        const y = state.graph.getNodeAttribute(nodeId, 'y') ?? 0;
+        positions.push({ x, y });
+        forces.push({ x: 0, y: 0 });
+        indexByNode.set(nodeId, i);
+      }
+
+      // Coulombic repulsion
+      for (let i = 0; i < nodeCount; i++) {
+        for (let j = i + 1; j < nodeCount; j++) {
+          let dx = positions[i].x - positions[j].x;
+          let dy = positions[i].y - positions[j].y;
+          const distSq = dx * dx + dy * dy + 1e-6;
+          const dist = Math.sqrt(distSq);
+          if (dist < 1e-4) {
+            dx = (Math.random() - 0.5) * 1e-2;
+            dy = (Math.random() - 0.5) * 1e-2;
+          }
+          const forceMag = physicsConfig.repulsion / distSq;
+          const fx = (dx / dist) * forceMag;
+          const fy = (dy / dist) * forceMag;
+          forces[i].x += fx;
+          forces[i].y += fy;
+          forces[j].x -= fx;
+          forces[j].y -= fy;
+        }
+      }
+
+      // Spring attraction along edges
+      state.graph.forEachEdge((edgeId, attrs, source, target) => {
+        const i = indexByNode.get(source);
+        const j = indexByNode.get(target);
+        if (i === undefined || j === undefined) return;
+        const dx = positions[j].x - positions[i].x;
+        const dy = positions[j].y - positions[i].y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+        const stretch = dist - physicsConfig.springLength;
+        const forceMag = physicsConfig.springStrength * stretch;
+        const fx = (dx / dist) * forceMag;
+        const fy = (dy / dist) * forceMag;
+        forces[i].x += fx;
+        forces[i].y += fy;
+        forces[j].x -= fx;
+        forces[j].y -= fy;
+      });
+
+      state.cy.batch(() => {
+        for (let i = 0; i < nodeCount; i++) {
+          const nodeId = nodes[i];
+          const force = forces[i];
+          const velocity = ensureVelocityEntry(nodeId);
+
+          velocity.x = (velocity.x + force.x * dt) * physicsConfig.damping;
+          velocity.y = (velocity.y + force.y * dt) * physicsConfig.damping;
+
+          const speed = Math.hypot(velocity.x, velocity.y);
+          if (speed > physicsConfig.maxVelocity) {
+            const velocityClamp = physicsConfig.maxVelocity / speed;
+            velocity.x *= velocityClamp;
+            velocity.y *= velocityClamp;
+          }
+
+          positions[i].x += velocity.x * dt;
+          positions[i].y += velocity.y * dt;
+
+          positions[i].x = Math.max(-physicsConfig.boundary, Math.min(physicsConfig.boundary, positions[i].x));
+          positions[i].y = Math.max(-physicsConfig.boundary, Math.min(physicsConfig.boundary, positions[i].y));
+
+          state.graph.setNodeAttribute(nodeId, 'x', positions[i].x);
+          state.graph.setNodeAttribute(nodeId, 'y', positions[i].y);
+
+          const cyNode = state.cy.getElementById(nodeId);
+          if (cyNode) {
+            cyNode.position({
+              x: positions[i].x * positionScale,
+              y: positions[i].y * positionScale
+            });
+          }
+        }
+      });
+      // debug('physics.step.done');
+    }
+
+    // Frame callback requestAnimationFrame
+    function physicsFrame(timestamp) {
+      // debug('physics.frame', `ts=${timestamp}`);
+      if (!physics.running) return;
+      if (physics.lastTimestamp == null) {
+        physics.lastTimestamp = timestamp;
+      }
+      const elapsed = (timestamp - physics.lastTimestamp) / 1000;
+      physics.lastTimestamp = timestamp;
+      const physicsConfig = config.physics;
+      const dt = Math.min(elapsed || 0, physicsConfig.timeStepCap);
+      if (dt > 0) stepPhysicsSimulation(dt);
+      physics.rafId = window.requestAnimationFrame(physicsFrame);
+      // debug('physics.frame.done');
+    }
+
+    // Avvia la simulazione fisica temporaneamente
+    function startPhysics() {
+      // debug('physics.start');
+      ensurePhysicsVelocities();
+      if (physics.running) return;
+      physics.running = true;
+      physics.lastTimestamp = null;
+      physics.rafId = window.requestAnimationFrame(physicsFrame);
+      if (physics.stopTimer) {
+        clearTimeout(physics.stopTimer);
+        physics.stopTimer = null;
+      }
+      physics.stopTimer = window.setTimeout(() => {
+        stopPhysics();
+        debug('info', 'Repulsive forces stopped (timeout).');
+      }, 4000);
+    }
+
+    // Ferma la simulazione fisica
+    function stopPhysics() {
+      // debug('physics.stop');
+      physics.running = false;
+      if (physics.rafId) {
+        window.cancelAnimationFrame(physics.rafId);
+        physics.rafId = null;
+      }
+      if (physics.stopTimer) {
+        clearTimeout(physics.stopTimer);
+        physics.stopTimer = null;
+      }
+      // debug('physics.stop.done');
+    }
+
+    // Helper ordinamento numerico stabile edge keys (e10 dopo e9, prima di e11)
+    function numericEdgeValue(id) {
+      if (typeof id !== 'string') return Number.MAX_SAFE_INTEGER;
+      const m = id.match(/^\D*(\d+)$/);
+      return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+    }
+    function numericEdgeSort(a, b) {
+      const va = numericEdgeValue(a);
+      const vb = numericEdgeValue(b);
+      if (va !== vb) return va - vb;
+      // fallback stabile: confronto stringa solo se numeri uguali
+      return a < b ? -1 : a > b ? 1 : 0;
+    }
+
+    function numericNodeValue(id) {
+      const str = String(id);
+      const match = str.match(/^\D*(\d+)$/);
+      if (match) return Number(match[1]);
+      const maybeNum = Number(str);
+      return Number.isFinite(maybeNum) ? maybeNum : Number.MAX_SAFE_INTEGER;
+    }
+
+    function canonicalNodePair(a, b) {
+      const aStr = String(a);
+      const bStr = String(b);
+      if (aStr === bStr) return [aStr, bStr];
+      const va = numericNodeValue(aStr);
+      const vb = numericNodeValue(bStr);
+      if (va !== vb) return va < vb ? [aStr, bStr] : [bStr, aStr];
+      return aStr < bStr ? [aStr, bStr] : [bStr, aStr];
+    }
+
+    // Calcola e applica offset per le edge parallele tra due nodi
+    function updateParallelEdgeGeometry(u, v) {
+      debug('parallel.update.begin', `${u}-${v}`);
+      const { graph, cy } = state;
+      if (!graph || !graph.hasNode(u) || !graph.hasNode(v)) return;
+      let edgeIds = [];
+      if (typeof graph.undirectedEdges === 'function') {
+        edgeIds = graph.undirectedEdges(u, v);
+      }
+      if (!edgeIds.length) {
+        graph.forEachEdge((eid, attrs, s, t) => {
+          if ((s === u && t === v) || (s === v && t === u)) edgeIds.push(eid);
+        });
+      }
+      if (!edgeIds.length) return;
+
+      const [canonU, canonV] = canonicalNodePair(u, v);
+      // ORDINAMENTO NUMERICO STABILE
+      const sorted = edgeIds.slice().sort(numericEdgeSort);
+      if (edgeIds.length > 1) {
+        debug('parallel.order', `${canonU}-${canonV} -> ${sorted.join(',')}`);
+      }
+
+      const x1 = graph.getNodeAttribute(canonU, 'x') || 0;
+      const y1 = graph.getNodeAttribute(canonU, 'y') || 0;
+      const x2 = graph.getNodeAttribute(canonV, 'x') || 0;
+      const y2 = graph.getNodeAttribute(canonV, 'y') || 0;
+      const lengthRaw = Math.hypot(x2 - x1, y2 - y1) || 0.0001;
+      const count = sorted.length;
+
+      sorted.forEach((edgeId, index) => {
+        const actualSource = String(graph.source(edgeId));
+        const actualTarget = String(graph.target(edgeId));
+        let orient = 1;
+        if (actualSource === canonU && actualTarget === canonV) {
+          orient = 1;
+        } else if (actualSource === canonV && actualTarget === canonU) {
+          orient = -1;
+        } else if (actualSource === canonV || actualTarget === canonU) {
+          orient = -1;
+        }
+        const baseOffset = count === 1 ? 0 : computeMultiEdgeOffset(index, count, lengthRaw, canonU, canonV);
+        const distances = [baseOffset * orient];
+        graph.setEdgeAttribute(edgeId, 'controlPointDistances', distances);
+        if (cy) {
+          const cyEdge = cy.getElementById(edgeId);
+          if (cyEdge && cyEdge.length) cyEdge.data('controlPointDistances', distances);
+        }
+      });
+      debug('parallel.update.end', `${u}-${v} edges=${edgeIds.length}`);
+    }
+
+    // Aggiorna la geometria per tutte le coppie di nodi che hanno edge parallele
+    function updateAllParallelEdgeGeometry() {
+      debug('parallel.updateAll.begin');
+      const { graph } = state;
+      const processed = new Set();
+      graph.forEachEdge((edgeId, attrs, source, target) => {
+        const key = source < target ? `${source}|${target}` : `${target}|${source}`;
+        if (!processed.has(key)) {
+          processed.add(key);
+          updateParallelEdgeGeometry(source, target);
+        }
+      });
+      debug('parallel.updateAll.end');
+    }
+
+    // Edge Split & Bridge
+    // Trova edge partendo da token utente (key o label)
+    function findEdgeKeyFromUserToken(token) {
+      const { graph } = state;
+      const t = token.trim();
+      if (!t) return null;
+      if (graph.hasEdge(t)) return t;
+      // Match sull'attributo label esatto
+      let found = null;
+      graph.forEachEdge((eid, attrs) => {
+        if (attrs && attrs.label === t) { found = eid; return false; }
+      });
+      return found;
+    }
+
+    // Crea nodo intermedio su edge (punto medio + jitter)
+    function createIntermediateNodeBetweenOld(u, v) {
+      const { graph } = state;
+      const x1 = graph.getNodeAttribute(u, 'x') ?? 0;
+      const y1 = graph.getNodeAttribute(u, 'y') ?? 0;
+      const x2 = graph.getNodeAttribute(v, 'x') ?? 0;
+      const y2 = graph.getNodeAttribute(v, 'y') ?? 0;
+      const newId = nextNodeId();
+      const jitter = 0.015;
+      graph.addNode(newId, {
+        x: (x1 + x2) / 2 - 0.5 * jitter,
+        y: (y1 + y2) / 2 - 0.5 * jitter,
+        size: 6,
+        color: config.nodeColor,
+        label: newId
+      });
+      // x: (x1 + x2) / 2 + (Math.random() - 0.5) * jitter,
+      // y: (y1 + y2) / 2 + (Math.random() - 0.5) * jitter,
+      return newId;
+    }
+
+    function createIntermediateNodeBetween(u, v, edgeToSplit) {
+      const { graph, cy } = state;
+      const x1 = graph.getNodeAttribute(u, 'x') ?? 0;
+      const y1 = graph.getNodeAttribute(u, 'y') ?? 0;
+      const x2 = graph.getNodeAttribute(v, 'x') ?? 0;
+      const y2 = graph.getNodeAttribute(v, 'y') ?? 0;
+
+      let midX = (x1 + x2) / 2;
+      let midY = (y1 + y2) / 2;
+
+      // Calcola il punto medio sulla curva di Bézier se l'arco è curvo
+      if (cy && edgeToSplit) {
+        const cyEdge = cy.getElementById(edgeToSplit);
+        if (cyEdge && cyEdge.length > 0) {
+          const controlPointDistances = cyEdge.pstyle('control-point-distances').pfValue;
+          const controlPointWeight = cyEdge.pstyle('control-point-weights').pfValue[0];
+
+          if (controlPointDistances && controlPointDistances.length > 0 && controlPointDistances[0] !== 0) {
+            const sourcePos = cyEdge.source().position();
+            const targetPos = cyEdge.target().position();
+
+            // Calcola la posizione del punto di controllo (logica semplificata da Cytoscape)
+            const dx = targetPos.x - sourcePos.x;
+            const dy = targetPos.y - sourcePos.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const perpendicular = { x: -dy / length, y: dx / length };
+
+            const controlPoint = {
+              x: sourcePos.x + dx * controlPointWeight + perpendicular.x * controlPointDistances[0],
+              y: sourcePos.y + dy * controlPointWeight + perpendicular.y * controlPointDistances[0]
+            };
+
+            // Calcola il punto a t=0.5 sulla curva di Bézier quadratica
+            const t = 0.5;
+            const bezierX = (1 - t) * (1 - t) * sourcePos.x + 2 * (1 - t) * t * controlPoint.x + t * t * targetPos.x;
+            const bezierY = (1 - t) * (1 - t) * sourcePos.y + 2 * (1 - t) * t * controlPoint.y + t * t * targetPos.y;
+
+            // Converte le coordinate di Cytoscape (pixel) in coordinate del grafo
+            midX = bezierX / config.positionScale;
+            midY = bezierY / config.positionScale;
+          }
+        }
+      }
+
+      const newId = nextNodeId();
+      graph.addNode(newId, {
+        x: midX,
+        y: midY,
+        size: 6,
+        color: config.nodeColor,
+        label: newId
+      });
+      return newId;
+    }
+
+
+    // Ritorna dettagli ed evita l'aggiornamento superfluo sull'edge rimossa
+    function splitEdge(edgeKey) {
+      debug('splitEdge.begin', edgeKey);
+      const { graph } = state;
+      if (!graph.hasEdge(edgeKey)) return null;
+      const source = graph.source(edgeKey);
+      const target = graph.target(edgeKey);
+      const midNode = createIntermediateNodeBetween(source, target, edgeKey);
+      const e1 = addEdgeAuto(source, midNode);
+      const e2 = addEdgeAuto(midNode, target);
+      updateParallelEdgeGeometry(source, midNode);
+      updateParallelEdgeGeometry(midNode, target);
+      graph.dropEdge(edgeKey);
+      debug('info', `Split edge ${edgeKey} -> new node ${midNode} (edges ${e1}, ${e2})`);
+      debug('splitEdge.end', `midNode=${midNode}`);
+      return { midNode, newEdges: [e1, e2], source, target };
+    }
+
+    // Applica split doppio/singolo e collega con bridge
+    function splitAndBridgeEdgesOld(tokA, tokB) {
+      debug('splitAndBridge.begin', `${tokA},${tokB}`);
+      const { graph } = state;
+      const keyA = findEdgeKeyFromUserToken(tokA);
+      if (!keyA) { debug('info', `Edge "${tokA}" non trovata.`); return; }
+      const keyB = findEdgeKeyFromUserToken(tokB);
+      if (!keyB) { debug('info', `Edge "${tokB}" non trovata.`); return; }
+      const sameEdge = keyA === keyB;
+
+      if (sameEdge) {
+        debug('info', `Modalità edge singola: trasformo due volte la stessa edge (chiave ${keyA}).`);
+        const firstSplit = splitEdge(keyA);
+        if (!firstSplit) { debug('info', 'Split fallito.'); return; }
+        const s = firstSplit.midNode;
+
+        const edgeToSplitAgain = firstSplit.newEdges[0];
+        const secondSplit = splitEdge(edgeToSplitAgain);
+        if (!secondSplit) { debug('info', 'Secondo split fallito.'); return; }
+        const t = secondSplit.midNode;
+
+        const existing = countEdgesBetween(s, t);
+        const targetMultiplicity = 2;
+        const created = [];
+
+        for (let i = existing; i < targetMultiplicity; i++) {
+          created.push(addEdgeAuto(s, t));
+        }
+
+        // Always force geometry update for these specific edges
+        updateParallelEdgeGeometry(s, t);
+
+        debug('info', `Creati nodi ${s} e ${t}. Edge parallele totali=${existing + created.length} (aggiunte: ${created.join(', ')}).`);
+      } else {
+        debug('info', `Trasformo edge ${keyA} e ${keyB}.`);
+        const resA = splitEdge(keyA);
+        if (!resA) { debug('info', 'Split prima edge fallito.'); return; }
+        const s = resA.midNode;
+        const resB = splitEdge(keyB);
+        if (!resB) { debug('info', 'Split seconda edge fallito.'); return; }
+        const t = resB.midNode;
+
+        addEdgeAuto(s, t);
+        updateParallelEdgeGeometry(s, t);
+        debug('info', `Aggiunta edge bridge ${s}-${t}.`);
+      }
+
+      // Force update of ALL parallel edges in the graph
+      updateAllParallelEdgeGeometry();
+
+      // Ensure the edges are rendered with the updated geometry
+      syncGraphToCytoscape();
+      ensurePhysicsVelocities();
+      startPhysics();
+      debug('splitAndBridge.end');
+    }
+
+    function splitAndBridgeEdges(tokA, tokB) {
+      debug('splitAndBridge.begin', `${tokA},${tokB}`);
+      const { graph } = state;
+      const keyA = findEdgeKeyFromUserToken(tokA);
+      if (!keyA) { debug('info', `Edge "${tokA}" non trovata.`); return; }
+      const keyB = findEdgeKeyFromUserToken(tokB);
+      if (!keyB) { debug('info', `Edge "${tokB}" non trovata.`); return; }
+      const sameEdge = keyA === keyB;
+
+      if (sameEdge) {
+        debug('info', `Modalità edge singola: trasformo due volte la stessa edge (chiave ${keyA}).`);
+        const firstSplit = splitEdge(keyA);
+        if (!firstSplit) { debug('info', 'Split fallito.'); return; }
+        const s = firstSplit.midNode;
+
+        const edgeToSplitAgain = firstSplit.newEdges[0];
+        const secondSplit = splitEdge(edgeToSplitAgain);
+        if (!secondSplit) { debug('info', 'Secondo split fallito.'); return; }
+        const t = secondSplit.midNode;
+
+        const existing = countEdgesBetween(s, t);
+        const targetMultiplicity = 2;
+        const created = [];
+
+        for (let i = existing; i < targetMultiplicity; i++) {
+          created.push(addEdgeAuto(s, t));
+        }
+
+        // Always force geometry update for these specific edges
+        updateParallelEdgeGeometry(s, t);
+
+        debug('info', `Creati nodi ${s} e ${t}. Edge parallele totali=${existing + created.length} (aggiunte: ${created.join(', ')}).`);
+      } else {
+        debug('info', `Trasformo edge ${keyA} e ${keyB}.`);
+        const resA = splitEdge(keyA);
+        if (!resA) { debug('info', 'Split prima edge fallito.'); return; }
+        const s = resA.midNode;
+        const resB = splitEdge(keyB);
+        if (!resB) { debug('info', 'Split seconda edge fallito.'); return; }
+        const t = resB.midNode;
+
+        addEdgeAuto(s, t);
+        updateParallelEdgeGeometry(s, t);
+        debug('info', `Aggiunta edge bridge ${s}-${t}.`);
+      }
+
+      // Rimosso per evitare di alterare la geometria di archi non coinvolti
+      // updateAllParallelEdgeGeometry();
+
+      // Ensure the edges are rendered with the updated geometry
+      syncGraphToCytoscape();
+      ensurePhysicsVelocities();
+      startPhysics();
+      debug('splitAndBridge.end');
+    }
+
+    function exportToDot() {
+      debug('exportToDot.begin');
+      const { graph, cy } = state;
+      if (!graph) {
+        debug('exportToDot.error', 'No graph found.');
+        return;
+      }
+
+      // Ensure positions are up to date from Cytoscape
+      if (cy) {
+        updateGraphPositionsFromCy();
+      }
+
+      let dotContent = 'graph {\n';
+
+      graph.forEachEdge((edgeId, attrs, source, target) => {
+        let edgeAttrs = [];
+        if (attrs.label !== undefined) {
+          edgeAttrs.push(`label="${attrs.label}"`);
+        }
+        if (attrs.color !== undefined) {
+          edgeAttrs.push(`color="${attrs.color}"`);
+        }
+        const attrString = edgeAttrs.length > 0 ? ` [${edgeAttrs.join(', ')}]` : '';
+        dotContent += `  "${source}" -- "${target}"${attrString};\n`;
+      });
+
+      dotContent += '}\n';
+
+      const blob = new Blob([dotContent], { type: 'text/vnd.graphviz' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'graph.dot';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      debug('exportToDot.end');
+    }
+
+    function updateGraphPositionsFromCy() {
+      if (!state.cy || !state.graph) return;
+      const invScale = 1 / config.positionScale;
+      state.cy.nodes().forEach(node => {
+        const pos = node.position();
+        const nodeId = node.id();
+        if (!state.graph.hasNode(nodeId)) return;
+        state.graph.setNodeAttribute(nodeId, 'x', pos.x * invScale);
+        state.graph.setNodeAttribute(nodeId, 'y', pos.y * invScale);
+      });
+    }
+
+    // Initialize seed graph: if 2 nodes -> 3 parallel edges, else convex polygon
+    function createSeedGraph(nodeCount) {
+      debug('seed.begin', `nodeCount=${nodeCount}`);
+      const { graph } = state;
+      graph.clear();
+      resetIdCounters();
+
+      if (nodeCount === 2) {
+        const n0 = nextNodeId(); // '0'
+        const n1 = nextNodeId(); // '1'
+        graph.addNode(n0, { x: -0.5, y: 0, size: 6, color: config.nodeColor, label: n0 });
+        graph.addNode(n1, { x: 0.5, y: 0, size: 6, color: config.nodeColor, label: n1 });
+        addEdgeAuto(n0, n1);
+        addEdgeAuto(n0, n1);
+        addEdgeAuto(n0, n1);
+        // Update parallel edge geometry after all edges are added
+        updateParallelEdgeGeometry(n0, n1);
+        debug('info', 'Created base graph: 2 nodes, 3 parallel edges.');
+      } else {
+        const radius = 1;
+        for (let i = 0; i < nodeCount; i++) {
+          const id = nextNodeId();
+          const angle = 2 * Math.PI * i / nodeCount;
+          state.graph.addNode(id, {
+            x: Math.cos(angle) * radius,
+            y: Math.sin(angle) * radius,
+            size: 5,
+            color: config.nodeColor,
+            label: id
+          });
+        }
+        for (let i = 0; i < nodeCount; i++) {
+          const from = String(i);
+          const to = String((i + 1) % nodeCount);
+          addEdgeAuto(from, to);
+        }
+        debug('info', `Created convex polygon: ${nodeCount} nodes.`);
+      }
+      resetPhysicsVelocities();
+      syncGraphToCytoscape();
+      debug('seed.end', `nodes=${state.graph.order} edges=${state.graph.size}`);
+    }
+
+    // Inizializza gli elementi Cytoscape dal grafo
+    function buildCytoscapeElementsOld() {
+      debug('cy.build.begin');
+      const elements = [];
+      const parallelMap = new Map();
+      const positionScale = config.positionScale;
+
+      state.graph.forEachNode((nodeId, attrs) => {
+        const color = attrs.color || config.nodeColor;
+        const label = attrs.label ?? nodeId;
+        const x = (attrs.x ?? 0) * positionScale;
+        const y = (attrs.y ?? 0) * positionScale;
+
+        elements.push({
+          group: 'nodes',
+          data: { id: nodeId, label, color },
+          position: { x, y }
+        });
+      });
+
+      // Raggruppa edge parallele
+      state.graph.forEachEdge((edgeId, attrs, source, target) => {
+        const key = source < target ? `${source}|${target}` : `${target}|${source}`;
+        if (!parallelMap.has(key)) parallelMap.set(key, { list: [], source, target });
+        parallelMap.get(key).list.push({ edgeId, attrs: attrs || {}, source, target });
+      });
+
+      parallelMap.forEach(({ list }) => {
+        const count = list.length;
+        if (!count) return;
+        const firstEdge = list[0];
+        const [canonSource, canonTarget] = canonicalNodePair(firstEdge.source, firstEdge.target);
+
+        const x1 = state.graph.getNodeAttribute(canonSource, 'x') || 0;
+        const y1 = state.graph.getNodeAttribute(canonSource, 'y') || 0;
+        const x2 = state.graph.getNodeAttribute(canonTarget, 'x') || 0;
+        const y2 = state.graph.getNodeAttribute(canonTarget, 'y') || 0;
+        const lengthRaw = Math.hypot(x2 - x1, y2 - y1) || 0.0001;
+
+        const sortedList = list.slice().sort((a, b) => numericEdgeSort(a.edgeId, b.edgeId));
+        if (count > 1) debug('cy.build.order', `${canonSource}-${canonTarget} -> ${sortedList.map(e => e.edgeId).join(',')}`);
+
+        sortedList.forEach((edge, index) => {
+          const src = String(edge.source);
+          const tgt = String(edge.target);
+          let orient = 1;
+          if (src === canonSource && tgt === canonTarget) {
+            orient = 1;
+          } else if (src === canonTarget && tgt === canonSource) {
+            orient = -1;
+          } else if (src === canonTarget || tgt === canonSource) {
+            orient = -1;
+          }
+          const baseOffset = count === 1 ? 0 : computeMultiEdgeOffset(index, count, lengthRaw, canonSource, canonTarget);
+          const distances = [baseOffset * orient];
+          state.graph.setEdgeAttribute(edge.edgeId, 'controlPointDistances', distances);
+          elements.push({
+            group: 'edges',
+            data: {
+              id: edge.edgeId,
+              source: edge.source,
+              target: edge.target,
+              controlPointDistances: distances,
+              color: edge.attrs.color || config.edgeBaseColor,
+              label: edge.attrs.label || edge.edgeId,
+              width: config.edgeBaseWidth
+            }
+          });
+        });
+      });
+
+      debug('cy.build.end', `nodes=${elements.filter(e => e.group === 'nodes').length} edges=${elements.filter(e => e.group === 'edges').length}`);
+      return elements;
+    }
+
+    function buildCytoscapeElements() {
+      debug('cy.build.begin');
+      const elements = [];
+      const positionScale = config.positionScale;
+
+      state.graph.forEachNode((nodeId, attrs) => {
+        elements.push({
+          group: 'nodes',
+          data: {
+            id: nodeId,
+            label: attrs.label ?? nodeId,
+            color: attrs.color || config.nodeColor
+          },
+          position: {
+            x: (attrs.x ?? 0) * positionScale,
+            y: (attrs.y ?? 0) * positionScale
+          }
+        });
+      });
+
+      state.graph.forEachEdge((edgeId, attrs, source, target) => {
+        elements.push({
+          group: 'edges',
+          data: {
+            id: edgeId,
+            source: source,
+            target: target,
+            // Usa i valori di curvatura già calcolati e memorizzati nell'attributo
+            controlPointDistances: attrs.controlPointDistances || [0],
+            color: attrs.color || config.edgeBaseColor,
+            label: attrs.label || edgeId,
+            width: config.edgeBaseWidth
+          }
+        });
+      });
+
+      debug('cy.build.end', `nodes=${elements.filter(e => e.group === 'nodes').length} edges=${elements.filter(e => e.group === 'edges').length}`);
+      return elements;
+    }
+
+
+    // Helper per offset generico multi-edge
+    function computeMultiEdgeOffset(index, count, lengthRaw, source, target) {
+      // Scala l'intensità della curvatura in base alla lunghezza reale dell'arco
+      const normLenPx = lengthRaw * config.positionScale;
+      const lenScale = Math.min(1.4, Math.max(0.6, normLenPx / 220));
+      const base = 38 * lenScale;
+      let centerShift;
+      // Regole richieste:
+      // 1 edge: 0
+      // 2 edges: 1, -1
+      // 3 edges: 0, 1, -1
+      if (count === 1) {
+        centerShift = 0;
+      } else if (count === 2) {
+        centerShift = index === 0 ? 1 : -1;
+      } else if (count === 3) {
+        centerShift = index === 0 ? 0 : (index === 1 ? 1 : -1);
+      }
+      debug('offset', `idx=${index} count=${count} lenRaw=${lengthRaw.toFixed(3)} normPx=${normLenPx.toFixed(1)} scale=${lenScale.toFixed(2)} shift=${centerShift} base=${base.toFixed(1)} off=${(-centerShift * base).toFixed(1)} s=${source} t=${target}`);
+      return -centerShift * base;
+    }
+
+    // Renderer Cytoscape sincronizzato con lo stato del grafo
+    function syncGraphToCytoscape() {
+      debug('cy.sync.begin');
+      if (!state.cy) return;
+
+      const elements = buildCytoscapeElements();
+      const currentPan = state.cy.pan();
+      const currentZoom = state.cy.zoom();
+
+      state.cy.batch(() => {
+        state.cy.elements().remove();
+        state.cy.add(elements);
+      });
+
+      state.cy.zoom(currentZoom);
+      state.cy.pan(currentPan);
+      ensurePhysicsVelocities();
+      applyNodeBaseSize(config.nodeBaseSize);
+      applyEdgeBaseWidth(config.edgeBaseWidth);
+      debug('cy.sync.end', `nodes=${state.cy.nodes().length} edges=${state.cy.edges().length}`);
+    }
+
+    // Inizializza renderer Cytoscape
+    function initializeCytoscapeRenderer() {
+      debug('cy.init.begin');
+      if (state.cy) {
+        state.cy.destroy();
+        state.cy = null;
+      }
+
+      state.cy = cytoscape({
+        container,
+        elements: buildCytoscapeElements(),
+        layout: { name: 'preset' },
+        style: [
+          {
+            selector: 'node',
+            style: {
+              'background-color': 'data(color)',
+              width: config.nodeBaseSize,
+              height: config.nodeBaseSize,
+              label: 'data(label)',
+              color: '#111',
+              'font-size': 9,
+              'text-margin-y': -10,
+              'text-background-color': '#fff',
+              'text-background-opacity': 0.5,
+              'text-background-padding': 1,
+              'text-outline-width': 0
+            }
+          },
+          {
+            selector: 'edge',
+            style: {
+              width: 'data(width)',
+              'line-color': 'data(color)',
+              'curve-style': 'unbundled-bezier',
+              'control-point-distances': 'data(controlPointDistances)',
+              'control-point-weights': 0.5,
+              'edge-distances': 'node-position',
+              label: 'data(label)',
+              'font-size': 7,
+              'text-rotation': 'autorotate',
+              opacity: 0.9
+            }
+          }
+        ]
+      });
+
+      setupCytoscapeInteractions();
+
+      if (state.cy.nodes().length) {
+        state.cy.fit(state.cy.elements(), 50);
+      }
+      applyLabelVisibility();
+      applyNodeBaseSize(config.nodeBaseSize);
+      applyEdgeBaseWidth(config.edgeBaseWidth);
+      debug('cy.init.end', `nodes=${state.cy.nodes().length} edges=${state.cy.edges().length}`);
+    }
+
+    // Applica visibilità etichette secondo stato
+    function applyLabelVisibility() {
+      if (!state.cy) return;
+      state.cy.style()
+        .selector('node').style('label', state.showNodeLabels ? 'data(label)' : '')
+        .selector('edge').style('label', state.showEdgeLabels ? 'data(label)' : '')
+        .update();
+    }
+
+    // Registra interazioni utente su nodi/edge
+    function setupCytoscapeInteractions() {
+      debug('cy.interactions.setup');
+      if (!state.cy) return;
+
+      state.cy.on('grab', 'node', event => {
+        debug('node.grab', event.target.id());
+        const nodeId = event.target.id();
+        const velocity = ensureVelocityEntry(nodeId);
+        velocity.x = 0;
+        velocity.y = 0;
+        stopPhysics();
+        logNodeInfo(nodeId, 'Node grab');
+      });
+
+      state.cy.on('dragfree', 'node', event => {
+        debug('node.dragfree', event.target.id());
+        const node = event.target;
+        const pos = node.position();
+        const nodeId = node.id();
+
+        state.graph.setNodeAttribute(nodeId, 'x', pos.x / config.positionScale);
+        state.graph.setNodeAttribute(nodeId, 'y', pos.y / config.positionScale);
+        const velocity = ensureVelocityEntry(nodeId);
+        velocity.x = 0;
+        velocity.y = 0;
+        ensurePhysicsVelocities();
+        logNodeInfo(nodeId, 'Node release');
+      });
+
+      state.cy.on('tap', 'node', event => {
+        debug('node.tap', event.target.id());
+        const nodeId = event.target.id();
+        logNodeInfo(nodeId, 'Node tap');
+      });
+
+      state.cy.on('tap', 'edge', event => {
+        debug('edge.tap', event.target.id());
+        const edgeId = event.target.id();
+        logEdgeInfo(edgeId, 'Edge tap');
+      });
+    }
+
+    function restartPhysicsSimulation() {
+      ensurePhysicsVelocities();
+      startPhysics();
+    }
+
+    function applyNodeColorToGraph(color) {
+      if (!state.graph) return;
+      const fallback = (typeof color === 'string' && color) ? color : config.nodeColor;
+      const normalized = typeof fallback === 'string' ? fallback.toLowerCase() : DEFAULT_CONFIG.nodeColor;
+      state.graph.forEachNode(nodeId => {
+        state.graph.setNodeAttribute(nodeId, 'color', normalized);
+      });
+      if (state.cy) {
+        state.cy.batch(() => {
+          state.cy.nodes().forEach(node => {
+            node.data('color', normalized);
+          });
+        });
+        state.cy.style().update();
+      }
+    }
+
+    function applyNodeBaseSize(size) {
+      const resolved = Number.isFinite(size) ? size : config.nodeBaseSize;
+      const width = Math.max(2, resolved);
+      if (!state.cy) return;
+      state.cy.style()
+        .selector('node').style({ width, height: width })
+        .update();
+    }
+
+    function applyEdgeBaseWidth(width) {
+      const resolved = Number.isFinite(width) ? width : config.edgeBaseWidth;
+      const finalWidth = Math.max(0.1, resolved);
+      if (state.graph) {
+        state.graph.forEachEdge(edgeId => {
+          state.graph.setEdgeAttribute(edgeId, 'size', finalWidth);
+        });
+      }
+      if (state.cy) {
+        state.cy.batch(() => {
+          state.cy.edges().forEach(edge => {
+            edge.data('width', finalWidth);
+          });
+        });
+        state.cy.style().update();
+      }
+    }
+
+    const CONFIG_CONTROL_DEFS = [
+      {
+        id: 'cfgEdgeWidth', path: ['edgeBaseWidth'], type: 'number', min: 1, step: 1,
+        onUpdate: v => { applyEdgeBaseWidth(v); }
+      },
+      {
+        id: 'cfgNodeWidth', path: ['nodeBaseSize'], type: 'number', min: 2, step: 1,
+        onUpdate: v => { applyNodeBaseSize(v); }
+      },
+      {
+        id: 'cfgPhysicsSpringLength', path: ['physics', 'springLength'], type: 'number', min: 0, step: 1,
+        onUpdate: () => { restartPhysicsSimulation(); }
+      },
+      {
+        id: 'cfgPhysicsRepulsion', path: ['physics', 'repulsion'], type: 'number', min: 0, step: 1,
+        onUpdate: () => { restartPhysicsSimulation(); }
+      },
+      {
+        id: 'cfgPhysicsSpringStrength', path: ['physics', 'springStrength'], type: 'number', min: 0, step: 1,
+        onUpdate: () => { restartPhysicsSimulation(); }
+      },
+      {
+        id: 'cfgPhysicsDamping', path: ['physics', 'damping'], type: 'number', min: 0, max: 1, step: 0.01, allowFloat: true,
+        onUpdate: () => { restartPhysicsSimulation(); }
+      },
+      {
+        id: 'cfgPhysicsMaxVelocity', path: ['physics', 'maxVelocity'], type: 'number', min: 1, step: 1,
+        onUpdate: () => { restartPhysicsSimulation(); }
+      },
+      {
+        id: 'cfgNodeColor', path: ['nodeColor'], type: 'color',
+        onUpdate: c => { applyNodeColorToGraph(c); }
+      },
+      {
+        id: 'cfgEdgeColor', path: ['edgeBaseColor'], type: 'color',
+        onUpdate: () => { syncGraphToCytoscape(); }
+      }
+    ];
+
+    function getValueAtPath(root, path) {
+      return path.reduce((acc, key) => (acc != null ? acc[key] : undefined), root);
+    }
+
+    function getConfigValueAtPath(path) {
+      return getValueAtPath(config, path);
+    }
+
+    function getDefaultValueAtPath(path) {
+      return getValueAtPath(DEFAULT_CONFIG, path);
+    }
+
+    function setConfigValueAtPath(path, value) {
+      let target = config;
+      for (let i = 0; i < path.length - 1; i++) {
+        const segment = path[i];
+        if (target[segment] == null) target[segment] = {};
+        target = target[segment];
+      }
+      target[path[path.length - 1]] = value;
+    }
+
+    function determineEventName(def) {
+      if (def.event) return def.event;
+      if (def.type === 'color' || def.type === 'number') return 'input';
+      return 'change';
+    }
+
+    function normalizeToStep(value, step) {
+      if (!Number.isFinite(value) || typeof step !== 'number' || !Number.isFinite(step) || step <= 0) return value;
+      const stepStr = `${step}`;
+      const decimalPart = stepStr.includes('.') ? stepStr.split('.')[1] : '';
+      if (!decimalPart) return value;
+      const precision = decimalPart.length;
+      const factor = 10 ** precision;
+      return Math.round(value * factor) / factor;
+    }
+
+    function parseNumericValue(raw, allowFloat, step) {
+      if (typeof raw !== 'string') return { status: 'invalid' };
+      const trimmed = raw.trim();
+      if (trimmed === '' || trimmed === '+' || trimmed === '-') return { status: 'incomplete' };
+      let normalized = trimmed.replace(/\s+/g, '');
+      // Sostituisci virgola con punto per i float
+      if (allowFloat) {
+        // Consenti un solo separatore decimale
+        const parts = normalized.split(/[.,]/);
+        if (parts.length > 2) return { status: 'invalid' };
+        normalized = normalized.replace(',', '.');
+        if (/^[+-]?\d+(\.)?$/.test(normalized)) return { status: 'incomplete' }; // es: "1."
+        if (!/^[+-]?\d+(\.\d+)?$/.test(normalized)) return { status: 'invalid' };
+        const num = Number(normalized);
+        if (!Number.isFinite(num)) return { status: 'invalid' };
+        // Arrotonda alla granularità del passo se definito
+        if (Number.isFinite(step) && step > 0 && String(step).includes('.')) {
+          const decs = String(step).split('.')[1].length;
+          const factor = 10 ** decs;
+          return { status: 'ok', value: Math.round(num * factor) / factor };
+        }
+        return { status: 'ok', value: num };
+      } else {
+        if (!/^[+-]?\d+$/.test(normalized)) return { status: 'invalid' };
+        const num = Number(normalized);
+        if (!Number.isFinite(num)) return { status: 'invalid' };
+        return { status: 'ok', value: num };
+      }
+    }
+
+    function updateConfigInput(def, value) {
+      const element = document.getElementById(def.id);
+      if (!element) return;
+      if (def.type === 'number') {
+        element.value = Number.isFinite(value) ? String(value) : '';
+      } else {
+        element.value = value || '';
+      }
+    }
+
+    function applyConfigChange(def, rawValue) {
+      const previous = getConfigValueAtPath(def.path);
+      let nextValue = rawValue;
+
+      if (def.type === 'number') {
+        const trimmed = typeof rawValue === 'string' ? rawValue.trim() : '';
+        if (trimmed === '') { updateConfigInput(def, previous); return; }
+        const parsedResult = parseNumericValue(trimmed, !!def.allowFloat, def.step);
+        if (parsedResult.status === 'incomplete') return;
+        if (parsedResult.status === 'invalid') { updateConfigInput(def, previous); return; }
+        let parsed = parsedResult.value;
+        if (typeof def.min === 'number') parsed = Math.max(def.min, parsed);
+        if (typeof def.max === 'number') parsed = Math.min(def.max, parsed);
+        if (!def.allowFloat) parsed = Math.trunc(parsed);
+        nextValue = parsed;
+      } else if (def.type === 'color') {
+        const color = typeof rawValue === 'string' ? rawValue.trim() : '';
+        if (!/^#[0-9a-fA-F]{6}$/.test(color)) { updateConfigInput(def, previous); return; }
+        nextValue = color.toLowerCase();
+      }
+
+      setConfigValueAtPath(def.path, nextValue);
+      updateConfigInput(def, nextValue);
+      if (typeof def.onUpdate === 'function') def.onUpdate(nextValue, previous);
+    }
+
+    function resetConfigControl(def) {
+      const defaultValue = getDefaultValueAtPath(def.path);
+      if (typeof defaultValue === 'undefined') return;
+      const previous = getConfigValueAtPath(def.path);
+      setConfigValueAtPath(def.path, defaultValue);
+      updateConfigInput(def, defaultValue);
+      if (typeof def.onUpdate === 'function') {
+        def.onUpdate(defaultValue, previous);
+      }
+    }
+
+    function setupConfigControls() {
+      CONFIG_CONTROL_DEFS.forEach(def => {
+        const element = document.getElementById(def.id);
+        if (!element) return;
+        updateConfigInput(def, getConfigValueAtPath(def.path));
+        const eventName = determineEventName(def);
+        element.addEventListener(eventName, event => {
+          applyConfigChange(def, event.target.value);
+        });
+        const resetButtons = document.querySelectorAll(`.reset-btn[data-reset-target="${def.id}"]`);
+        resetButtons.forEach(btn => {
+          btn.addEventListener('click', () => { resetConfigControl(def); });
+        });
+      });
+    }
+
+    // Inizializza i controlli dell'interfaccia utente
+    function initializeUI() {
+      const chkNodeLabels = document.getElementById('toggleNodeLabels');
+      const chkEdgeLabels = document.getElementById('toggleEdgeLabels');
+      const btnSplitEdges = document.getElementById('btnSplitEdges');
+      const chkDebug = document.getElementById('toggleDebug');
+      if (chkNodeLabels) {
+        chkNodeLabels.checked = state.showNodeLabels;
+        chkNodeLabels.onchange = e => { state.showNodeLabels = e.target.checked; applyLabelVisibility(); };
+      }
+      if (chkEdgeLabels) {
+        chkEdgeLabels.checked = state.showEdgeLabels;
+        chkEdgeLabels.onchange = e => { state.showEdgeLabels = e.target.checked; applyLabelVisibility(); };
+      }
+      if (btnSplitEdges) {
+        btnSplitEdges.onclick = () => {
+          const raw = document.getElementById('edgeSplitInput').value || '';
+          const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+          if (parts.length !== 2) {
+            debug('info', 'Inserire due edge (anche uguali) separate da virgola. Es: "0, 0"');
+            return;
+          }
+          splitAndBridgeEdges(parts[0], parts[1]);
+        };
+      }
+      const btnExportDot = document.getElementById('btnExportDot');
+      if (btnExportDot) {
+        btnExportDot.onclick = exportToDot;
+      }
+      if (chkDebug) {
+        chkDebug.checked = DEBUG_ENABLED;
+        chkDebug.onchange = e => setDebugEnabled(e.target.checked);
+      }
+      setupConfigControls();
+    }
+
+    // Optional: keyboard shortcut Shift+D toggle (filtered to avoid inputs)
+    window.addEventListener('keydown', e => {
+      const tag = e.target && e.target.tagName;
+      if (e.target && e.target.isContentEditable) return;
+      if (tag && ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+      if (!(e.shiftKey && e.key.toLowerCase() === 'd')) return;
+      setDebugEnabled(!DEBUG_ENABLED);
+      const cb = document.getElementById('toggleDebug');
+      if (cb) cb.checked = DEBUG_ENABLED;
+    });
+
+    // Reintroduzione funzioni diagnostica (corrette)
+    function ensureEdgeGeometryAttributes() {
+      let fixed = 0;
+      state.graph.forEachEdge((eid, attrs) => {
+        if (!attrs || !Array.isArray(attrs.controlPointDistances)) {
+          state.graph.setEdgeAttribute(eid, 'controlPointDistances', [0]);
+          fixed++;
+        }
+      });
+      if (fixed) debug('init.fixEdges', `controlPointDistances aggiunti a ${fixed} edge`);
+      return fixed;
+    }
+
+    function runInitializationDiagnostics(phase = 'initial') {
+      const issues = [];
+      if (!state.graph) issues.push('graph assente');
+      if (state.graph && state.graph.order === 0) issues.push('nessun nodo');
+      if (!state.cy) issues.push('renderer Cytoscape non creato');
+
+      let missingPos = 0;
+      if (state.graph) {
+        state.graph.forEachNode((n, a) => {
+          if (typeof a.x !== 'number' || typeof a.y !== 'number') {
+            missingPos++;
+            state.graph.mergeNodeAttributes(n, { x: 0, y: 0 });
+          }
+        });
+      }
+      if (missingPos) issues.push(`nodi senza posizione: ${missingPos}`);
+
+      const fixed = ensureEdgeGeometryAttributes();
+      if (fixed) issues.push(`edge geometry riparata: ${fixed}`);
+
+      if (state.cy) {
+        const cyNodeCount = state.cy.nodes().length;
+        const cyEdgeCount = state.cy.edges().length;
+        if (cyNodeCount !== state.graph.order) issues.push(`mismatch nodi (graph=${state.graph.order}, cy=${cyNodeCount})`);
+        if (cyEdgeCount !== state.graph.size) issues.push(`mismatch edge (graph=${state.graph.size}, cy=${cyEdgeCount})`);
+      }
+
+      if (!issues.length) {
+        debug('init.diagnostics', `OK (phase=${phase})`);
+        state.initialized = true;
+      } else {
+        debug('init.diagnostics', `ISSUES (phase=${phase}): ${issues.join(' | ')}`);
+      }
+      return !issues.length;
+    }
+
+    // Inizializza l'applicazione
+    function initializeApplication() {
+      debug('app.init.begin');
+      initializeUI();
+      createSeedGraph(2);
+      initializeCytoscapeRenderer();
+      ensurePhysicsVelocities();
+      startPhysics();
+      runInitializationDiagnostics('afterInit');
+      // Verifica post-render (un frame dopo)
+      requestAnimationFrame(() => runInitializationDiagnostics('postRAF'));
+      debug('app.init.end');
+    }
+
+    // Avvio automatico dell'applicazione
+    initializeApplication();
+
+    // (Opzionale) Esposizione per console manuale
+    window.__APP_DIAG = { state, runInitializationDiagnostics };
+
+    // Forza un primo sync esplicito in caso di caricamento lento
+    if (state.cy) {
+      syncGraphToCytoscape();
+    }
+
+    // DIAGNOSTICA: cattura errori JS globali
+    window.addEventListener('error', e => {
+      debug('window.error', e.message);
+    });
+    window.addEventListener('unhandledrejection', e => {
+      debug('window.unhandledrejection', (e.reason && e.reason.message) || e.reason);
+    });
+
+    // Verifica di sicurezza: se l’inizializzazione non è avvenuta (ad es. eccezione)
+    if (!state.cy) {
+      try {
+        debug('info', 'Re-init fallback avviato.');
+        initializeCytoscapeRenderer();
+        syncGraphToCytoscape();
+      } catch (err) {
+        debug('info', 'Fallback init error: ' + err.message);
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+
+</html>

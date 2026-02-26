@@ -1,0 +1,41 @@
+Planar Graph Statistics
+=======================
+
+Generation Date: 2025-09-08 07:44:17
+Target Faces: 15
+Steps Performed: 1
+
+Graph Properties:
+- Vertices (V): 2
+- Edges (E): 3
+- Faces (F): 3
+- Connected: True
+- Components: 1
+
+Planarity Analysis:
+- Is Planar: True
+
+Euler's Formula (V - E + F = 2):
+- Euler Characteristic: 2
+- Valid for Planar Graph: True
+
+Regularity Analysis:
+- Is 3-Regular: True
+- Degree Range: 3 - 3
+- Unique Degrees: [3]
+
+Detailed Degree Distribution:
+- Min degree: 3
+- Max degree: 3
+- Average degree: 3.00
+
+4-Coloring Theorem Relevance:
+- 4-colorable: YES (planar graph)
+- 3-colorable: YES (3-regular planar graph)
+
+Node Types:
+- Original nodes: 2 [1, 2]
+- Added nodes: 0
+
+Edge Multiplicities:
+- 1 edge pair(s) with 3 parallel edge(s)

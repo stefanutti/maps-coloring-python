@@ -139,7 +139,7 @@ from old.ct_graph_utils_mario import get_the_other_colors
 from old.ct_graph_utils_mario import log_faces
 from old.ct_graph_utils_mario import log_faces_info
 
-from ct.ct_create_random_maps_from_2v import PlanarGraphGenerator
+from ct.converters.ct_create_random_maps_from_2v import PlanarGraphGenerator
 from numpy.random import randint
 
 

@@ -36,7 +36,7 @@ def parse_dot_file(filepath):
 
 
 def main():
-    dot_file = sys.argv[1] if len(sys.argv) > 1 else "tttt.dot"
+    dot_file = sys.argv[1] if len(sys.argv) > 1 else "input.dot"
 
     print(f"Reading {dot_file} ...")
     G, edge_colors = parse_dot_file(dot_file)

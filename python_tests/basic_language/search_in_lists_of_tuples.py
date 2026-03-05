@@ -1,5 +1,3 @@
-#!/usr/bin/env sage
-
 import time
 
 def rotate (l, n):

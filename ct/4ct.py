@@ -38,13 +38,12 @@
 #
 # TODOs:
 # - Moved to: https://github.com/stefanutti/maps-coloring-python/issues
-# - TODO: Get rid of sage
-# - TODO: Fix docstring for each function
 #
 # BACKLOG to evaluate:
 # - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster, and won't need sage!
 #
 # Done:
+# - Get rid of sage
 # - Logging system
 # - Sage doesn't handle multiple edges or loops when embedding is involved
 #   - For example G.faces() executes an embedding and returns an error if the graph contains an F2 or a loop
@@ -152,109 +151,13 @@ from ct_graph_utils import graph_size
 from ct_graph_utils import is_graph_regular
 from ct_graph_utils import create_networkx_graph
 
-from ct.ct_create_random_maps_from_2v import PlanarGraphGenerator
+from ct.converters.ct_create_random_maps_from_2v import PlanarGraphGenerator
 
 from numpy.random import randint
 
 import cProfile
 import pstats
 
-
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-# 4CT: BUGS
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-######
-
-# BEGIN BUG-001
-#
-# BAD:
-# ----
-# 2020-04-12 14:59:17,282 - root - INFO - END 94: Main loop - len(ariadne_s_thread) = 95
-# 2020-04-12 14:59:17,283 - root - INFO - BEGIN 95: Main loop
-# 2020-04-12 14:59:17,283 - root - INFO - BEGIN 95: Search the right edge to remove (faces left: 5)
-# 2020-04-12 14:59:17,283 - root - INFO - END 95: Search the right edge to remove. Found: (129, 194) (case: 3, 4)
-# 2020-04-12 14:59:17,283 - root - INFO - BEGIN 95: Remove an F3, F4 or F5 (case: 3, 4)
-# 2020-04-12 14:59:17,283 - root - INFO - XXXXXX. f3: [(73, 180), (180, 56), (56, 73)], f4: [(73, 56), (56, 185), (185, 73)]
-# 2020-04-12 14:59:17,283 - root - INFO - END 95: Remove an F3, F4 or F5 (case: 3, 4)
-# 2020-04-12 14:59:17,283 - root - INFO - XXX. stats['F#']: {3: 4, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0}
-# 2020-04-12 14:59:17,283 - ct.ct_graph_utils - INFO - Face: [(73, 56), (56, 185), (185, 73)]
-# 2020-04-12 14:59:17,283 - ct.ct_graph_utils - INFO - Face: [(73, 180), (180, 56), (56, 73)]
-# 2020-04-12 14:59:17,283 - ct.ct_graph_utils - INFO - Face: [(56, 180), (180, 185), (185, 56)]
-# 2020-04-12 14:59:17,283 - ct.ct_graph_utils - INFO - Face: [(185, 180), (180, 73), (73, 185)]
-# 2020-04-12 14:59:17,284 - root - INFO -
-# 2020-04-12 14:59:17,284 - root - INFO - END 95: Main loop - len(ariadne_s_thread) = 96
-# 2020-04-12 14:59:17,284 - root - INFO - BEGIN 96: Main loop
-# 2020-04-12 14:59:17,284 - root - INFO - BEGIN 96: Search the right edge to remove (faces left: 4)
-# 2020-04-12 14:59:17,284 - root - INFO - END 96: Search the right edge to remove. Found: (73, 56) (case: 3, 3)
-# 2020-04-12 14:59:17,284 - root - INFO - BEGIN 96: Remove an F3, F4 or F5 (case: 3, 3)
-# 2020-04-12 14:59:17,284 - root - INFO - XXXXXX. f3: [(185, 180), (180, 185)], f4: [(185, 180), (180, 185)]
-# 2020-04-12 14:59:17,284 - root - INFO - END 96: Remove an F3, F4 or F5 (case: 3, 3)
-# 2020-04-12 14:59:17,284 - root - INFO - XXX. stats['F#']: {2: 2, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0}
-# 2020-04-12 14:59:17,284 - ct.ct_graph_utils - INFO - Face: [(185, 180), (180, 185)]
-# 2020-04-12 14:59:17,285 - ct.ct_graph_utils - INFO - Face: [(185, 180), (180, 185)]
-# 2020-04-12 14:59:17,285 - ct.ct_graph_utils - INFO - Face: [(185, 180), (180, 185)]
-#
-# GOOD:
-# -----
-# 2020-04-12 15:00:14,269 - root - INFO - END 94: Main loop - len(ariadne_s_thread) = 95
-# 2020-04-12 15:00:14,269 - root - INFO - BEGIN 95: Main loop
-# 2020-04-12 15:00:14,269 - root - INFO - BEGIN 95: Search the right edge to remove (faces left: 5)
-# 2020-04-12 15:00:14,269 - root - INFO - END 95: Search the right edge to remove. Found: (91, 192) (case: 3, 4)
-# 2020-04-12 15:00:14,269 - root - INFO - BEGIN 95: Remove an F3, F4 or F5 (case: 3, 4)
-# 2020-04-12 15:00:14,269 - root - INFO - XXXXXX. f3: [(157, 170), (170, 108), (108, 157)], f4: [(108, 170), (170, 101), (101, 108)]
-# 2020-04-12 15:00:14,269 - root - INFO - END 95: Remove an F3, F4 or F5 (case: 3, 4)
-# 2020-04-12 15:00:14,269 - root - INFO - XXX. stats['F#']: {3: 4, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0}
-# 2020-04-12 15:00:14,270 - ct.ct_graph_utils - INFO - Face: [(108, 170), (170, 101), (101, 108)]
-# 2020-04-12 15:00:14,270 - ct.ct_graph_utils - INFO - Face: [(157, 170), (170, 108), (108, 157)]
-# 2020-04-12 15:00:14,270 - ct.ct_graph_utils - INFO - Face: [(170, 157), (157, 101), (101, 170)]
-# 2020-04-12 15:00:14,270 - ct.ct_graph_utils - INFO - Face: [(157, 108), (108, 101), (101, 157)]
-#
-# 2020-04-12 15:00:14,270 - root - INFO - END 95: Main loop - len(ariadne_s_thread) = 96
-# 2020-04-12 15:00:14,270 - root - INFO - BEGIN 96: Main loop
-# 2020-04-12 15:00:14,270 - root - INFO - BEGIN 96: Search the right edge to remove (faces left: 4)
-# 2020-04-12 15:00:14,270 - root - INFO - END 96: Search the right edge to remove. Found: (108, 170) (case: 3, 3)
-# 2020-04-12 15:00:14,270 - root - INFO - BEGIN 96: Remove an F3, F4 or F5 (case: 3, 3)
-# 2020-04-12 15:00:14,271 - root - INFO - XXXXXX. f3: [(157, 101), (101, 157)], f4: [(101, 157), (157, 101)]
-# 2020-04-12 15:00:14,271 - root - INFO - END 96: Remove an F3, F4 or F5 (case: 3, 3)
-# 2020-04-12 15:00:14,271 - root - INFO - XXX. stats['F#']: {2: 3, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0}
-# 2020-04-12 15:00:14,271 - ct.ct_graph_utils - INFO - Face: [(101, 157), (157, 101)]
-# 2020-04-12 15:00:14,271 - ct.ct_graph_utils - INFO - Face: [(101, 157), (157, 101)]
-# 2020-04-12 15:00:14,271 - ct.ct_graph_utils - INFO - Face: [(157, 101), (101, 157)]
-#
-# END BUG-001
 
 ######
 ######
@@ -1721,6 +1624,11 @@ def main():
         # 4CT: Method similar to the Kempe reduction "patching" method
         # 4CT: For each loop remove an edge from a face <= F5, until the graph will have only three faces (an island with two lands)
         ######
+
+        ariadne_s_thread = reduce_faces(g_faces, args.choices)
+        the_colored_graph = rebuild_faces(g_faces, ariadne_s_thread)
+
+        ######
         # 4CT: Restore the edges one at a time and apply the half Kempe-cycle color switching method
         # 4CT: Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
         ######
@@ -1740,9 +1648,6 @@ def main():
         ######
         ######
         ######
-
-        ariadne_s_thread = reduce_faces(g_faces, args.choices)
-        the_colored_graph = rebuild_faces(g_faces, ariadne_s_thread)
 
         ######
         ######

@@ -1,1 +1,0 @@
-print(*["Grande","Aniello","Spinelli"])

@@ -40,7 +40,7 @@
 # - Moved to: https://github.com/stefanutti/maps-coloring-python/issues
 #
 # BACKLOG to evaluate:
-# - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster, and won't need sage!
+# - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster!
 #
 # Done:
 # - Get rid of sage
@@ -671,7 +671,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
             # Only for debug: which map is causing this impasse?
             if i_attempt == 1000:
                 export_graph(the_colored_graph, "debug/debug.really_bad_case_infinite_loop")
-                logger.error("ERROR: Infinite loop. Chech the debug.really_bad_case.* files")
+                logger.error("ERROR: Infinite loop. Check the debug.really_bad_case.* files")
                 logger.error("Try to shuffle the faces at the beginning: sage 4ct.py -p debug/debug.previous_run.planar -c <USE the same sequence you used the previous run> -s")
 
                 # This is used as a sentinel to use the runs.bash script
@@ -803,7 +803,133 @@ def select_edge_to_remove(g_faces, choices, i_global_counter):
     # If not found -> Reset the edge_to_remove
     if is_the_edge_to_remove_found is False:
         edge_to_remove = ()
-        logger.info("END %s: Search the right edge to remove. NOT Found", i_global_counter)
+        logger.error("END %s: Search the right edge to remove. NOT Found. It should not be possible", i_global_counter)
+        exit(-1)
+    else:
+
+        # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
+        len_f1 = len(f1)
+        len_f2 = len(f2)
+
+        logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge_to_remove, len_f1, len_f2)
+
+    return edge_to_remove, f1, f2, f1_plus_f2_temp
+
+
+def select_edge_to_remove_backup(g_faces, choices, i_global_counter):
+    """
+    Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
+
+    Parameters
+    ----------
+        g_faces: The entire graph from which the edge has to be selected
+        choices: 2 + the permutations of 3 4 5
+        i_global_counter: for debugging
+
+    Returns
+    -------
+        edge_to_remove: The selected edge or, if not found, ()
+        f1: The face of the selected edge
+        f2: One edge separetes two faces
+        f1_plus_f2_temp: It is used to speed up computation. I need it here and and it will be used outside this funcion
+    """
+
+    logger.info("BEGIN %s: Search the right edge to remove (faces left: %s)", i_global_counter, len(g_faces))
+
+    # Select a face < F6
+    # Since faces less then 6 always exist for any graph (Euler), I can take the first face that I find with that characteristics (< 6)
+    # A smart sort will reorder the list for the next cycle (I need to process faces with 2 or 3 edges first, to avoid bad conditions ahead)
+    # if len(g_faces[0]) != 2:
+    #     f_temp = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+    #     g_faces.remove(f_temp)
+    #     g_faces.insert(0, f_temp)
+
+    # Since faces less then 6 always exist for any graph (Euler) --> Select a face < F6
+    #
+    # OLD COMMENT: AND faces are sorted by their length, I can take the first one
+    # OLD COMMENT: In this version instead of a full sort, I just move an F2, 3, 4, or 5 at the beginning of the list
+    #
+    # Permutations of 3, 4, 5 = {3, 4, 5} | {3, 5, 4} | {4, 3, 5} | {4, 5, 3} | {5, 3, 4} | {5, 4, 3}
+    # F2s have to be selected first ... for now
+    if choices == 2345:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+    elif choices == 2354:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 4), g_faces[0]))))
+    elif choices == 2435:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
+    elif choices == 2453:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 3), g_faces[0]))))
+    elif choices == 2534:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), g_faces[0]))))
+    elif choices == 2543:
+        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 3), g_faces[0]))))
+    else:
+        logger.error("Value for choices (%s) not expected", choices)
+        exit(-1)
+
+    len_of_the_face_to_reduce = len(f1)
+
+    if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected face: %s", f1)
+
+    is_the_edge_to_remove_found = False
+    i_edge = 0
+    while is_the_edge_to_remove_found is False and i_edge < len_of_the_face_to_reduce:
+
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: test the %s edge", i_edge)
+
+        # One edge separates two faces (pay attention to multiple edges == F2)
+        # The edge to remove can be found in the list of faces as (v1, v2) or (v2, v1)
+        #
+        # TODO: Instead of getting the edges in sequence, I should use a random selector (without repetitions)
+        #
+        # i_edge = randint(0, len(f1) - 1)  # When stuck, if you re-execute the program (with this random) it should work
+        edge_to_remove = f1[i_edge]
+        rotated_edge_to_remove = rotate(edge_to_remove, 1)
+
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("len_of_the_face_to_reduce: %s", len_of_the_face_to_reduce)
+            logger.debug("edge_to_remove: %s", edge_to_remove)
+            logger.debug("rotated_edge_to_remove: %s", rotated_edge_to_remove)
+
+        # TODO:
+        # - It would be better not to select an edge (to remove) if it belongs to the ocean
+        # - I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
+        # - Can this be used only if the graph was created by me from the "base" graph?
+        #   commented: if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
+
+        # If F2, the rotated edge appears twice in the list of faces
+        if len_of_the_face_to_reduce == 2:
+
+            # For F2 faces, edges will appear twice in all the edges lists of all faces
+            temp_f2 = [face for face in g_faces if rotated_edge_to_remove in face]
+            temp_f2.remove(f1)
+            f2 = temp_f2[0]
+            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
+        else:
+            f2 = next(face for face in g_faces if rotated_edge_to_remove in face)
+            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
+
+        # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries, but separates a portion of the same land
+        if is_the_graph_one_edge_connected(f1_plus_f2_temp) is True:
+
+            # Skip to the next edge, this is not good
+            i_edge += 1
+        else:
+            is_the_edge_to_remove_found = True
+
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Edge to remove found :-) %s", edge_to_remove)
+                logger.debug("f1: %s", f1)
+                logger.debug("f2: %s", f2)
+                logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
+
+        if logger.isEnabledFor(logging.DEBUG): logger.debug("END: test the %s edge", i_edge)
+
+    # If not found -> Reset the edge_to_remove
+    if is_the_edge_to_remove_found is False:
+        edge_to_remove = ()
+        logger.error("END %s: Search the right edge to remove. NOT Found. It should not be possible", i_global_counter)
+        exit(-1)
     else:
 
         # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
@@ -1130,9 +1256,6 @@ def reduce_faces(g_faces, choices):
         ariadne_s_thread: You would better study the classics
     """
 
-    logger.info("----------------------")
-    logger.info("BEGIN: Reduction phase")
-    logger.info("----------------------")
     stats['time_ELABORATION_BEGIN'] = time.ctime()
     stats['time_ELABORATION'] = datetime.datetime.now()
 
@@ -1297,7 +1420,7 @@ def reduce_faces(g_faces, choices):
             # Update the statistics for the distribution of Fs
             if third_face_to_update == fourth_face_to_update:
 
-                # TODO: There is a small bug (SEE BUG-001) to care about here at the end of the process when for faces F3 remains (as in the Mercedes Benz symbol). ==
+                # DONE: There is a small bug (SEE BUG-001) to care about here at the end of the process when four faces F3 remains (as in the Mercedes Benz symbol). ==
                 if len(third_face_to_update) in stats['F#'].keys():
                     stats['F#'][len(third_face_to_update)] += 1
                 else:
@@ -1361,11 +1484,6 @@ def reduce_faces(g_faces, choices):
     # Close the file of the distubutions
     f_distribution.close()
 
-    logger.info("--------------------")
-    logger.info("END: Reduction phase")
-    logger.info("--------------------")
-    logger.info("")
-
     return ariadne_s_thread
 
 
@@ -1383,10 +1501,6 @@ def rebuild_faces(g_faces, ariadne_s_thread):
     -------
         the_colored_graph: The colored graph
     """
-
-    logger.info("---------------------------")
-    logger.info("BEGIN: Reconstruction phase")
-    logger.info("---------------------------")
 
     # At this point the graph has 3 faces (an island with 2 lands + the ocean) and 3 edges ... easily 3-edge-colorable
     # WARNING: the color of the edges of a multiedge graph cannot be changed, so during the process it is necessary to delete and re-insert edges
@@ -1455,10 +1569,6 @@ def rebuild_faces(g_faces, ariadne_s_thread):
 
     stats['time_ELABORATION_END'] = time.ctime()
     stats['time_ELABORATION'] = (datetime.datetime.now() - stats['time_ELABORATION']).seconds
-    logger.info("-------------------------")
-    logger.info("END: Reconstruction phase")
-    logger.info("-------------------------")
-    logger.info("")
 
     return the_colored_graph
 
@@ -1560,7 +1670,7 @@ def main():
         initialize_statistics()
 
         logger.info("--------------------------------")
-        logger.info("BEGIN: Create the graph to color" + " (execution " + str(i_execution) + ")")
+        logger.info("BEGIN: Create the graph to color" + " (execution " + str(i_execution + 1) + ")")
         logger.info("--------------------------------")
         stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
 
@@ -1576,7 +1686,7 @@ def main():
 
         stats['time_GRAPH_CREATION_END'] = time.ctime()
         logger.info("------------------------------")
-        logger.info("END: Create the graph to color" + " (execution " + str(i_execution) + ")")
+        logger.info("END: Create the graph to color" + " (execution " + str(i_execution + 1) + ")")
         logger.info("------------------------------")
         logger.info("")
 
@@ -1592,14 +1702,14 @@ def main():
         ######
 
         logger.debug("------------------------")
-        logger.debug("BEGIN: Graph information" + " (execution " + str(i_execution) + ")")
+        logger.debug("BEGIN: Graph information" + " (execution " + str(i_execution + 1) + ")")
         logger.debug("------------------------")
 
         # Log faces
         log_faces(g_faces)
 
         logger.debug("----------------------")
-        logger.debug("END: Graph information" + " (execution " + str(i_execution) + ")")
+        logger.debug("END: Graph information" + " (execution " + str(i_execution + 1) + ")")
         logger.debug("----------------------")
         logger.debug("")
 
@@ -1625,8 +1735,27 @@ def main():
         # 4CT: For each loop remove an edge from a face <= F5, until the graph will have only three faces (an island with two lands)
         ######
 
+        logger.info("----------------------")
+        logger.info("BEGIN: Reduction phase" + " (execution " + str(i_execution + 1) + ")")
+        logger.info("----------------------")
+
         ariadne_s_thread = reduce_faces(g_faces, args.choices)
+
+        logger.debug("----------------------")
+        logger.debug("END: Reduction phase" + " (execution " + str(i_execution + 1) + ")")
+        logger.debug("----------------------")
+        logger.debug("")
+
+        logger.info("----------------------")
+        logger.info("BEGIN: Rebuild faces" + " (execution " + str(i_execution + 1) + ")")
+        logger.info("----------------------")
+
         the_colored_graph = rebuild_faces(g_faces, ariadne_s_thread)
+
+        logger.debug("----------------------")
+        logger.debug("END: Rebuild faces" + " (execution " + str(i_execution + 1) + ")")
+        logger.debug("----------------------")
+        logger.debug("")
 
         ######
         # 4CT: Restore the edges one at a time and apply the half Kempe-cycle color switching method

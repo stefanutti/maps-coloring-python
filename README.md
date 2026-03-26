@@ -59,14 +59,18 @@ Some videos of the running Python and Java programs:
 - cd prj
 - cd maps-coloring-python
 - cd ct
-- sage 4ct.py --help
-- sage 4ct.py -r 100
+- python3 4ct.py --help
+- python3 4ct.py -r1 100
   - Random graph: dual of a triangulation of N vertices
+- python3 4ct.py -r2 100
+  - Random graph: subdivision of faces (directly planar) with N faces
 - other parameters (see at the end of this doc)
-  - -i <file .edgelist> (Load a .edgelist file - networkx)
-  - -p <file .serialized> (Load a .serialized planar embedding of the graph)
-  - -o <file name without extension> (Save a .edgelist file (networkx), plus a .dot file (networkx)
-  - ...
+  - -e <file .edgelist> (Load a .edgelist file - networkx)
+  - -p <file .planar> (Load a planar embedding (json) of the graph G.faces())
+  - -o <file name without extension> (Save a .edgelist file (networkx), plus a .dot file (networkx))
+  - -c {2345,2354,2435,2453,2534,2543} (Sequence of the Fs to choose)
+  - -s (Shuffle the list at the beginning — resolves most infinite loop conditions)
+  - -n N (Run the entire process N times)
 
 ## Run ct_create_random_maps_from_2v.py
 - cd
@@ -107,15 +111,19 @@ Some videos of the running Python and Java programs:
 Bye
 
 <pre>
-sage 4ct.py --help
-usage: 4ct.py [-h] (-r RAND | -e EDGELIST | -p PLANAR) [-o OUTPUT]
-              [-c {2345,2354,2435,2453,2534,2543}] [-s]
+python3 4ct.py --help
+usage: 4ct.py [-h] (-r1 RANDOM1 | -r2 RANDOM2 | -e EDGELIST | -p PLANAR)
+              [-o OUTPUT] [-c {2345,2354,2435,2453,2534,2543}] [-s]
+              [-n NUM_EXECUTIONS]
 
 4ct args
 
 optional arguments:
   -h, --help            show this help message and exit
-  -r RAND, --rand RAND  Random graph: dual of a triangulation of N vertices
+  -r1 RANDOM1, --random1 RANDOM1
+                        Random graph: dual of a triangulation of N vertices
+  -r2 RANDOM2, --random2 RANDOM2
+                        Random graph: subdivision of faces (directly planar)
   -e EDGELIST, --edgelist EDGELIST
                         Load a .edgelist file (networkx)
   -p PLANAR, --planar PLANAR
@@ -129,4 +137,6 @@ optional arguments:
                         2534, 2543)
   -s, --shuffle         Shuffle the list at the beginning. Most of the times
                         it solves the infinite loop condition
+  -n NUM_EXECUTIONS, --num_executions NUM_EXECUTIONS
+                        The entire process will be executed N times
 </pre>

@@ -555,7 +555,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
     # restore_color_two = ""
 
     # The algorithm:
-    # TODO: Update the algoritm respect to how it was implemented
+    # DONE: Update the algoritm respect to how it was implemented
     #
     # - Check if c1 and c2 are on the same Kempe chain
     # - If not, try a random swap
@@ -689,11 +689,15 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
     stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
+    logger.info("Random switches xxx: %d", i_attempt)
 
 
 def select_edge_to_remove(g_faces, choices, i_global_counter):
     """
     Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
+
+    Among all faces of the same type (same size), this function evaluates every edge of every face,
+    and selects the valid edge whose adjacent face (f2) is the largest.
 
     Parameters
     ----------
@@ -711,97 +715,82 @@ def select_edge_to_remove(g_faces, choices, i_global_counter):
 
     logger.info("BEGIN %s: Search the right edge to remove (faces left: %s)", i_global_counter, len(g_faces))
 
-    # Select a face < F6
-    # Since faces less then 6 always exist for any graph (Euler), I can take the first face that I find with that characteristics (< 6)
-    # A smart sort will reorder the list for the next cycle (I need to process faces with 2 or 3 edges first, to avoid bad conditions ahead)
-    # if len(g_faces[0]) != 2:
-    #     f_temp = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
-    #     g_faces.remove(f_temp)
-    #     g_faces.insert(0, f_temp)
-
-    # Since faces less then 6 always exist for any graph (Euler) --> Select a face < F6
-    #
-    # OLD COMMENT: AND faces are sorted by their length, I can take the first one
-    # OLD COMMENT: In this version instead of a full sort, I just move an F2, 3, 4, or 5 at the beginning of the list
-    #
-    # Permutations of 3, 4, 5 = {3, 4, 5} | {3, 5, 4} | {4, 3, 5} | {4, 5, 3} | {5, 3, 4} | {5, 4, 3}
-    # F2s have to be selected first ... for now
-    if choices == 2345:
-        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
-    elif choices == 2354:
-        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 4), g_faces[0]))))
-    elif choices == 2435:
-        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 5), g_faces[0]))))
-    elif choices == 2453:
-        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 3), g_faces[0]))))
-    elif choices == 2534:
-        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 3), next((f for f in g_faces if len(f) == 4), g_faces[0]))))
-    elif choices == 2543:
-        f1 = next((f for f in g_faces if len(f) == 2), next((f for f in g_faces if len(f) == 5), next((f for f in g_faces if len(f) == 4), next((f for f in g_faces if len(f) == 3), g_faces[0]))))
-    else:
+    # Parse the choices integer into an ordered list of face sizes
+    # Example: 2345 -> [2, 3, 4, 5], 2534 -> [2, 5, 3, 4]
+    # F2s are always first
+    choices_str = str(choices)
+    if len(choices_str) != 4 or choices_str[0] != '2':
         logger.error("Value for choices (%s) not expected", choices)
         exit(-1)
+    face_size_priority = [int(c) for c in choices_str]
 
-    len_of_the_face_to_reduce = len(f1)
+    # For each face size in priority order, find the best edge to remove
+    # "Best" = valid edge (doesn't make graph 1-edge-connected) with the largest adjacent face f2
+    best_edge_to_remove = None
+    best_f1 = None
+    best_f2 = None
+    best_f1_plus_f2_temp = None
 
-    if logger.isEnabledFor(logging.DEBUG): logger.debug("Selected face: %s", f1)
+    for target_size in face_size_priority:
 
-    is_the_edge_to_remove_found = False
-    i_edge = 0
-    while is_the_edge_to_remove_found is False and i_edge < len_of_the_face_to_reduce:
+        # Collect all faces of this size
+        faces_of_this_size = [f for f in g_faces if len(f) == target_size]
 
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("BEGIN: test the %s edge", i_edge)
+        if not faces_of_this_size:
+            continue
 
-        # One edge separates two faces (pay attention to multiple edges == F2)
-        # The edge to remove can be found in the list of faces as (v1, v2) or (v2, v1)
-        #
-        # TODO: Instead of getting the edges in sequence, I should use a random selector (without repetitions)
-        #
-        # i_edge = randint(0, len(f1) - 1)  # When stuck, if you re-execute the program (with this random) it should work
-        edge_to_remove = f1[i_edge]
-        rotated_edge_to_remove = rotate(edge_to_remove, 1)
+        # Among all edges of all faces of this size, find the valid one with the largest f2
+        best_f2_len = 0
 
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("len_of_the_face_to_reduce: %s", len_of_the_face_to_reduce)
-            logger.debug("edge_to_remove: %s", edge_to_remove)
-            logger.debug("rotated_edge_to_remove: %s", rotated_edge_to_remove)
+        for candidate_f1 in faces_of_this_size:
+            for i_edge in range(len(candidate_f1)):
 
-        # TODO:
-        # - It would be better not to select an edge (to remove) if it belongs to the ocean
-        # - I also need to avoid that the ocean will become an F2 face (if ocean is F3 and selected edge has a vertex on the ocean)
-        # - Can this be used only if the graph was created by me from the "base" graph?
-        #   commented: if ((edge_to_remove[0] not in [0, 1, 2, 3]) and (edge_to_remove[1] not in [0, 1, 2, 3]) and (edge_to_remove not in g_faces[-1]) and (rotated_edge_to_remove not in g_faces[-1])):
+                edge = candidate_f1[i_edge]
+                rotated_edge = rotate(edge, 1)
 
-        # If F2, the rotated edge appears twice in the list of faces
-        if len_of_the_face_to_reduce == 2:
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug("Testing edge %s of face (size %s): %s", i_edge, target_size, edge)
 
-            # For F2 faces, edges will appear twice in all the edges lists of all faces
-            temp_f2 = [face for face in g_faces if rotated_edge_to_remove in face]
-            temp_f2.remove(f1)
-            f2 = temp_f2[0]
-            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
-        else:
-            f2 = next(face for face in g_faces if rotated_edge_to_remove in face)
-            f1_plus_f2_temp = join_faces(f1, f2, edge_to_remove)
+                # Find the adjacent face f2
+                if target_size == 2:
+                    # For F2 faces, edges will appear twice in all the edges lists of all faces
+                    temp_f2 = [face for face in g_faces if rotated_edge in face]
+                    temp_f2.remove(candidate_f1)
+                    candidate_f2 = temp_f2[0]
+                else:
+                    candidate_f2 = next(face for face in g_faces if rotated_edge in face)
 
-        # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries, but separates a portion of the same land
-        if is_the_graph_one_edge_connected(f1_plus_f2_temp) is True:
+                candidate_f1_plus_f2 = join_faces(candidate_f1, candidate_f2, edge)
 
-            # Skip to the next edge, this is not good
-            i_edge += 1
-        else:
-            is_the_edge_to_remove_found = True
+                # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries,
+                # but separates a portion of the same land
+                if is_the_graph_one_edge_connected(candidate_f1_plus_f2) is True:
+                    # Skip this edge, it is not valid
+                    continue
 
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("Edge to remove found :-) %s", edge_to_remove)
-                logger.debug("f1: %s", f1)
-                logger.debug("f2: %s", f2)
-                logger.debug("f1_plus_f2_temp: %s", f1_plus_f2_temp)
+                # This edge is valid. Check if f2 is the largest we've seen so far
+                if len(candidate_f2) > best_f2_len:
+                    best_f2_len = len(candidate_f2)
+                    best_edge_to_remove = edge
+                    best_f1 = candidate_f1
+                    best_f2 = candidate_f2
+                    best_f1_plus_f2_temp = candidate_f1_plus_f2
 
-        if logger.isEnabledFor(logging.DEBUG): logger.debug("END: test the %s edge", i_edge)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("New best edge found: %s (f2 size: %s)", edge, best_f2_len)
 
-    # If not found -> Reset the edge_to_remove
-    if is_the_edge_to_remove_found is False:
+        # If we found at least one valid edge among faces of this size, we're done
+        if best_edge_to_remove is not None:
+            break
+
+    # Assign results
+    edge_to_remove = best_edge_to_remove
+    f1 = best_f1
+    f2 = best_f2
+    f1_plus_f2_temp = best_f1_plus_f2_temp
+
+    # If not found -> Error
+    if edge_to_remove is None:
         edge_to_remove = ()
         logger.error("END %s: Search the right edge to remove. NOT Found. It should not be possible", i_global_counter)
         exit(-1)

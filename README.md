@@ -139,4 +139,8 @@ optional arguments:
                         it solves the infinite loop condition
   -n NUM_EXECUTIONS, --num_executions NUM_EXECUTIONS
                         The entire process will be executed N times
+  -s1, --selection1     Edge selection strategy 1: first fit (first valid edge
+                        in the first face of the right priority) - default
+  -s2, --selection2     Edge selection strategy 2: best adjacent face
+                        (maximizes f2 size across all candidates)
 </pre>

@@ -34,6 +34,10 @@ python3 4ct.py -r1 100 -s
 
 # Run the entire process N times
 python3 4ct.py -r1 100 -n 10
+
+# Choose edge selection strategy (default: -s1)
+python3 4ct.py -r1 100 -s1   # first fit: first valid edge in the first face of the right priority (default)
+python3 4ct.py -r1 100 -s2   # best adjacent face: maximizes f2 size across all candidates
 ```
 
 ## Utility Scripts

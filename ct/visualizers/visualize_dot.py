@@ -72,6 +72,10 @@ def main():
                            edgecolors='#333333',
                            linewidths=0.5)
 
+    # Draw vertex labels with a white halo for readability
+    nx.draw_networkx_labels(G, pos, ax=ax, font_size=10, font_color='black',
+                            bbox=dict(boxstyle='round,pad=0.1', facecolor='white', alpha=0.6, edgecolor='none'))
+
     ax.set_title(f"Planar graph: {G.number_of_nodes()} vertices, {G.number_of_edges()} edges",
                  color='black', fontsize=14, pad=15)
     ax.axis('off')

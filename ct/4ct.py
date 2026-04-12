@@ -146,10 +146,7 @@ from ct_graph_utils import graph_delete_edge
 from ct_graph_utils import graph_set_edge_label
 from ct_graph_utils import graph_random_edge
 from ct_graph_utils import graph_edge_iterator
-from ct_graph_utils import graph_order
-from ct_graph_utils import graph_size
 from ct_graph_utils import is_graph_regular
-from ct_graph_utils import create_networkx_graph
 
 from ct.converters.ct_create_random_maps_from_2v import PlanarGraphGenerator
 
@@ -1220,7 +1217,7 @@ def create_from_random1(number_of_vertices_for_the_random_triangulation, shuffle
     if shuffle_the_planar_representation:
         shuffle(g_faces)
 
-    logger.info("END: Create a random planar graph of %s vertices, from the dual of a random triangulation of %s vertices", graph_order(the_graph), number_of_vertices_for_the_random_triangulation)
+    logger.info("END: Create a random planar graph of %s vertices, from the dual of a random triangulation of %s vertices", the_graph.number_of_nodes(), number_of_vertices_for_the_random_triangulation)
 
     return the_graph, g_faces
 
@@ -1628,7 +1625,7 @@ def rebuild_faces(g_faces, ariadne_s_thread):
 
     # At this point the graph has 3 faces (an island with 2 lands + the ocean) and 3 edges ... easily 3-edge-colorable
     # WARNING: the color of the edges of a multiedge graph cannot be changed, so during the process it is necessary to delete and re-insert edges
-    the_colored_graph = create_networkx_graph()  # Creates nx.MultiGraph
+    the_colored_graph = nx.MultiGraph()
 
     # Only 2 vertices have to be in the graph
     all_vertices = [element for face in g_faces for edge in face for element in edge]
@@ -1930,7 +1927,7 @@ def main():
         # NOTE: is_isomorphic is a bit slow, since after all this time I am pretty sure the algorithm works, I decided to relax the control 
         logger.info("BEGIN: Check if isomorphic")
         # if nx.is_isomorphic(the_graph, the_colored_graph) is True:
-        if graph_order(the_graph) == graph_order(the_colored_graph) and graph_size(the_graph) == graph_size(the_colored_graph):
+        if the_graph.number_of_nodes() == the_colored_graph.number_of_nodes() and the_graph.number_of_edges() == the_colored_graph.number_of_edges():
             logger.info("Recreated graph is equal to the original")
         else:
             logger.error("Unexpected condition (recreated graph is different from the original). Mario you'd better go back to paper")

@@ -49,14 +49,6 @@ def graph_has_loops(graph):
     return nx.number_of_selfloops(graph) > 0
 
 
-def is_graph_planar(graph):
-    """
-    Check if graph is planar.
-    Sage API: graph.is_planar()
-    """
-    return nx.is_planar(graph)
-
-
 def graph_edges(graph):
     """
     Return list of edges with labels (color attribute).
@@ -84,30 +76,6 @@ def graph_edges_incident_no_labels(graph, vertex):
     Returns list of (u, v)
     """
     return list(graph.edges(vertex, keys=False, data=False))
-
-
-def graph_degree(graph, vertex):
-    """
-    Return degree of a vertex.
-    Sage API: graph.degree(vertex)
-    """
-    return graph.degree(vertex)
-
-
-def graph_order(graph):
-    """
-    Return number of vertices.
-    Sage API: graph.order()
-    """
-    return graph.number_of_nodes()
-
-
-def graph_size(graph):
-    """
-    Return number of edges.
-    Sage API: graph.size()
-    """
-    return graph.number_of_edges()
 
 
 def graph_add_edge(graph, u, v, label=None):
@@ -194,14 +162,6 @@ def graph_edge_iterator(graph, labels=True):
         return iter(graph.edges())
 
 
-def create_networkx_graph():
-    """
-    Create a new MultiGraph (equivalent to Sage Graph with multiple edges allowed).
-    Sage API: Graph(sparse=True) with allow_multiple_edges(True)
-    """
-    return nx.MultiGraph()
-
-
 def echo_function(text):
     """
     A true echo is a single reflection of the sound source
@@ -253,14 +213,14 @@ def check_graph_planarity_3_regularity_no_loops(graph):
     #     logger.info("OK. The graph does not have multiple edges. Consider that this program will also handle multiple edges during the reduction and reconstruction process")
 
     # Check if the graph is planar
-    if is_graph_planar(graph) is False:
+    if nx.is_planar(graph) is False:
         logger.error("ERROR: The graph is not planar")
         exit(-1)
     else:
         logger.info("OK. The graph is planar")
 
     # Additional info
-    logger.info("The graph has %s vertices and %s edges", graph_order(graph), graph_size(graph))
+    logger.info("The graph has %s vertices and %s edges", graph.number_of_nodes(), graph.number_of_edges())
 
     return
 
@@ -290,7 +250,7 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
     # This check (degree) is important to recognize the "half cycle color switching" respect tp an "entire cycle color switching"
     # In half cycle color switching, edges at the two ends have been removed and the vertices at the two ends have degree == 2
     direction_fix = 1
-    if graph_degree(graph, current_edge[direction_fix]) != 3:
+    if graph.degree(current_edge[direction_fix]) != 3:
         direction_fix = 0  # Change direction. I was almost falling into the void
 
     is_the_end_of_switch_process = False
@@ -311,7 +271,7 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
 
         # Check if the next edge is the starting_edge. It would mean that I've looped an entire cycle
         # or Check if I've reached the end of a chain (half loop)
-        if (graph_degree(graph, current_edge[direction_fix]) != 3) or are_the_same_edge(starting_edge, edges_to_check[0]) or are_the_same_edge(starting_edge, edges_to_check[1]):
+        if (graph.degree(current_edge[direction_fix]) != 3) or are_the_same_edge(starting_edge, edges_to_check[0]) or are_the_same_edge(starting_edge, edges_to_check[1]):
             is_the_end_of_switch_process = True
 
             # Now: swap color of what now is the previous edge
@@ -635,7 +595,7 @@ def create_graph_from_planar_representation(faces):
         if reverse_edge in flattened_egdes:
             flattened_egdes.remove(reverse_edge)
 
-    new_graph = create_networkx_graph()  # Creates nx.MultiGraph
+    new_graph = nx.MultiGraph()
     for edge_to_add in flattened_egdes:
         new_graph.add_edge(edge_to_add[0], edge_to_add[1])
 

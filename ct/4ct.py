@@ -1191,6 +1191,9 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, pr
 
     logger.info("BEGIN %s: select_edge_to_remove_unavoidable_set (faces left: %s)", i_global_counter, len(g_faces))
 
+    if choices != 2345:
+        logger.warning("select_edge_to_remove_unavoidable_set: the 'choices' parameter is ignored; F2/F3/F4 order is fixed as [2, 3, 4]. Received: %s", choices)
+
     # -------------------------------------------------------------------------
     # Phase F2 / F3 / F4  — global, locality ignored
     # -------------------------------------------------------------------------
@@ -1213,10 +1216,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, pr
 
                 if target_size == 2:
                     temp = [face for face in g_faces if rotated_edge in face]
-                    if candidate_f1 in temp:
-                        temp.remove(candidate_f1)
-                    if not temp:
-                        continue
+                    temp.remove(candidate_f1)
                     candidate_f2 = temp[0]
                 else:
                     candidate_f2 = next((face for face in g_faces if rotated_edge in face), None)

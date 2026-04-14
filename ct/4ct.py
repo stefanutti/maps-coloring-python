@@ -1394,6 +1394,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
     # Start the reduction process
     is_the_end_of_the_reduction_process = False
     i_global_counter = 0
+    prev_face = None
 
     # Open the file to append the rows with the changing distribution during the reduction phase
     f_distribution = open("debug/debug.f_distribution.json.dump", "a")
@@ -1421,7 +1422,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
 
         # Select an edge from the graph
         # This is one of the most important function to work on, to apply different strategies
-        edge_to_remove, f1, f2, f1_plus_f2_temp = selection_strategy(g_faces, choices, i_global_counter)
+        edge_to_remove, f1, f2, f1_plus_f2_temp, prev_face = selection_strategy(g_faces, choices, i_global_counter, prev_face)
 
         # Check if math is right :-) An edge to remove must exist
         if edge_to_remove == ():

@@ -155,6 +155,9 @@ from numpy.random import randint
 import cProfile
 import pstats
 
+# Module-level logger (used by functions defined at module scope)
+logger = logging.getLogger(__name__)
+
 
 ######
 ######
@@ -691,7 +694,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
 
 
 
-def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter):
+def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter, prev_face=None):
     """
     Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
 
@@ -801,10 +804,10 @@ def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter
 
         logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge_to_remove, len_f1, len_f2)
 
-    return edge_to_remove, f1, f2, f1_plus_f2_temp
+    return edge_to_remove, f1, f2, f1_plus_f2_temp, None
 
 
-def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter):
+def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter, prev_face=None):
     """
     Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
 
@@ -927,10 +930,10 @@ def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter):
 
         logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge_to_remove, len_f1, len_f2)
 
-    return edge_to_remove, f1, f2, f1_plus_f2_temp
+    return edge_to_remove, f1, f2, f1_plus_f2_temp, None
 
 
-def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter):
+def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, prev_face=None):
     """
     Select an edge to remove using a strategy tailored for F5 faces.
 
@@ -987,7 +990,7 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter):
                         continue
 
                     logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge, len(candidate_f1), len(candidate_f2))
-                    return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2
+                    return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2, None
 
             continue
 
@@ -1041,7 +1044,7 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter):
 
                 logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s) [f5_shared_vertex: adj=%s]",
                             i_global_counter, edge, len(candidate_f1), len(candidate_f2), len(adjacent_target))
-                return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2
+                return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2, None
 
         # Fallback for F5: if no edge with exactly one shared vertex was valid, try any valid edge
         for candidate_f1 in faces_of_this_size:
@@ -1057,7 +1060,7 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter):
 
                 logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s) [f5_shared_vertex: fallback]",
                             i_global_counter, edge, len(candidate_f1), len(candidate_f2))
-                return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2
+                return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2, None
 
     # If not found -> Error
     logger.error("END %s: Search the right edge to remove. NOT Found. It should not be possible", i_global_counter)

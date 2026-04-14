@@ -64,3 +64,68 @@ def test_f5_shared_vertex_returns_5_values(mod):
     result = mod.select_edge_to_remove_f5_shared_vertex(g, 2345, 0)
     assert len(result) == 5
     assert result[4] is None
+
+
+# ---------------------------------------------------------------------------
+# Tests: new strategy — F2/F3/F4 phase selects max-neighbor edge
+# ---------------------------------------------------------------------------
+
+def test_unavoidable_set_returns_5_values_and_new_prev_face_is_f1_plus_f2(mod):
+    """5th return value must be the same object as 4th (new_prev_face == f1_plus_f2_temp)."""
+    g = make_f3f4_graph()
+    result = mod.select_edge_to_remove_unavoidable_set(g, 2345, 0)
+    assert len(result) == 5
+    edge, f1, f2, f1_plus_f2, new_prev_face = result
+    assert new_prev_face is f1_plus_f2
+
+
+def test_unavoidable_set_f3_picks_max_neighbor(mod):
+    """With two F3 and two F4 faces, strategy must choose an edge whose f2 is F4 (size 4)."""
+    g = make_f3f4_graph()
+    _, _, f2, _, _ = mod.select_edge_to_remove_unavoidable_set(g, 2345, 0)
+    assert len(f2) == 4  # maximum possible neighbor in this graph
+
+
+def test_unavoidable_set_f2_before_f3(mod):
+    """An F2 face must be handled before any F3 face."""
+    # Known-valid graph from join_faces docstring:
+    # f2_face = [(2,1),(1,2)]  (F2)
+    # f3_inner = [(2,3),(3,1),(1,2)]  (F3, shares edge (1,2)/(2,1) with f2_face)
+    # f2_outer = [(1,3),(3,2)]  (F2, covers remaining edges)
+    f2_face  = [(2,1),(1,2)]
+    f3_inner = [(2,3),(3,1),(1,2)]
+    f2_outer = [(1,3),(3,2)]
+    g = [f2_face, f3_inner, f2_outer]
+    edge, f1, f2_result, _, _ = mod.select_edge_to_remove_unavoidable_set(g, 2345, 0)
+    # f1 must be an F2 face (size 2) — F2 is handled before F3
+    assert len(f1) == 2
+
+
+# ---------------------------------------------------------------------------
+# Tests: locality constraint — new_prev_face is identity-tracked across calls
+# ---------------------------------------------------------------------------
+
+def test_unavoidable_set_locality_uses_prev_face_identity(mod):
+    """
+    When prev_face is provided and exists in g_faces (by identity),
+    new_prev_face returned is the same object as f1_plus_f2_temp.
+    Simulate what reduce_faces does between calls.
+    """
+    g = make_f3f4_graph()
+
+    # First call — no prev_face
+    _, f1_a, f2_a, joined_a, new_prev_a = mod.select_edge_to_remove_unavoidable_set(g, 2345, 0)
+
+    # Simulate reduce_faces: insert joined face into g_faces (same object, identity preserved)
+    g.remove(f1_a)
+    g.remove(f2_a)
+    g.insert(-1, joined_a)
+
+    # joined_a must now be in g_faces (identity check)
+    assert any(f is new_prev_a for f in g)
+
+    # Second call — pass new_prev_a as prev_face
+    _, f1_b, f2_b, joined_b, new_prev_b = mod.select_edge_to_remove_unavoidable_set(g, 2345, 1, prev_face=new_prev_a)
+
+    # new_prev_b must be the same object as joined_b
+    assert new_prev_b is joined_b

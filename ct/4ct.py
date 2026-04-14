@@ -1223,11 +1223,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, pr
                     if candidate_f2 is None:
                         continue
 
-                try:
-                    candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
-                except (StopIteration, ValueError, IndexError):
-                    logger.debug("Skipping edge %s (join_faces raised on F%s candidate)", edge, target_size)
-                    continue
+                candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
 
                 if is_the_graph_one_edge_connected(candidate_joined):
                     continue

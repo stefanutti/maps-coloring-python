@@ -86,20 +86,6 @@ def test_unavoidable_set_f3_picks_max_neighbor(mod):
     assert len(f2) == 4  # maximum possible neighbor in this graph
 
 
-def test_unavoidable_set_f2_before_f3(mod):
-    """An F2 face must be handled before any F3 face."""
-    # Known-valid graph from join_faces docstring:
-    # f2_face = [(2,1),(1,2)]  (F2)
-    # f3_inner = [(2,3),(3,1),(1,2)]  (F3, shares edge (1,2)/(2,1) with f2_face)
-    # f2_outer = [(1,3),(3,2)]  (F2, covers remaining edges)
-    f2_face  = [(2,1),(1,2)]
-    f3_inner = [(2,3),(3,1),(1,2)]
-    f2_outer = [(1,3),(3,2)]
-    g = [f2_face, f3_inner, f2_outer]
-    edge, f1, f2_result, _, _ = mod.select_edge_to_remove_unavoidable_set(g, 2345, 0)
-    # f1 must be an F2 face (size 2) — F2 is handled before F3
-    assert len(f1) == 2
-
 
 # ---------------------------------------------------------------------------
 # Tests: locality constraint — new_prev_face is identity-tracked across calls

@@ -33,22 +33,11 @@ Some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos
 
 ## Pre-requirements
-- docker
 
-## Download a Docker instance (I used sagemath version = 9.0 with python 3.7, but you can try using latest) - ONLY ONCE
-- docker run -it sagemath/sagemath:9.0 bash
-- Alternative
-  - docker run -it --name 4ct -p 8888:8888 -p 5000:5000 -p 7777:7777 sagemath/sagemath:9.0 sage-jupyter
+- Python 3
+- `pip install networkx numpy pydot`
 
-## Enter into the Docker instance
-- docker exec -it 4ct bash
-
-## Updates - ONLY ONCE
-- sudo apt-get update
-- sudo apt-get install git
-- sudo apt-get install vim
-
-### Download personal repo - ONLY ONCE
+### Download repo - ONLY ONCE
 - cd
 - mkdir prj
 - cd prj
@@ -59,32 +48,33 @@ Some videos of the running Python and Java programs:
 - cd prj
 - cd maps-coloring-python
 - cd ct
-- sage 4ct.py --help
-- sage 4ct.py -r 100
+- python3 4ct.py --help
+- python3 4ct.py -r1 100
   - Random graph: dual of a triangulation of N vertices
+- python3 4ct.py -r2 100
+  - Random graph: subdivision of faces (directly planar) with N faces
 - other parameters (see at the end of this doc)
-  - -i <file .edgelist> (Load a .edgelist file - networkx)
-  - -p <file .serialized> (Load a .serialized planar embedding of the graph)
-  - -o <file name without extension> (Save a .edgelist file (networkx), plus a .dot file (networkx)
-  - ...
+  - -e <file .edgelist> (Load a .edgelist file - networkx)
+  - -p <file .planar> (Load a planar embedding (json) of the graph G.faces())
+  - -o <file name without extension> (Save a .edgelist file (networkx), plus a .dot file (networkx))
+  - -c {2345,2354,2435,2453,2534,2543} (Sequence of the Fs to choose)
+  - -s (Shuffle the list at the beginning — resolves most infinite loop conditions)
+  - -n N (Run the entire process N times)
 
 ## Run ct_create_random_maps_from_2v.py
 - cd
 - cd prj
 - cd maps-coloring-python
 - cd ct
-- python3 ct_create_random_maps_from_2v.py -v 100 -o new_map_test_100.planar
-- sage 4ct.py -p new_map_test_100.planar
+- python3 converters/ct_create_random_maps_from_2v.py -v 100 -o new_map_test_100.planar
+- python3 4ct.py -p new_map_test_100.planar
 
 ## Run ct_convert_planar_to_other.py
-- Dependencies
-  - pip3 install networkx
-  - pip3 install pydot
 - cd
 - cd prj
 - cd maps-coloring-python
 - cd ct
-- python3 ct_convert_planar_to_other.py -p new_map_test_100.planar -o new_map_test_100
+- python3 converters/ct_convert_planar_to_other.py -p new_map_test_100.planar -o new_map_test_100
 
 ## Useful for cut&paste:
 - sudo apt-get install python3
@@ -107,15 +97,19 @@ Some videos of the running Python and Java programs:
 Bye
 
 <pre>
-sage 4ct.py --help
-usage: 4ct.py [-h] (-r RAND | -e EDGELIST | -p PLANAR) [-o OUTPUT]
-              [-c {2345,2354,2435,2453,2534,2543}] [-s]
+python3 4ct.py --help
+usage: 4ct.py [-h] (-r1 RANDOM1 | -r2 RANDOM2 | -e EDGELIST | -p PLANAR)
+              [-o OUTPUT] [-c {2345,2354,2435,2453,2534,2543}] [-s]
+              [-n NUM_EXECUTIONS]
 
 4ct args
 
 optional arguments:
   -h, --help            show this help message and exit
-  -r RAND, --rand RAND  Random graph: dual of a triangulation of N vertices
+  -r1 RANDOM1, --random1 RANDOM1
+                        Random graph: dual of a triangulation of N vertices
+  -r2 RANDOM2, --random2 RANDOM2
+                        Random graph: subdivision of faces (directly planar)
   -e EDGELIST, --edgelist EDGELIST
                         Load a .edgelist file (networkx)
   -p PLANAR, --planar PLANAR
@@ -129,4 +123,22 @@ optional arguments:
                         2534, 2543)
   -s, --shuffle         Shuffle the list at the beginning. Most of the times
                         it solves the infinite loop condition
+  -n NUM_EXECUTIONS, --num_executions NUM_EXECUTIONS
+                        The entire process will be executed N times
+  -s1, --selection1     Edge selection strategy 1: first fit (first valid edge
+                        in the first face of the right priority) - default
+  -s2, --selection2     Edge selection strategy 2: best adjacent face
+                        (maximizes f2 size across all candidates)
+  -s3, --selection3     Edge selection strategy 3: for F5 faces, select edge
+                        with one shared vertex with adjacent F5/F6
 </pre>
+
+## Converters (`ct/converters/`)
+
+- `ct_create_random_maps_from_2v.py` — `PlanarGraphGenerator` class; generates random cubic planar graphs without Sage
+- `ct_convert_planar_to_other.py` — converts `.planar` JSON to `.edgelist` and `.dot`
+- `ct_convert_gml_to_planar.py` — converts GML format to `.planar`
+
+### ML Experiments (`ct/machine_learning/`)
+
+Experimental DQN (Double Deep Q-Network) agent using PyTorch Geometric. Not part of the core algorithm.

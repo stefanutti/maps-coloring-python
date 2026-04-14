@@ -40,7 +40,7 @@
 # - Moved to: https://github.com/stefanutti/maps-coloring-python/issues
 #
 # BACKLOG to evaluate:
-# - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster, and won't need sage!
+# - TODO: Realize the reconstruction phase with the lists of the edge representation instead of using the graph. It will probably be a lot faster!
 #
 # Done:
 # - Get rid of sage
@@ -146,10 +146,7 @@ from ct_graph_utils import graph_delete_edge
 from ct_graph_utils import graph_set_edge_label
 from ct_graph_utils import graph_random_edge
 from ct_graph_utils import graph_edge_iterator
-from ct_graph_utils import graph_order
-from ct_graph_utils import graph_size
 from ct_graph_utils import is_graph_regular
-from ct_graph_utils import create_networkx_graph
 
 from ct.converters.ct_create_random_maps_from_2v import PlanarGraphGenerator
 
@@ -555,7 +552,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
     # restore_color_two = ""
 
     # The algorithm:
-    # TODO: Update the algoritm respect to how it was implemented
+    # DONE: Update the algoritm respect to how it was implemented
     #
     # - Check if c1 and c2 are on the same Kempe chain
     # - If not, try a random swap
@@ -671,7 +668,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
             # Only for debug: which map is causing this impasse?
             if i_attempt == 1000:
                 export_graph(the_colored_graph, "debug/debug.really_bad_case_infinite_loop")
-                logger.error("ERROR: Infinite loop. Chech the debug.really_bad_case.* files")
+                logger.error("ERROR: Infinite loop. Check the debug.really_bad_case.* files")
                 logger.error("Try to shuffle the faces at the beginning: sage 4ct.py -p debug/debug.previous_run.planar -c <USE the same sequence you used the previous run> -s")
 
                 # This is used as a sentinel to use the runs.bash script
@@ -684,6 +681,8 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
             #     exit(-1)
 
             if logger.isEnabledFor(logging.DEBUG): logger.debug("END: Random switch")
+            if i_attempt > 0:
+                logger.info("Random switches: %d", i_attempt)
 
     # END F5 has been restored
     stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
@@ -691,7 +690,121 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
 
 
-def select_edge_to_remove(g_faces, choices, i_global_counter):
+
+def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter):
+    """
+    Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
+
+    Among all faces of the same type (same size), this function evaluates every edge of every face,
+    and selects the valid edge whose adjacent face (f2) is the largest.
+
+    Parameters
+    ----------
+        g_faces: The entire graph from which the edge has to be selected
+        choices: 2 + the permutations of 3 4 5
+        i_global_counter: for debugging
+
+    Returns
+    -------
+        edge_to_remove: The selected edge or, if not found, ()
+        f1: The face of the selected edge
+        f2: One edge separetes two faces
+        f1_plus_f2_temp: It is used to speed up computation. I need it here and and it will be used outside this funcion
+    """
+
+    logger.info("BEGIN %s: Search the right edge to remove (faces left: %s)", i_global_counter, len(g_faces))
+
+    # Parse the choices integer into an ordered list of face sizes
+    # Example: 2345 -> [2, 3, 4, 5], 2534 -> [2, 5, 3, 4]
+    # F2s are always first
+    choices_str = str(choices)
+    if len(choices_str) != 4 or choices_str[0] != '2':
+        logger.error("Value for choices (%s) not expected", choices)
+        exit(-1)
+    face_size_priority = [int(c) for c in choices_str]
+
+    # For each face size in priority order, find the best edge to remove
+    # "Best" = valid edge (doesn't make graph 1-edge-connected) with the largest adjacent face f2
+    best_edge_to_remove = None
+    best_f1 = None
+    best_f2 = None
+    best_f1_plus_f2_temp = None
+
+    for target_size in face_size_priority:
+
+        # Collect all faces of this size
+        faces_of_this_size = [f for f in g_faces if len(f) == target_size]
+
+        if not faces_of_this_size:
+            continue
+
+        # Among all edges of all faces of this size, find the valid one with the largest f2
+        best_f2_len = 0
+
+        for candidate_f1 in faces_of_this_size:
+            for i_edge in range(len(candidate_f1)):
+
+                edge = candidate_f1[i_edge]
+                rotated_edge = rotate(edge, 1)
+
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug("Testing edge %s of face (size %s): %s", i_edge, target_size, edge)
+
+                # Find the adjacent face f2
+                if target_size == 2:
+                    # For F2 faces, edges will appear twice in all the edges lists of all faces
+                    temp_f2 = [face for face in g_faces if rotated_edge in face]
+                    temp_f2.remove(candidate_f1)
+                    candidate_f2 = temp_f2[0]
+                else:
+                    candidate_f2 = next(face for face in g_faces if rotated_edge in face)
+
+                candidate_f1_plus_f2 = join_faces(candidate_f1, candidate_f2, edge)
+
+                # The resulting graph is 1-edge-connected if the new face has an edge that does not divide two countries,
+                # but separates a portion of the same land
+                if is_the_graph_one_edge_connected(candidate_f1_plus_f2) is True:
+                    # Skip this edge, it is not valid
+                    continue
+
+                # This edge is valid. Check if f2 is the largest we've seen so far
+                if len(candidate_f2) > best_f2_len:
+                    best_f2_len = len(candidate_f2)
+                    best_edge_to_remove = edge
+                    best_f1 = candidate_f1
+                    best_f2 = candidate_f2
+                    best_f1_plus_f2_temp = candidate_f1_plus_f2
+
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("New best edge found: %s (f2 size: %s)", edge, best_f2_len)
+
+        # If we found at least one valid edge among faces of this size, we're done
+        if best_edge_to_remove is not None:
+            break
+
+    # Assign results
+    edge_to_remove = best_edge_to_remove
+    f1 = best_f1
+    f2 = best_f2
+    f1_plus_f2_temp = best_f1_plus_f2_temp
+
+    # If not found -> Error
+    if edge_to_remove is None:
+        edge_to_remove = ()
+        logger.error("END %s: Search the right edge to remove. NOT Found. It should not be possible", i_global_counter)
+        exit(-1)
+    else:
+
+        # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
+        len_f1 = len(f1)
+        len_f2 = len(f2)
+
+        logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge_to_remove, len_f1, len_f2)
+
+    return edge_to_remove, f1, f2, f1_plus_f2_temp
+
+
+def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter):
     """
     Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
 
@@ -789,6 +902,7 @@ def select_edge_to_remove(g_faces, choices, i_global_counter):
 
             # Skip to the next edge, this is not good
             i_edge += 1
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("is_the_graph_one_edge_connected == True for edge %s", i_edge)
         else:
             is_the_edge_to_remove_found = True
 
@@ -803,7 +917,8 @@ def select_edge_to_remove(g_faces, choices, i_global_counter):
     # If not found -> Reset the edge_to_remove
     if is_the_edge_to_remove_found is False:
         edge_to_remove = ()
-        logger.info("END %s: Search the right edge to remove. NOT Found", i_global_counter)
+        logger.error("END %s: Search the right edge to remove. NOT Found. It should not be possible", i_global_counter)
+        exit(-1)
     else:
 
         # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
@@ -813,6 +928,140 @@ def select_edge_to_remove(g_faces, choices, i_global_counter):
         logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge_to_remove, len_f1, len_f2)
 
     return edge_to_remove, f1, f2, f1_plus_f2_temp
+
+
+def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter):
+    """
+    Select an edge to remove using a strategy tailored for F5 faces.
+
+    For F2/F3/F4 faces, behaves like first-fit.
+    For F5 faces: finds an adjacent F5 or F6 face, then selects an edge from the F5
+    that shares exactly one vertex with the neighboring face (not the shared border edge).
+
+    Parameters
+    ----------
+        g_faces: The entire graph from which the edge has to be selected
+        choices: 2 + the permutations of 3 4 5
+        i_global_counter: for debugging
+
+    Returns
+    -------
+        edge_to_remove: The selected edge or, if not found, ()
+        f1: The face of the selected edge
+        f2: One edge separates two faces
+        f1_plus_f2_temp: It is used to speed up computation
+    """
+
+    logger.info("BEGIN %s: Search the right edge to remove - f5_shared_vertex (faces left: %s)", i_global_counter, len(g_faces))
+
+    # Parse the choices integer into an ordered list of face sizes
+    choices_str = str(choices)
+    if len(choices_str) != 4 or choices_str[0] != '2':
+        logger.error("Value for choices (%s) not expected", choices)
+        exit(-1)
+    face_size_priority = [int(c) for c in choices_str]
+
+    for target_size in face_size_priority:
+
+        faces_of_this_size = [f for f in g_faces if len(f) == target_size]
+        if not faces_of_this_size:
+            continue
+
+        # For F2/F3/F4: use first-fit behavior (pick first valid edge of first face)
+        if target_size <= 4:
+            for candidate_f1 in faces_of_this_size:
+                for i_edge in range(len(candidate_f1)):
+                    edge = candidate_f1[i_edge]
+                    rotated_edge = rotate(edge, 1)
+
+                    if target_size == 2:
+                        temp_f2 = [face for face in g_faces if rotated_edge in face]
+                        temp_f2.remove(candidate_f1)
+                        candidate_f2 = temp_f2[0]
+                    else:
+                        candidate_f2 = next(face for face in g_faces if rotated_edge in face)
+
+                    candidate_f1_plus_f2 = join_faces(candidate_f1, candidate_f2, edge)
+
+                    if is_the_graph_one_edge_connected(candidate_f1_plus_f2) is True:
+                        continue
+
+                    logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge, len(candidate_f1), len(candidate_f2))
+                    return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2
+
+            continue
+
+        # For F5: find an adjacent F5 or F6 and select an edge with exactly one shared vertex
+        for candidate_f1 in faces_of_this_size:
+
+            # Collect all vertices of this F5
+            f1_vertices = set()
+            for e in candidate_f1:
+                f1_vertices.add(e[0])
+                f1_vertices.add(e[1])
+
+            # Find all adjacent faces via shared edges, looking for an adjacent F5 or F6
+            adjacent_target = None
+            for i_edge in range(len(candidate_f1)):
+                edge = candidate_f1[i_edge]
+                rotated_edge = rotate(edge, 1)
+                neighbor = next(face for face in g_faces if rotated_edge in face)
+
+                if len(neighbor) == 5 or len(neighbor) == 6:
+                    adjacent_target = neighbor
+                    break
+
+            if adjacent_target is None:
+                continue
+
+            # Collect all vertices of the adjacent F5/F6
+            adj_vertices = set()
+            for e in adjacent_target:
+                adj_vertices.add(e[0])
+                adj_vertices.add(e[1])
+
+            # Now select an edge from candidate_f1 that has exactly one vertex shared with adjacent_target
+            for i_edge in range(len(candidate_f1)):
+                edge = candidate_f1[i_edge]
+                rotated_edge = rotate(edge, 1)
+
+                v1_shared = edge[0] in adj_vertices
+                v2_shared = edge[1] in adj_vertices
+
+                # We want exactly one vertex shared (not both, not none)
+                if v1_shared == v2_shared:
+                    continue
+
+                # Find f2 for this edge
+                candidate_f2 = next(face for face in g_faces if rotated_edge in face)
+                candidate_f1_plus_f2 = join_faces(candidate_f1, candidate_f2, edge)
+
+                if is_the_graph_one_edge_connected(candidate_f1_plus_f2) is True:
+                    continue
+
+                logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s) [f5_shared_vertex: adj=%s]",
+                            i_global_counter, edge, len(candidate_f1), len(candidate_f2), len(adjacent_target))
+                return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2
+
+        # Fallback for F5: if no edge with exactly one shared vertex was valid, try any valid edge
+        for candidate_f1 in faces_of_this_size:
+            for i_edge in range(len(candidate_f1)):
+                edge = candidate_f1[i_edge]
+                rotated_edge = rotate(edge, 1)
+
+                candidate_f2 = next(face for face in g_faces if rotated_edge in face)
+                candidate_f1_plus_f2 = join_faces(candidate_f1, candidate_f2, edge)
+
+                if is_the_graph_one_edge_connected(candidate_f1_plus_f2) is True:
+                    continue
+
+                logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s) [f5_shared_vertex: fallback]",
+                            i_global_counter, edge, len(candidate_f1), len(candidate_f2))
+                return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2
+
+    # If not found -> Error
+    logger.error("END %s: Search the right edge to remove. NOT Found. It should not be possible", i_global_counter)
+    exit(-1)
 
 
 def from_graph_to_planar(the_graph):
@@ -971,7 +1220,7 @@ def create_from_random1(number_of_vertices_for_the_random_triangulation, shuffle
     if shuffle_the_planar_representation:
         shuffle(g_faces)
 
-    logger.info("END: Create a random planar graph of %s vertices, from the dual of a random triangulation of %s vertices", graph_order(the_graph), number_of_vertices_for_the_random_triangulation)
+    logger.info("END: Create a random planar graph of %s vertices, from the dual of a random triangulation of %s vertices", the_graph.number_of_nodes(), number_of_vertices_for_the_random_triangulation)
 
     return the_graph, g_faces
 
@@ -1115,7 +1364,7 @@ def create_from_planar(planar_filename, shuffle_the_planar_representation, line_
 ######
 ######
 
-def reduce_faces(g_faces, choices):
+def reduce_faces(g_faces, choices, selection_strategy):
     """
     Method similar to the Kempe reduction "patching" method.\n
     For each loop remove an edge from a face <= F5, until the graph will have only three faces (an island with two lands)
@@ -1124,15 +1373,13 @@ def reduce_faces(g_faces, choices):
     ----------
         g_faces: The planar representation of the graph
         choices: The selection method for the edges
+        selection_strategy: The function to use to select the edge to remove (select_edge_to_remove_by_largest_neighbor or select_edge_to_remove_first_fit)
 
     Returns
     -------
         ariadne_s_thread: You would better study the classics
     """
 
-    logger.info("----------------------")
-    logger.info("BEGIN: Reduction phase")
-    logger.info("----------------------")
     stats['time_ELABORATION_BEGIN'] = time.ctime()
     stats['time_ELABORATION'] = datetime.datetime.now()
 
@@ -1171,7 +1418,7 @@ def reduce_faces(g_faces, choices):
 
         # Select an edge from the graph
         # This is one of the most important function to work on, to apply different strategies
-        edge_to_remove, f1, f2, f1_plus_f2_temp = select_edge_to_remove(g_faces, choices, i_global_counter)
+        edge_to_remove, f1, f2, f1_plus_f2_temp = selection_strategy(g_faces, choices, i_global_counter)
 
         # Check if math is right :-) An edge to remove must exist
         if edge_to_remove == ():
@@ -1297,7 +1544,7 @@ def reduce_faces(g_faces, choices):
             # Update the statistics for the distribution of Fs
             if third_face_to_update == fourth_face_to_update:
 
-                # TODO: There is a small bug (SEE BUG-001) to care about here at the end of the process when for faces F3 remains (as in the Mercedes Benz symbol). ==
+                # DONE: There is a small bug (SEE BUG-001) to care about here at the end of the process when four faces F3 remains (as in the Mercedes Benz symbol). ==
                 if len(third_face_to_update) in stats['F#'].keys():
                     stats['F#'][len(third_face_to_update)] += 1
                 else:
@@ -1361,11 +1608,6 @@ def reduce_faces(g_faces, choices):
     # Close the file of the distubutions
     f_distribution.close()
 
-    logger.info("--------------------")
-    logger.info("END: Reduction phase")
-    logger.info("--------------------")
-    logger.info("")
-
     return ariadne_s_thread
 
 
@@ -1384,13 +1626,9 @@ def rebuild_faces(g_faces, ariadne_s_thread):
         the_colored_graph: The colored graph
     """
 
-    logger.info("---------------------------")
-    logger.info("BEGIN: Reconstruction phase")
-    logger.info("---------------------------")
-
     # At this point the graph has 3 faces (an island with 2 lands + the ocean) and 3 edges ... easily 3-edge-colorable
     # WARNING: the color of the edges of a multiedge graph cannot be changed, so during the process it is necessary to delete and re-insert edges
-    the_colored_graph = create_networkx_graph()  # Creates nx.MultiGraph
+    the_colored_graph = nx.MultiGraph()
 
     # Only 2 vertices have to be in the graph
     all_vertices = [element for face in g_faces for edge in face for element in edge]
@@ -1455,10 +1693,6 @@ def rebuild_faces(g_faces, ariadne_s_thread):
 
     stats['time_ELABORATION_END'] = time.ctime()
     stats['time_ELABORATION'] = (datetime.datetime.now() - stats['time_ELABORATION']).seconds
-    logger.info("-------------------------")
-    logger.info("END: Reconstruction phase")
-    logger.info("-------------------------")
-    logger.info("")
 
     return the_colored_graph
 
@@ -1545,7 +1779,21 @@ def main():
     parser.add_argument("-c", "--choices", help="Sequence of the Fs to choose (2345, 2354, 2435, 2453, 2534, 2543)", type=int, default=2345, choices=[2345, 2354, 2435, 2453, 2534, 2543], required=False)
     parser.add_argument("-s", "--shuffle", help="Shuffle the list at the beginning. Most of the times it solves the infinite loop condition", action='store_true')
     parser.add_argument("-n", "--num_executions", help="The entire process will be executed N times", type=int, default=1, required=False)
+    group_selection = parser.add_mutually_exclusive_group(required=False)
+    group_selection.add_argument("-s1", "--selection1", help="Edge selection strategy 1: first fit (first valid edge in the first face of the right priority) - default", action='store_true', default=False)
+    group_selection.add_argument("-s2", "--selection2", help="Edge selection strategy 2: best adjacent face (maximizes f2 size across all candidates)", action='store_true', default=False)
+    group_selection.add_argument("-s3", "--selection3", help="Edge selection strategy 3: for F5 faces, select edge with one shared vertex with adjacent F5/F6", action='store_true', default=False)
     args = parser.parse_args()
+
+    # Select edge selection strategy (-s1 = first fit (default), -s2 = best adjacent face, -s3 = f5 shared vertex)
+    if args.selection1:
+        selection_strategy = select_edge_to_remove_first_fit
+    elif args.selection2:
+        selection_strategy = select_edge_to_remove_by_largest_neighbor
+    elif args.selection3:
+        selection_strategy = select_edge_to_remove_f5_shared_vertex
+    else:
+        selection_strategy = select_edge_to_remove_first_fit
 
     # If using planar input, cap num_executions to the number of lines in the file
     num_executions = args.num_executions
@@ -1560,7 +1808,7 @@ def main():
         initialize_statistics()
 
         logger.info("--------------------------------")
-        logger.info("BEGIN: Create the graph to color" + " (execution " + str(i_execution) + ")")
+        logger.info("BEGIN: Create the graph to color" + " (execution " + str(i_execution + 1) + ")")
         logger.info("--------------------------------")
         stats['time_GRAPH_CREATION_BEGIN'] = time.ctime()
 
@@ -1576,7 +1824,7 @@ def main():
 
         stats['time_GRAPH_CREATION_END'] = time.ctime()
         logger.info("------------------------------")
-        logger.info("END: Create the graph to color" + " (execution " + str(i_execution) + ")")
+        logger.info("END: Create the graph to color" + " (execution " + str(i_execution + 1) + ")")
         logger.info("------------------------------")
         logger.info("")
 
@@ -1592,14 +1840,14 @@ def main():
         ######
 
         logger.debug("------------------------")
-        logger.debug("BEGIN: Graph information" + " (execution " + str(i_execution) + ")")
+        logger.debug("BEGIN: Graph information" + " (execution " + str(i_execution + 1) + ")")
         logger.debug("------------------------")
 
         # Log faces
         log_faces(g_faces)
 
         logger.debug("----------------------")
-        logger.debug("END: Graph information" + " (execution " + str(i_execution) + ")")
+        logger.debug("END: Graph information" + " (execution " + str(i_execution + 1) + ")")
         logger.debug("----------------------")
         logger.debug("")
 
@@ -1625,8 +1873,27 @@ def main():
         # 4CT: For each loop remove an edge from a face <= F5, until the graph will have only three faces (an island with two lands)
         ######
 
-        ariadne_s_thread = reduce_faces(g_faces, args.choices)
+        logger.info("----------------------")
+        logger.info("BEGIN: Reduction phase" + " (execution " + str(i_execution + 1) + ")")
+        logger.info("----------------------")
+
+        ariadne_s_thread = reduce_faces(g_faces, args.choices, selection_strategy)
+
+        logger.debug("----------------------")
+        logger.debug("END: Reduction phase" + " (execution " + str(i_execution + 1) + ")")
+        logger.debug("----------------------")
+        logger.debug("")
+
+        logger.info("----------------------")
+        logger.info("BEGIN: Rebuild faces" + " (execution " + str(i_execution + 1) + ")")
+        logger.info("----------------------")
+
         the_colored_graph = rebuild_faces(g_faces, ariadne_s_thread)
+
+        logger.debug("----------------------")
+        logger.debug("END: Rebuild faces" + " (execution " + str(i_execution + 1) + ")")
+        logger.debug("----------------------")
+        logger.debug("")
 
         ######
         # 4CT: Restore the edges one at a time and apply the half Kempe-cycle color switching method
@@ -1663,7 +1930,7 @@ def main():
         # NOTE: is_isomorphic is a bit slow, since after all this time I am pretty sure the algorithm works, I decided to relax the control 
         logger.info("BEGIN: Check if isomorphic")
         # if nx.is_isomorphic(the_graph, the_colored_graph) is True:
-        if graph_order(the_graph) == graph_order(the_colored_graph) and graph_size(the_graph) == graph_size(the_colored_graph):
+        if the_graph.number_of_nodes() == the_colored_graph.number_of_nodes() and the_graph.number_of_edges() == the_colored_graph.number_of_edges():
             logger.info("Recreated graph is equal to the original")
         else:
             logger.error("Unexpected condition (recreated graph is different from the original). Mario you'd better go back to paper")

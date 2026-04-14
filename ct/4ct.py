@@ -2010,15 +2010,18 @@ def main():
     group_selection.add_argument("-s1", "--selection1", help="Edge selection strategy 1: first fit (first valid edge in the first face of the right priority) - default", action='store_true', default=False)
     group_selection.add_argument("-s2", "--selection2", help="Edge selection strategy 2: best adjacent face (maximizes f2 size across all candidates)", action='store_true', default=False)
     group_selection.add_argument("-s3", "--selection3", help="Edge selection strategy 3: for F5 faces, select edge with one shared vertex with adjacent F5/F6", action='store_true', default=False)
+    group_selection.add_argument("-s4", "--selection4", help="Edge selection strategy 4: unavoidable set — max neighbor for F2/F3/F4, F5 pairs with locality", action='store_true', default=False)
     args = parser.parse_args()
 
-    # Select edge selection strategy (-s1 = first fit (default), -s2 = best adjacent face, -s3 = f5 shared vertex)
+    # Select edge selection strategy (-s1 = first fit (default), -s2 = best adjacent face, -s3 = f5 shared vertex, -s4 = unavoidable set)
     if args.selection1:
         selection_strategy = select_edge_to_remove_first_fit
     elif args.selection2:
         selection_strategy = select_edge_to_remove_by_largest_neighbor
     elif args.selection3:
         selection_strategy = select_edge_to_remove_f5_shared_vertex
+    elif args.selection4:
+        selection_strategy = select_edge_to_remove_unavoidable_set
     else:
         selection_strategy = select_edge_to_remove_first_fit
 

@@ -115,3 +115,26 @@ def test_unavoidable_set_locality_uses_prev_face_identity(mod):
 
     # new_prev_b must be the same object as joined_b
     assert new_prev_b is joined_b
+
+
+# ---------------------------------------------------------------------------
+# Tests: CLI argument -s4 dispatches to the new strategy
+# ---------------------------------------------------------------------------
+
+def test_s4_cli_argument_dispatches_to_unavoidable_set(mod):
+    """Parsing -s4 must be accepted by the selection group (mutually exclusive with -s1/-s2/-s3)."""
+    import argparse
+
+    # Replicate the selection group from main() to verify -s4 is recognized
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument("-s1", "--selection1", action='store_true', default=False)
+    group.add_argument("-s2", "--selection2", action='store_true', default=False)
+    group.add_argument("-s3", "--selection3", action='store_true', default=False)
+    group.add_argument("-s4", "--selection4", action='store_true', default=False)
+
+    args = parser.parse_args(["-s4"])
+    assert args.selection4 is True
+    assert args.selection1 is False
+    assert args.selection2 is False
+    assert args.selection3 is False

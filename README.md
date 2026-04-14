@@ -33,22 +33,11 @@ Some videos of the running Python and Java programs:
 - https://www.youtube.com/user/mariostefanutti/videos
 
 ## Pre-requirements
-- docker
 
-## Download a Docker instance (I used sagemath version = 9.0 with python 3.7, but you can try using latest) - ONLY ONCE
-- docker run -it sagemath/sagemath:9.0 bash
-- Alternative
-  - docker run -it --name 4ct -p 8888:8888 -p 5000:5000 -p 7777:7777 sagemath/sagemath:9.0 sage-jupyter
+- Python 3
+- `pip install networkx numpy pydot`
 
-## Enter into the Docker instance
-- docker exec -it 4ct bash
-
-## Updates - ONLY ONCE
-- sudo apt-get update
-- sudo apt-get install git
-- sudo apt-get install vim
-
-### Download personal repo - ONLY ONCE
+### Download repo - ONLY ONCE
 - cd
 - mkdir prj
 - cd prj
@@ -77,18 +66,15 @@ Some videos of the running Python and Java programs:
 - cd prj
 - cd maps-coloring-python
 - cd ct
-- python3 ct_create_random_maps_from_2v.py -v 100 -o new_map_test_100.planar
-- sage 4ct.py -p new_map_test_100.planar
+- python3 converters/ct_create_random_maps_from_2v.py -v 100 -o new_map_test_100.planar
+- python3 4ct.py -p new_map_test_100.planar
 
 ## Run ct_convert_planar_to_other.py
-- Dependencies
-  - pip3 install networkx
-  - pip3 install pydot
 - cd
 - cd prj
 - cd maps-coloring-python
 - cd ct
-- python3 ct_convert_planar_to_other.py -p new_map_test_100.planar -o new_map_test_100
+- python3 converters/ct_convert_planar_to_other.py -p new_map_test_100.planar -o new_map_test_100
 
 ## Useful for cut&paste:
 - sudo apt-get install python3
@@ -143,4 +129,16 @@ optional arguments:
                         in the first face of the right priority) - default
   -s2, --selection2     Edge selection strategy 2: best adjacent face
                         (maximizes f2 size across all candidates)
+  -s3, --selection3     Edge selection strategy 3: for F5 faces, select edge
+                        with one shared vertex with adjacent F5/F6
 </pre>
+
+## Converters (`ct/converters/`)
+
+- `ct_create_random_maps_from_2v.py` — `PlanarGraphGenerator` class; generates random cubic planar graphs without Sage
+- `ct_convert_planar_to_other.py` — converts `.planar` JSON to `.edgelist` and `.dot`
+- `ct_convert_gml_to_planar.py` — converts GML format to `.planar`
+
+### ML Experiments (`ct/machine_learning/`)
+
+Experimental DQN (Double Deep Q-Network) agent using PyTorch Geometric. Not part of the core algorithm.

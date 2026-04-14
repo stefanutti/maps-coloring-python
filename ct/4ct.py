@@ -681,12 +681,14 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
             #     exit(-1)
 
             if logger.isEnabledFor(logging.DEBUG): logger.debug("END: Random switch")
+            if i_attempt > 0:
+                logger.info("Random switches: %d", i_attempt)
 
     # END F5 has been restored
     stats['MAX_RANDOM_KEMPE_SWITCHES'] = max(i_attempt, stats['MAX_RANDOM_KEMPE_SWITCHES'])
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
-    logger.info("Random switches xxx: %d", i_attempt)
+
 
 
 def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter):
@@ -900,6 +902,7 @@ def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter):
 
             # Skip to the next edge, this is not good
             i_edge += 1
+            if logger.isEnabledFor(logging.DEBUG): logger.debug("is_the_graph_one_edge_connected == True for edge %s", i_edge)
         else:
             is_the_edge_to_remove_found = True
 

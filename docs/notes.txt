@@ -1,3 +1,31 @@
+14/Apr/2026
+
+Algoritmo da implementare
+- Regola base per le facce F2, F3, F4: tra tutte le facce di quella specifica dimensione (esempio F2), scegli l'edge il cui la faccia dall'altra parte (non quella scelta) ha il numero di edge massimo. Prima esaurisci tutte le F2, poi le F3, poi le F4.
+- Regola per F5 (solo quando non ci sono più F2, F3, F4):
+  - Coppia F5-F5: per ogni coppia di F5 adiacenti, considera le 4 edge incidenti ai due vertici dell'edge condivisa, escludendo quindi l'edge condivisa stessa. Scegli quella in cui la faccia adiacente alle 2 F5 ha il numero di edge massimo.
+  - Coppia F5-F6: stessa identica logica ma con una F5 adiacente a una F6.
+  - Fallback: se né F5-F5 né F5-F6 producono candidati validi, applica la regola "max neighbor" sulle F5.
+
+Vincolo di località:
+- Dopo la prima selezione, le selezioni successive devono essere ristrette alle facce adiacenti alla faccia merged prodotta dall'iterazione precedente (cioè al f1_plus_f2_temp restituito). Se in quel vicinato non si trova nessun candidato valido, rilascia il vincolo e cerca globalmente.
+
+Implementazione dello stato:
+- Lo stato prev_face deve vivere nel chiamante come variabile locale del ciclo for i_execution, e deve essere passato come parametro alla strategia e riaggiornato col valore di ritorno. Non usare classi, non usare attributi di funzione, non usare variabili globali. Il programma non contiene classi e voglio mantenere lo stile a funzioni. Cambia la firma delle 3 strategie esistenti e passa prev_face = None. La strategia nuova invece accetta e restituisce davvero prev_face.
+
+Interfaccia CLI
+- Aggiungi un nuovo argomento -s4 / --selection4 al group_selection (mutuamente esclusivo con gli altri, come -s1/-s2/-s3) e aggiungi il relativo ramo nel dispatch della selection_strategy.
+
+Identificazione del prev_face tra un'iterazione e l'altra
+- Il f1_plus_f2_temp restituito viene inserito in g_faces dal chiamante come stesso oggetto-lista (identity preserved). Alla chiamata successiva, per ritrovarlo in g_faces, usa il confronto per identità face is prev_face, non per uguaglianza. Se non lo trovi (perché è stato assorbito da un ulteriore merge in qualche caso limite), considera prev_face = None e cerca globalmente.
+
+Cosa ti chiedo
+- Leggi 4ct.py e ct_graph_utils.py per verificare strutture dati, nomi e righe esatte, poi applica queste modifiche:
+  - Aggiungi la funzione select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, prev_face=None) che implementa l'algoritmo descritto e ritorna (edge, f1, f2, f1_plus_f2_temp, new_prev_face).
+  - Aggiungi l'argomento CLI -s4 / --selection4.
+  - Nel ciclo for i_execution, inizializza prev_face = None subito dopo initialize_statistics().
+  - Modifica la chiamata selection_strategy(g_faces, choices, i_global_counter) per passare prev_face e riassegnarlo col valore di ritorno: edge_to_remove, f1, f2, f1_plus_f2_temp, prev_face = selection_strategy(g_faces, choices, i_global_counter, prev_face).
+
 20/May/2017
 
 edge: (179, 168), down: 4, up: 10, left: 7, right: 8, (L==R) = False

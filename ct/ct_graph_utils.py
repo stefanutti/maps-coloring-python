@@ -318,7 +318,7 @@ def kempe_chain_color_swap(graph, starting_edge, c1, c2):
     return
 
 
-def faces_by_vertices(g):
+def faces_by_vertices(graph):
     """
     Return a face as a list of ordered vertices. Used to create random graphs.\n
     Originally taken from Sage (http://trac.sagemath.org/ticket/6236).
@@ -326,14 +326,14 @@ def faces_by_vertices(g):
 
     Parameters
     ----------
-        g: The graph (must have planar embedding set via check_planarity)
+        graph: The graph (must have planar embedding set via check_planarity)
 
     Returns
     -------
         list_faces: Returns a face as a list of ordered vertices
     """
     # Get the planar embedding from NetworkX
-    is_planar, embedding = nx.check_planarity(g)
+    is_planar, embedding = nx.check_planarity(graph)
     if not is_planar:
         raise ValueError("Graph is not planar")
     

@@ -217,6 +217,10 @@ def initialize_statistics():
     stats['CASE-F5-C1==C2-SameKempeLoop-C1-C4'] = 0
     stats['CASE-F5-C1!=C2-SameKempeLoop-C1-C2'] = 0
 
+    stats['SELECT-S4-F5-F5'] = 0
+    stats['SELECT-S4-F5-F6'] = 0
+    stats['SELECT-S4-F5-FALLBACK'] = 0
+
     stats['TOTAL_RANDOM_KEMPE_SWITCHES'] = 0
     stats['MAX_RANDOM_KEMPE_SWITCHES'] = 0
 
@@ -1263,6 +1267,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, pr
         g_faces, f5_candidates, pair_neighbor_size=5
     )
     if best_edge is not None:
+        stats['SELECT-S4-F5-F5'] += 1
         logger.info("END %s: found via F5-F5 pair. Edge: %s (f2 size: %s)", i_global_counter, best_edge, len(best_f2))
         return best_edge, best_f1, best_f2, best_f1_plus_f2, best_f1_plus_f2
 
@@ -1271,6 +1276,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, pr
         g_faces, f5_candidates, pair_neighbor_size=6
     )
     if best_edge is not None:
+        stats['SELECT-S4-F5-F6'] += 1
         logger.info("END %s: found via F5-F6 pair. Edge: %s (f2 size: %s)", i_global_counter, best_edge, len(best_f2))
         return best_edge, best_f1, best_f2, best_f1_plus_f2, best_f1_plus_f2
 
@@ -1282,6 +1288,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, pr
         best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_max_neighbor_from_candidates(g_faces, all_f5)
 
     if best_edge is not None:
+        stats['SELECT-S4-F5-FALLBACK'] += 1
         logger.info("END %s: found via F5 fallback. Edge: %s (f2 size: %s)", i_global_counter, best_edge, len(best_f2))
         return best_edge, best_f1, best_f2, best_f1_plus_f2, best_f1_plus_f2
 

@@ -113,7 +113,7 @@ import logging.config
 import json
 
 # TODO: Really don't know why random.shuffle works using "import random" and "random.shuffle"
-from random import shuffle
+from random import shuffle, randint
 
 import networkx as nx
 
@@ -149,8 +149,6 @@ from ct_graph_utils import graph_edge_iterator
 from ct_graph_utils import is_graph_regular
 
 from ct.converters.ct_create_random_maps_from_2v import PlanarGraphGenerator
-
-from numpy.random import randint
 
 import cProfile
 import pstats
@@ -220,6 +218,7 @@ def initialize_statistics():
     stats['SELECT-S4-F5-F5'] = 0
     stats['SELECT-S4-F5-F6'] = 0
     stats['SELECT-S4-F5-FALLBACK'] = 0
+    stats['SELECT-S4-F4-INTERRUPT'] = 0
 
     stats['TOTAL_RANDOM_KEMPE_SWITCHES'] = 0
     stats['MAX_RANDOM_KEMPE_SWITCHES'] = 0
@@ -1128,6 +1127,52 @@ def _select_from_f5_pairs(g_faces, f5_candidates, pair_neighbor_size):
     return best_edge, best_f1, best_f2, best_f1_plus_f2
 
 
+def _select_f5_f6_edge(g_faces, f5_candidates):
+    """
+    For each F5 in f5_candidates adjacent to an F6, evaluate the 2 edges of the F5
+    face at the shared edge's endpoints (excluding the shared edge itself).
+    Returns the valid edge (removal not a bridge) with the largest adjacent face f2.
+    Returns (best_edge, best_f1, best_f2, best_f1_plus_f2) or (None, None, None, None).
+    """
+    best_edge = None
+    best_f1 = None
+    best_f2 = None
+    best_f1_plus_f2 = None
+    best_f2_len = 0
+
+    for face_a in f5_candidates:
+        n_a = len(face_a)
+        for i_shared in range(n_a):
+            shared_edge = face_a[i_shared]
+            rotated_shared = rotate(shared_edge, 1)
+            face_b = next((f for f in g_faces if rotated_shared in f), None)
+            if face_b is None or len(face_b) != 6:
+                continue
+
+            # Two candidate edges: edges of F5 at v1 and v2 of the shared edge
+            candidate_edges = [
+                face_a[(i_shared - 1) % n_a],   # edge ending at v1
+                face_a[(i_shared + 1) % n_a],   # edge starting at v2
+            ]
+
+            for edge in candidate_edges:
+                rotated_edge = rotate(edge, 1)
+                candidate_f2 = next((f for f in g_faces if rotated_edge in f), None)
+                if candidate_f2 is None:
+                    continue
+                candidate_joined = join_faces(face_a, candidate_f2, edge)
+                if is_the_graph_one_edge_connected(candidate_joined):
+                    continue
+                if len(candidate_f2) > best_f2_len:
+                    best_f2_len = len(candidate_f2)
+                    best_edge = edge
+                    best_f1 = face_a
+                    best_f2 = candidate_f2
+                    best_f1_plus_f2 = candidate_joined
+
+    return best_edge, best_f1, best_f2, best_f1_plus_f2
+
+
 def _select_max_neighbor_from_candidates(g_faces, candidates):
     """
     Max-neighbor selection over the given candidate face list.
@@ -1163,34 +1208,32 @@ def _select_max_neighbor_from_candidates(g_faces, candidates):
     return best_edge, best_f1, best_f2, best_f1_plus_f2
 
 
-def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, prev_face=None):
+def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, recently_modified_vertices=None):
     """
-    Selection strategy 4: unavoidable set with locality.
+    Selection strategy 4: unavoidable set with wave-like locality.
 
-    F2/F3/F4 phase: among all faces of each size (in order 2→3→4),
-    select the valid edge whose adjacent face (f2) has the maximum number of edges.
-    Exhausts each size class before moving to the next.
+    Phase 1 (F2/F3/F4): processes smallest faces first.
+      F2: picks one random face and one random edge.
+      F3/F4: picks the valid edge whose adjacent face is largest.
+      Return: None when wave not active; union of input + merged vertices when wave active.
 
-    F5 phase (only when no F2/F3/F4 remain):
-      4a. F5-F5 pairs: for each adjacent F5 pair, evaluate the 4 edges incident
-          to the shared edge's two vertices (excluding the shared edge). Pick valid edge with max len(f2).
-      4b. F5-F6 pairs: same logic, adjacent face is F6.
-      4c. Fallback: max-neighbor rule over all F5 candidates.
-
-    Locality: when prev_face is not None, restrict F5 candidates to faces sharing
-    at least one vertex with prev_face. If no adjacent candidates found, search globally.
+    Phase 2 (F5 only):
+      Local: restrict to F5 faces adjacent to recently_modified_vertices.
+        Step 1 — F5-F5: _select_from_f5_pairs (4-edge scan, max-neighbor).
+        Step 2 — F5-F6: _select_f5_f6_edge (2-edge scan on F5 side, max-neighbor).
+      Global fallback (Step 4): scan all F5 globally, same priority order.
+      Return: input | vertices(merged_face).
 
     Parameters
     ----------
         g_faces: list of faces (each face is a list of directed-edge tuples)
-        choices: integer encoding face-size priority (must start with 2, e.g. 2345)
+        choices: integer (must be 2345; warned otherwise)
         i_global_counter: for logging
-        prev_face: the f1_plus_f2_temp returned by the previous call (None on first call)
+        recently_modified_vertices: set of vertex IDs representing the wave frontier, or None
 
     Returns
     -------
-        edge_to_remove, f1, f2, f1_plus_f2_temp, new_prev_face
-        new_prev_face == f1_plus_f2_temp
+        edge_to_remove, f1, f2, f1_plus_f2_temp, recently_modified_vertices
     """
 
     logger.info("BEGIN %s: select_edge_to_remove_unavoidable_set (faces left: %s)", i_global_counter, len(g_faces))
@@ -1207,6 +1250,25 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, pr
         if not faces_of_this_size:
             continue
 
+        # F2: pick a random face and a random edge (both parallel edges are always valid)
+        if target_size == 2:
+            candidate_f1 = faces_of_this_size[randint(0, len(faces_of_this_size) - 1)]
+            i_edge = randint(0, 1)
+            edge = candidate_f1[i_edge]
+            rotated_edge = rotate(edge, 1)
+            temp = [face for face in g_faces if rotated_edge in face]
+            temp.remove(candidate_f1)
+            candidate_f2 = temp[0]
+            candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
+            if recently_modified_vertices is not None:
+                stats['SELECT-S4-F4-INTERRUPT'] += 1
+                new_rmv = recently_modified_vertices | {v for e in candidate_joined for v in e}
+            else:
+                new_rmv = None
+            logger.info("END %s: found in F2 phase (random). Edge: %s", i_global_counter, edge)
+            return edge, candidate_f1, candidate_f2, candidate_joined, new_rmv
+
+        # F3/F4: pick the valid edge whose adjacent face is largest
         best_edge = None
         best_f1 = None
         best_f2 = None
@@ -1217,21 +1279,12 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, pr
             for i_edge in range(len(candidate_f1)):
                 edge = candidate_f1[i_edge]
                 rotated_edge = rotate(edge, 1)
-
-                if target_size == 2:
-                    temp = [face for face in g_faces if rotated_edge in face]
-                    temp.remove(candidate_f1)
-                    candidate_f2 = temp[0]
-                else:
-                    candidate_f2 = next((face for face in g_faces if rotated_edge in face), None)
-                    if candidate_f2 is None:
-                        continue
-
+                candidate_f2 = next((face for face in g_faces if rotated_edge in face), None)
+                if candidate_f2 is None:
+                    continue
                 candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
-
                 if is_the_graph_one_edge_connected(candidate_joined):
                     continue
-
                 if len(candidate_f2) > best_f2_len:
                     best_f2_len = len(candidate_f2)
                     best_edge = edge
@@ -1240,57 +1293,65 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, pr
                     best_f1_plus_f2 = candidate_joined
 
         if best_edge is not None:
-            logger.info("END %s: found in F%s phase. Edge: %s (f2 size: %s)", i_global_counter, target_size, best_edge, best_f2_len)
-            return best_edge, best_f1, best_f2, best_f1_plus_f2, best_f1_plus_f2
+            if recently_modified_vertices is not None:
+                stats['SELECT-S4-F4-INTERRUPT'] += 1
+                new_rmv = recently_modified_vertices | {v for e in best_f1_plus_f2 for v in e}
+            else:
+                new_rmv = None
+            logger.info("END %s: found in F%s phase. Edge: %s (f2 size: %s)",
+                        i_global_counter, target_size, best_edge, best_f2_len)
+            return best_edge, best_f1, best_f2, best_f1_plus_f2, new_rmv
 
     # -------------------------------------------------------------------------
     # Phase F5  — only reached when no F2/F3/F4 exist
     # -------------------------------------------------------------------------
 
-    # Locality filter: restrict F5 candidates to those adjacent to prev_face
-    prev_in_graph = None
-    if prev_face is not None:
-        prev_in_graph = next((f for f in g_faces if f is prev_face), None)
+    def _vertices_of(face):
+        return {v for edge in face for v in edge}
 
-    if prev_in_graph is not None:
-        prev_vertices = {v for edge in prev_in_graph for v in edge}
-        f5_candidates = [f for f in g_faces if len(f) == 5 and
-                         any(v in prev_vertices for edge in f for v in edge)]
-        if not f5_candidates:
-            # Release locality constraint
-            f5_candidates = [f for f in g_faces if len(f) == 5]
+    # Locality: restrict to F5 faces touching the wave frontier
+    if recently_modified_vertices:
+        local_f5 = [f for f in g_faces if len(f) == 5 and
+                    any(v in recently_modified_vertices for edge in f for v in edge)]
     else:
-        f5_candidates = [f for f in g_faces if len(f) == 5]
+        local_f5 = []
 
-    # 4a. F5-F5 pairs
+    # Step 1 — local F5-F5 (highest priority)
+    if local_f5:
+        best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_from_f5_pairs(
+            g_faces, local_f5, pair_neighbor_size=5
+        )
+        if best_edge is not None:
+            stats['SELECT-S4-F5-F5'] += 1
+            new_rmv = (recently_modified_vertices or set()) | _vertices_of(best_f1_plus_f2)
+            logger.info("END %s: found via local F5-F5 pair. Edge: %s", i_global_counter, best_edge)
+            return best_edge, best_f1, best_f2, best_f1_plus_f2, new_rmv
+
+    # Step 2 — local F5-F6
+    if local_f5:
+        best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_f5_f6_edge(g_faces, local_f5)
+        if best_edge is not None:
+            stats['SELECT-S4-F5-F6'] += 1
+            new_rmv = (recently_modified_vertices or set()) | _vertices_of(best_f1_plus_f2)
+            logger.info("END %s: found via local F5-F6 pair. Edge: %s", i_global_counter, best_edge)
+            return best_edge, best_f1, best_f2, best_f1_plus_f2, new_rmv
+
+    # Step 4 — global fallback (no local candidates, or local search found nothing)
+    all_f5 = [f for f in g_faces if len(f) == 5]
+
     best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_from_f5_pairs(
-        g_faces, f5_candidates, pair_neighbor_size=5
+        g_faces, all_f5, pair_neighbor_size=5
     )
-    if best_edge is not None:
-        stats['SELECT-S4-F5-F5'] += 1
-        logger.info("END %s: found via F5-F5 pair. Edge: %s (f2 size: %s)", i_global_counter, best_edge, len(best_f2))
-        return best_edge, best_f1, best_f2, best_f1_plus_f2, best_f1_plus_f2
-
-    # 4b. F5-F6 pairs
-    best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_from_f5_pairs(
-        g_faces, f5_candidates, pair_neighbor_size=6
-    )
-    if best_edge is not None:
-        stats['SELECT-S4-F5-F6'] += 1
-        logger.info("END %s: found via F5-F6 pair. Edge: %s (f2 size: %s)", i_global_counter, best_edge, len(best_f2))
-        return best_edge, best_f1, best_f2, best_f1_plus_f2, best_f1_plus_f2
-
-    # 4c. Fallback: max-neighbor on F5 candidates (release locality if needed)
-    best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_max_neighbor_from_candidates(g_faces, f5_candidates)
-    if best_edge is None and prev_in_graph is not None:
-        # Locality was active — retry globally
-        all_f5 = [f for f in g_faces if len(f) == 5]
-        best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_max_neighbor_from_candidates(g_faces, all_f5)
-
     if best_edge is not None:
         stats['SELECT-S4-F5-FALLBACK'] += 1
-        logger.info("END %s: found via F5 fallback. Edge: %s (f2 size: %s)", i_global_counter, best_edge, len(best_f2))
-        return best_edge, best_f1, best_f2, best_f1_plus_f2, best_f1_plus_f2
+        logger.info("END %s: found via global F5-F5 fallback. Edge: %s", i_global_counter, best_edge)
+        return best_edge, best_f1, best_f2, best_f1_plus_f2, _vertices_of(best_f1_plus_f2)
+
+    best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_f5_f6_edge(g_faces, all_f5)
+    if best_edge is not None:
+        stats['SELECT-S4-F5-FALLBACK'] += 1
+        logger.info("END %s: found via global F5-F6 fallback. Edge: %s", i_global_counter, best_edge)
+        return best_edge, best_f1, best_f2, best_f1_plus_f2, _vertices_of(best_f1_plus_f2)
 
     # Should never reach here — Euler guarantees a face < F6 always exists
     logger.error("END %s: no valid edge found in select_edge_to_remove_unavoidable_set", i_global_counter)
@@ -1624,7 +1685,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
     # Start the reduction process
     is_the_end_of_the_reduction_process = False
     i_global_counter = 0
-    prev_face = None
+    recently_modified_vertices = None
 
     # Open the file to append the rows with the changing distribution during the reduction phase
     f_distribution = open("debug/debug.f_distribution.json.dump", "a")
@@ -1652,7 +1713,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
 
         # Select an edge from the graph
         # This is one of the most important function to work on, to apply different strategies
-        edge_to_remove, f1, f2, f1_plus_f2_temp, prev_face = selection_strategy(g_faces, choices, i_global_counter, prev_face)
+        edge_to_remove, f1, f2, f1_plus_f2_temp, recently_modified_vertices = selection_strategy(g_faces, choices, i_global_counter, recently_modified_vertices)
 
         # Check if math is right :-) An edge to remove must exist
         if edge_to_remove == ():

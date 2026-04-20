@@ -883,6 +883,7 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, p
                 (
                     neighbor
                     for edge in candidate_f1
+                    # single-element list binds neighbor so it can be tested and yielded in one expression
                     for neighbor in [next(face for face in g_faces if rotate(edge, 1) in face)]
                     if len(neighbor) in (5, 6)
                 ),

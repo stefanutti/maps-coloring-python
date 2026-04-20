@@ -740,7 +740,9 @@ def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter
                 else:
                     candidate_f2 = next(f for f in g_faces if rotated in f)
                 candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
-                if not is_the_graph_one_edge_connected(candidate_joined) and len(candidate_f2) > best_f2_len:
+                if is_the_graph_one_edge_connected(candidate_joined):
+                    continue
+                if len(candidate_f2) > best_f2_len:
                     best_f2_len = len(candidate_f2)
                     best_edge = edge
                     best_f1 = candidate_f1

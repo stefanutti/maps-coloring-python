@@ -850,114 +850,80 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, p
 
     logger.info("BEGIN %s: Search the right edge to remove - f5_shared_vertex (faces left: %s)", i_global_counter, len(g_faces))
 
-    # Parse the choices integer into an ordered list of face sizes
     choices_str = str(choices)
     if len(choices_str) != 4 or choices_str[0] != '2':
         logger.error("Value for choices (%s) not expected", choices)
         exit(-1)
     face_size_priority = [int(c) for c in choices_str]
 
-    for target_size in face_size_priority:
+    log_suffix = ""
 
-        faces_of_this_size = [f for f in g_faces if len(f) == target_size]
-        if not faces_of_this_size:
-            continue
+    def _try_for_size(target_size):
+        nonlocal log_suffix
+        faces = [f for f in g_faces if len(f) == target_size]
 
-        # For F2/F3/F4: use first-fit behavior (pick first valid edge of first face)
         if target_size <= 4:
-            for candidate_f1 in faces_of_this_size:
-                for i_edge in range(len(candidate_f1)):
-                    edge = candidate_f1[i_edge]
-                    rotated_edge = rotate(edge, 1)
-
+            for candidate_f1 in faces:
+                for edge in candidate_f1:
+                    rotated = rotate(edge, 1)
                     if target_size == 2:
-                        temp_f2 = [face for face in g_faces if rotated_edge in face]
-                        temp_f2.remove(candidate_f1)
-                        candidate_f2 = temp_f2[0]
+                        temp = [f for f in g_faces if rotated in f]
+                        temp.remove(candidate_f1)
+                        candidate_f2 = temp[0]
                     else:
-                        candidate_f2 = next(face for face in g_faces if rotated_edge in face)
+                        candidate_f2 = next(f for f in g_faces if rotated in f)
+                    candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
+                    if not is_the_graph_one_edge_connected(candidate_joined):
+                        return (edge, candidate_f1, candidate_f2, candidate_joined)
+            return None
 
-                    candidate_f1_plus_f2 = join_faces(candidate_f1, candidate_f2, edge)
+        # F5: find an adjacent F5 or F6 and select an edge with exactly one shared vertex
+        for candidate_f1 in faces:
+            adjacent_target = next(
+                (
+                    neighbor
+                    for edge in candidate_f1
+                    for neighbor in [next(face for face in g_faces if rotate(edge, 1) in face)]
+                    if len(neighbor) in (5, 6)
+                ),
+                None,
+            )
 
-                    if is_the_graph_one_edge_connected(candidate_f1_plus_f2) is True:
-                        continue
+            if adjacent_target is not None:
+                adj_vertices = {v for e in adjacent_target for v in e}
+                for edge in candidate_f1:
+                    v1_shared = edge[0] in adj_vertices
+                    v2_shared = edge[1] in adj_vertices
+                    if v1_shared != v2_shared:
+                        candidate_f2 = next(f for f in g_faces if rotate(edge, 1) in f)
+                        candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
+                        if not is_the_graph_one_edge_connected(candidate_joined):
+                            log_suffix = " [f5_shared_vertex: adj=%s]" % len(adjacent_target)
+                            return (edge, candidate_f1, candidate_f2, candidate_joined)
 
-                    logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)", i_global_counter, edge, len(candidate_f1), len(candidate_f2))
-                    return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2, None
+        # Fallback for F5: any valid edge
+        for candidate_f1 in faces:
+            for edge in candidate_f1:
+                candidate_f2 = next(f for f in g_faces if rotate(edge, 1) in f)
+                candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
+                if not is_the_graph_one_edge_connected(candidate_joined):
+                    log_suffix = " [f5_shared_vertex: fallback]"
+                    return (edge, candidate_f1, candidate_f2, candidate_joined)
 
-            continue
+        return None
 
-        # For F5: find an adjacent F5 or F6 and select an edge with exactly one shared vertex
-        for candidate_f1 in faces_of_this_size:
+    result = next(
+        (r for size in face_size_priority for r in [_try_for_size(size)] if r is not None),
+        None,
+    )
 
-            # Collect all vertices of this F5
-            f1_vertices = set()
-            for e in candidate_f1:
-                f1_vertices.add(e[0])
-                f1_vertices.add(e[1])
+    if result is None:
+        logger.error("END %s: Search the right edge to remove. NOT Found. It should not be possible", i_global_counter)
+        exit(-1)
 
-            # Find all adjacent faces via shared edges, looking for an adjacent F5 or F6
-            adjacent_target = None
-            for i_edge in range(len(candidate_f1)):
-                edge = candidate_f1[i_edge]
-                rotated_edge = rotate(edge, 1)
-                neighbor = next(face for face in g_faces if rotated_edge in face)
-
-                if len(neighbor) == 5 or len(neighbor) == 6:
-                    adjacent_target = neighbor
-                    break
-
-            if adjacent_target is None:
-                continue
-
-            # Collect all vertices of the adjacent F5/F6
-            adj_vertices = set()
-            for e in adjacent_target:
-                adj_vertices.add(e[0])
-                adj_vertices.add(e[1])
-
-            # Now select an edge from candidate_f1 that has exactly one vertex shared with adjacent_target
-            for i_edge in range(len(candidate_f1)):
-                edge = candidate_f1[i_edge]
-                rotated_edge = rotate(edge, 1)
-
-                v1_shared = edge[0] in adj_vertices
-                v2_shared = edge[1] in adj_vertices
-
-                # We want exactly one vertex shared (not both, not none)
-                if v1_shared == v2_shared:
-                    continue
-
-                # Find f2 for this edge
-                candidate_f2 = next(face for face in g_faces if rotated_edge in face)
-                candidate_f1_plus_f2 = join_faces(candidate_f1, candidate_f2, edge)
-
-                if is_the_graph_one_edge_connected(candidate_f1_plus_f2) is True:
-                    continue
-
-                logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s) [f5_shared_vertex: adj=%s]",
-                            i_global_counter, edge, len(candidate_f1), len(candidate_f2), len(adjacent_target))
-                return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2, None
-
-        # Fallback for F5: if no edge with exactly one shared vertex was valid, try any valid edge
-        for candidate_f1 in faces_of_this_size:
-            for i_edge in range(len(candidate_f1)):
-                edge = candidate_f1[i_edge]
-                rotated_edge = rotate(edge, 1)
-
-                candidate_f2 = next(face for face in g_faces if rotated_edge in face)
-                candidate_f1_plus_f2 = join_faces(candidate_f1, candidate_f2, edge)
-
-                if is_the_graph_one_edge_connected(candidate_f1_plus_f2) is True:
-                    continue
-
-                logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s) [f5_shared_vertex: fallback]",
-                            i_global_counter, edge, len(candidate_f1), len(candidate_f2))
-                return edge, candidate_f1, candidate_f2, candidate_f1_plus_f2, None
-
-    # If not found -> Error
-    logger.error("END %s: Search the right edge to remove. NOT Found. It should not be possible", i_global_counter)
-    exit(-1)
+    edge_to_remove, f1, f2, f1_plus_f2_temp = result
+    logger.info("END %s: Search the right edge to remove. Found: %s (case: %s, %s)%s", i_global_counter, edge_to_remove, len(f1), len(f2), log_suffix)
+    return edge_to_remove, f1, f2, f1_plus_f2_temp, None
 
 
 def _select_from_f5_pairs(g_faces, f5_candidates, pair_neighbor_size):

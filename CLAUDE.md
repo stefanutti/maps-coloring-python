@@ -1,75 +1,104 @@
 # CLAUDE.md
 
-This file governs how all agents operate in this repository, regardless of the underlying AI platform or tooling.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Core Principles
+## Project
 
-1. **Specification-First (SDD)** — Define the contract before writing code.
-2. **Plan Before Execute** — For all tasks, produce a plan and get alignment before writing code.
-3. **Test-Driven (TDD)** — Red → Green → Refactor.
-4. **Minimal Change** — Make the smallest change that satisfies the requirement. No speculative abstractions.
-5. **Security-First** — Validate all inputs at system boundaries. Never hardcode secrets.
+Python implementation of a Four Color Theorem algorithm. The approach uses Tait edge-coloring equivalency: a 3-edge-coloring of a planar cubic graph is equivalent to a 4-face-coloring. The algorithm reduces the graph by removing edges (Kempe-style), then reconstructs with half-cycle Kempe chain color switching.
 
-When requirements are unclear, ask questions before proceeding. Prefer purpose-built skills (PDF, spreadsheet, presentation, frontend design, etc.) over implementing from scratch.
+Homepage and full write-up: https://4coloring.wordpress.com
 
-## Specification-Driven Development
+## Environment
 
-Before implementing any feature or fixing any bug:
+```bash
+source .venv/bin/activate          # activate virtualenv (Python 3)
+pip install networkx numpy pydot   # core runtime deps
+pip install pytest                 # for running tests (not pre-installed)
+```
 
-1. **Write the spec** — Define expected behavior as a contract: inputs, outputs, preconditions, postconditions, and error cases.
-2. **Review the spec** — Verify it covers edge cases and aligns with project requirements.
-3. **Implement against the spec** — The spec is the source of truth.
-4. **Update the spec when requirements change** — Never let implementation drift silently.
+All commands below assume the virtualenv is active and CWD is `ct/`.
 
-## Test-Driven Development
+## Commands
 
-**Mandatory workflow for all new features and bug fixes:**
+```bash
+# Run the algorithm
+python3 4ct.py --help
+python3 4ct.py -r1 100             # random graph: dual of a triangulation of 100 vertices
+python3 4ct.py -r2 100             # random graph: face subdivision with 100 faces
+python3 4ct.py -p <file.planar>    # load planar embedding (JSON)
+python3 4ct.py -e <file.edgelist>  # load NetworkX edgelist
+python3 4ct.py -s4 -r1 100         # use selection strategy 4
 
-1. **RED** — Write a test that captures the spec. Run it. It must fail.
-2. **GREEN** — Write the minimal code to make the test pass.
-3. **REFACTOR** — Clean up duplication and structure. Verify tests still pass.
+# Flags
+#   -o <name>       save .edgelist + .dot output
+#   -c {2345,...}   face priority sequence (permutations of 3,4,5 with 2 first)
+#   -s              shuffle face list at start
+#   -n N            repeat N times
+#   -s1|-s2|-s3|-s4 edge selection strategy
 
-**Test types required:**
-- **Unit** — Individual functions, pure logic, utilities.
-- **Integration** — Module boundaries, database operations, API contracts.
-- **E2E** — Critical user-facing flows.
+# Converters
+python3 converters/ct_create_random_maps_from_2v.py -v 100 -o map.planar
+python3 converters/ct_convert_planar_to_other.py -p map.planar -o map
 
-**Rules:**
-- Fix failing implementations, not tests (unless the test itself is wrong).
-- Tests must be isolated: no shared mutable state between cases.
+# Tests
+pytest tests/ -v
+```
 
-## Security
+## Architecture
 
-**Before any commit:**
-- No hardcoded secrets, API keys, or tokens.
-- All user input validated at system boundaries.
-- SQL injection prevented (parameterized queries only).
-- XSS prevented (sanitized output).
-- Authentication and authorization verified.
-- Error messages must not leak internal state.
+### Core data structure: `g_faces`
 
-**If a security issue is found:** STOP → invoke security reviewer → fix CRITICAL/HIGH issues → rotate any exposed secrets → scan codebase for similar patterns.
+The entire graph is represented as a list of faces. Each face is a list of directed edges (tuples), ordered clockwise. The last face is always the "ocean" (outer face, counter-clockwise):
+
+```python
+g_faces = [
+    [(0,1), (1,2), (2,0)],           # triangle face
+    [(0,2), (2,4), (4,3), (3,0)],    # quad face
+    ...                              # last entry = ocean
+]
+```
+
+An edge `(u, v)` in face A appears as `(v, u)` in the adjacent face B. This rotated form is used throughout to find the neighboring face of any edge.
+
+### Main flow (`ct/4ct.py`)
+
+1. **Graph creation** — generate or load a planar cubic (3-regular) graph
+2. **Face extraction** — convert to `g_faces` planar embedding
+3. **Reduction loop** — iteratively pick an edge, verify removing it doesn't leave the graph 1-edge-connected (`is_the_graph_one_edge_connected`), merge the two adjacent faces, and push the removed edge onto a stack
+4. **Reconstruction (Ariadne)** — pop edges off the stack, re-insert each, recolor with Kempe chain / half-cycle switching
+5. **Validation** — `is_well_colored()` checks final coloring
+
+### Edge selection strategies (the active research area)
+
+Each strategy selects which edge to remove at each reduction step. All return `(edge_to_remove, f1, f2, f1_plus_f2_temp, extra)`:
+
+| Strategy | Function | Behavior |
+|----------|----------|----------|
+| S1 | `select_edge_to_remove` | First valid edge of first face in priority order |
+| S2 | `select_edge_to_remove_by_largest_neighbor` | Valid edge whose adjacent face f2 is largest |
+| S3 | `select_edge_to_remove_f5_shared_vertex` | For F5: prefer edges sharing exactly one vertex with an adjacent F5/F6 |
+| S4 | `select_edge_to_remove_selection4` | Locality-aware: prioritizes faces containing recently-modified vertices (wave frontier) |
+
+Face priority (`choices` parameter): F2 always first, then a permutation of F3/F4/F5. Encoded as an integer, e.g. `2345`.
+
+### Key files
+
+- **`ct/4ct.py`** — entry point, main loop, all selection strategies, Ariadne reconstruction
+- **`ct/ct_graph_utils.py`** — all graph primitives: `create_graph_from_planar_representation`, `kempe_chain_color_swap`, `apply_half_kempe_loop_color_switching`, `is_well_colored`, `check_graph_planarity_3_regularity_no_loops`, and NetworkX wrappers
+- **`ct/converters/`** — standalone tools to generate and convert graph formats
+- **`tests/`** — pytest suite; `test_selection4.py` covers the S4 return contract and F5/F6 edge cases
+
+### Invariants to preserve
+
+- Every graph processed must be planar, cubic (3-regular), and loop-free — enforced by `check_graph_planarity_3_regularity_no_loops`
+- `g_faces` must always cover every edge exactly twice (once per direction)
+- After removal, the reduced graph must not be 1-edge-connected (bridge-free)
+- All selection strategy functions must return a 5-tuple `(edge, f1, f2, f1_plus_f2, extra)` — `extra` is currently always `None`
 
 ## Coding Style
 
 - **Immutability** — Return new values; do not mutate existing objects.
-- **Nesting depth** — Maximum 4 levels. Restructure if deeper.
-- **Explicit error handling** — Log context server-side; show user-friendly messages in UI. No silent failures.
-- **Comment only non-obvious logic.**
-
-## Git
-
-- **Commit format:** `<type>: <description>` — types: `feature`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
-- Commit only when explicitly asked or as part of an active workflow.
-- Stage specific files by name; never `git add -A` or `git add .`.
-- Create new commits; never amend published commits.
-- PR summaries must cover the full commit history and include a test plan.
-- Preferred worktree directory: `.worktrees/`
-
-## Communication
-
-- Follow a structured workflow: brainstorm → plan → execute → test → review → complete.
-- At each stage, summarize what was done, what decisions were made, and what comes next.
-- Ask clarifying questions before starting any work — do not assume intent.
-- Ask before taking irreversible or wide-impact actions (deleting files, force-pushing, modifying CI/CD).
-- Keep explanations concise but complete enough to allow meaningful review at each checkpoint.
+- **Nesting depth** — Maximum 4 levels.
+- **No silent failures** — log context on error; `exit(-1)` on unrecoverable state.
+- Comment only non-obvious logic — never restate what the code already says.
+- Write code with clear, linear control flow that minimizes break, continue, and early return, allowing them only when they clearly improve readability (e.g., simple guard clauses) and avoiding unnecessary nesting or complex jumps.

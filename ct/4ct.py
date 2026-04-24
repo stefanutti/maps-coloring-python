@@ -1582,12 +1582,16 @@ def reduce_faces(g_faces, choices, selection_strategy):
 
         # Select an edge from the graph
         # This is one of the most important function to work on, to apply different strategies
-        edge_to_remove, f1, f2, f1_plus_f2_temp, recently_modified_vertices = selection_strategy(g_faces, choices, i_global_counter, recently_modified_vertices)
+        edge_to_remove, f1, f2, f1_plus_f2_temp, _ = selection_strategy(g_faces, choices, i_global_counter, recently_modified_vertices)
 
         # Since Euler's formula is right :-) an edge to remove must exist, and it means that I made a programming error if I get here without finding it
         if edge_to_remove == ():
             logger.error("Unexpected condition (a suitable edge has not been found). Mario you'd better go back to paper")
             exit(-1)
+
+        # Wave frontier is owned by reduce_faces: selection strategies only read it
+        v1, v2 = edge_to_remove
+        recently_modified_vertices = update_wave_frontier(recently_modified_vertices, len(f1), f1_plus_f2_temp, v1, v2)
 
         # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
         len_of_the_face_to_reduce_f1 = len(f1)
@@ -1600,8 +1604,6 @@ def reduce_faces(g_faces, choices, selection_strategy):
 
             # Get the two vertices to join
             # It may also happen that at the end of the process, I'll get a loop: From ---CO to ---O
-            v1 = edge_to_remove[0]
-            v2 = edge_to_remove[1]
 
             # >--0--<
             #
@@ -1657,8 +1659,6 @@ def reduce_faces(g_faces, choices, selection_strategy):
 
             # Get the vertices at the ends of the edge to remove
             # And find the other four neighbors :>.---.<: (If the --- is the removed edge, the four external dots represent the vertices I'm looking for)
-            v1 = edge_to_remove[0]
-            v2 = edge_to_remove[1]
 
             vertex_to_join_near_v1_on_the_face = next(edge for edge in f1 if edge[1] == v1)[0]
             vertex_to_join_near_v2_on_the_face = next(edge for edge in f1 if edge[0] == v2)[1]

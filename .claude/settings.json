@@ -5,6 +5,7 @@
       "Bash(python:*)",
       "Bash(python3 -m pytest *)",
       "Bash(python -m pytest *)",
+      "Bash(sed *)",
       "Bash(pip install:*)",
       "Bash(git log *)",
       "Bash(git show *)",
@@ -12,6 +13,7 @@
       "Bash(git worktree list)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
+      "Bash(git commit *)",
       "Bash(pytest *)",
       "Bash(rg *)"
     ]

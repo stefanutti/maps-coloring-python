@@ -1069,6 +1069,25 @@ def _vertices_of(face):
     return {v for edge in face for v in edge}
 
 
+def update_wave_frontier(current, f1_len, f1_plus_f2, v1, v2):
+    """
+    Return the new wave-frontier set after reducing one face.
+
+    - F5 reduction: activate or extend the frontier with vertices of the
+      merged face, minus the two vertices removed from the graph.
+    - Non-F5 reduction with active frontier: extend and clean the same way.
+    - Non-F5 reduction with inactive frontier: return None (stays inactive).
+
+    Does not mutate `current`.
+    """
+    is_f5 = (f1_len == 5)
+    was_active = current is not None
+    if not (is_f5 or was_active):
+        return None
+    base = current if was_active else set()
+    return (base | _vertices_of(f1_plus_f2)) - {v1, v2}
+
+
 def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, recently_modified_vertices=None):
     """
     Selection strategy 4: unavoidable set with wave-like locality.

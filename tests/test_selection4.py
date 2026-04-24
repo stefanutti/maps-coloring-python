@@ -139,21 +139,17 @@ def test_unavoidable_set_f3_picks_max_neighbor(mod):
 # Tests: recently_modified_vertices parameter
 # ---------------------------------------------------------------------------
 
-def test_unavoidable_set_phase1_with_nonempty_rmv_returns_union(mod):
+def test_unavoidable_set_phase1_with_nonempty_rmv_returns_none(mod):
     """
-    When recently_modified_vertices is non-empty on entry and Phase 1 fires,
-    the 5th return value is a set that is a superset of the input vertices
-    and also includes the merged face vertices.
+    After the refactor, S4 never writes the wave frontier — the 5th return
+    value is always None, even when a non-empty frontier is passed in.
     """
     g = make_f3f4_graph()
-    seed_vertices = {99, 100}   # not in graph — carried through unchanged
+    seed_vertices = {99, 100}
     edge, f1, f2, f1_plus_f2, rmv = mod.select_edge_to_remove_unavoidable_set(
         g, 2345, 0, recently_modified_vertices=seed_vertices
     )
-    assert isinstance(rmv, set)
-    assert seed_vertices.issubset(rmv)
-    merged_vertices = {v for e in f1_plus_f2 for v in e}
-    assert merged_vertices.issubset(rmv)
+    assert rmv is None
 
 
 # ---------------------------------------------------------------------------
@@ -189,15 +185,12 @@ def test_select_f5_f6_picks_f5_edge_with_largest_neighbor(mod):
 # Tests: Phase 2 (all-F5 graph) returns vertex set
 # ---------------------------------------------------------------------------
 
-def test_unavoidable_set_phase2_returns_vertex_set(mod):
-    """When only F5 faces exist (Phase 2), the 5th return is a non-empty set."""
+def test_unavoidable_set_phase2_returns_none(mod):
+    """Phase 2 (all-F5 graph) also returns None as 5th element after the refactor."""
     g = make_f5_f5_faces()
     edge, f1, f2, f1_plus_f2, rmv = mod.select_edge_to_remove_unavoidable_set(g, 2345, 0)
     assert edge is not None
-    assert isinstance(rmv, set)
-    assert len(rmv) > 0
-    merged_vertices = {v for e in f1_plus_f2 for v in e}
-    assert merged_vertices.issubset(rmv)
+    assert rmv is None
 
 
 # ---------------------------------------------------------------------------

@@ -1116,7 +1116,10 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
 
     Returns
     -------
-        edge_to_remove, f1, f2, f1_plus_f2_temp, None
+        edge_to_remove, f1, f2, f1_plus_f2_temp, event
+
+        `event` is `'fallback'` when the global F5 fallback fires while a
+        wave is active (so the caller can end the wave); otherwise `None`.
     """
 
     logger.info("BEGIN %s: select_edge_to_remove_unavoidable_set (faces left: %s, wave frontier size: %s)", i_global_counter, len(g_faces), len(recently_modified_vertices) if recently_modified_vertices is not None else "N/A")
@@ -1147,7 +1150,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
                 stats['SELECT-S4-F4-INTERRUPT'] += 1
                 logger.error("Unexpected F2 face found while wave frontier is active. This should not happen. Check the stats and debug logs. Edge: %s", edge)
                 exit(-1)
-            logger.info("END %s: found in F2 phase (random). Edge: %s", i_global_counter, edge)
+            logger.info("END %s: select_edge_to_remove_unavoidable_set edge found in F2 phase (random). Edge: %s", i_global_counter, edge)
             return edge, candidate_f1, candidate_f2, candidate_joined, None
 
         # F3/F4: pick the valid edge whose adjacent face is largest
@@ -1177,7 +1180,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
         if best_edge is not None:
             if recently_modified_vertices is not None:
                 stats['SELECT-S4-F4-INTERRUPT'] += 1
-            logger.info("END %s: found in F%s phase. Edge: %s (f2 size: %s)", i_global_counter, target_size, best_edge, best_f2_len)
+            logger.info("END %s: select_edge_to_remove_unavoidable_set edge found in F%s phase. Edge: %s (f2 size: %s)", i_global_counter, target_size, best_edge, best_f2_len)
             return best_edge, best_f1, best_f2, best_f1_plus_f2, None
 
     # Phase F5  — only reached when no F2/F3/F4 exist
@@ -1192,7 +1195,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
         best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_from_f5_pairs(g_faces, local_f5, pair_neighbor_size=5)
         if best_edge is not None:
             stats['SELECT-S4-F5-F5'] += 1
-            logger.info("END %s: found via local F5-F5 pair. Edge: %s", i_global_counter, best_edge)
+            logger.info("END %s: select_edge_to_remove_unavoidable_set edge found via local F5-F5 pair. Edge: %s", i_global_counter, best_edge)
             return best_edge, best_f1, best_f2, best_f1_plus_f2, None
 
     # Step 2 — local F5-F6
@@ -1200,7 +1203,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
         best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_f5_f6_edge(g_faces, local_f5)
         if best_edge is not None:
             stats['SELECT-S4-F5-F6'] += 1
-            logger.info("END %s: found via local F5-F6 pair. Edge: %s", i_global_counter, best_edge)
+            logger.info("END %s: select_edge_to_remove_unavoidable_set edge found via local F5-F6 pair. Edge: %s", i_global_counter, best_edge)
             return best_edge, best_f1, best_f2, best_f1_plus_f2, None
 
     # Step 4 — global fallback (no local candidates, or local search found nothing)
@@ -1208,20 +1211,22 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
 
     best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_from_f5_pairs(g_faces, all_f5, pair_neighbor_size=5)
     if best_edge is not None:
-        if recently_modified_vertices is not None:
+        wave_was_active = recently_modified_vertices is not None
+        if wave_was_active:
             stats['SELECT-S4-F5-FALLBACK'] += 1
-        logger.info("END %s: found via global F5-F5 fallback. Edge: %s", i_global_counter, best_edge)
-        return best_edge, best_f1, best_f2, best_f1_plus_f2, None
+        logger.info("END %s: select_edge_to_remove_unavoidable_set edge found via global F5-F5 fallback. Edge: %s", i_global_counter, best_edge)
+        return best_edge, best_f1, best_f2, best_f1_plus_f2, ('fallback' if wave_was_active else None)
 
     best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_f5_f6_edge(g_faces, all_f5)
     if best_edge is not None:
-        if recently_modified_vertices is not None:
+        wave_was_active = recently_modified_vertices is not None
+        if wave_was_active:
             stats['SELECT-S4-F5-FALLBACK'] += 1
-        logger.info("END %s: found via global F5-F6 fallback. Edge: %s", i_global_counter, best_edge)
-        return best_edge, best_f1, best_f2, best_f1_plus_f2, None
+        logger.info("END %s: select_edge_to_remove_unavoidable_set edge found via global F5-F6 fallback. Edge: %s", i_global_counter, best_edge)
+        return best_edge, best_f1, best_f2, best_f1_plus_f2, ('fallback' if wave_was_active else None)
 
     # Should never reach here — Euler guarantees a face < F6 always exists
-    logger.error("END %s: no valid edge found in select_edge_to_remove_unavoidable_set", i_global_counter)
+    logger.error("END %s: select_edge_to_remove_unavoidable_set no valid edge found", i_global_counter)
     exit(-1)
 
 
@@ -1580,16 +1585,19 @@ def reduce_faces(g_faces, choices, selection_strategy):
 
         # Select an edge from the graph
         # This is one of the most important function to work on, to apply different strategies
-        edge_to_remove, f1, f2, f1_plus_f2_temp, _ = selection_strategy(g_faces, choices, i_global_counter, recently_modified_vertices)
+        edge_to_remove, f1, f2, f1_plus_f2_temp, selection_event = selection_strategy(g_faces, choices, i_global_counter, recently_modified_vertices)
 
         # Since Euler's formula is right :-) an edge to remove must exist, and it means that I made a programming error if I get here without finding it
         if edge_to_remove == ():
             logger.error("Unexpected condition (a suitable edge has not been found). Mario you'd better go back to paper")
             exit(-1)
 
-        # Wave frontier is owned by reduce_faces: selection strategies only read it
+        # Wave frontier is owned by reduce_faces: selection strategies only read it.
+        # A 'fallback' event from S4 ends the current wave (forced global F5 search).
         v1, v2 = edge_to_remove
         recently_modified_vertices = update_wave_frontier(recently_modified_vertices, len(f1), f1_plus_f2_temp, v1, v2)
+        if selection_event == 'fallback':
+            recently_modified_vertices = None
 
         # What kind of face am I reducing (I need only f1, f2 is only for debugging ... for now)
         len_of_the_face_to_reduce_f1 = len(f1)
@@ -1598,7 +1606,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
         # Remove the edge of an F2 (multiple edge)
         if len_of_the_face_to_reduce_f1 == 2:
 
-            logger.info("BEGIN %s: Remove a multiple edge (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+            logger.info("BEGIN %s: Remove a multiple edge (len f1, f2: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
 
             # Get the two vertices to join
             # It may also happen that at the end of the process, I'll get a loop: From ---CO to ---O
@@ -1648,12 +1656,12 @@ def reduce_faces(g_faces, choices, selection_strategy):
             if logger.isEnabledFor(logging.DEBUG): logger.debug("ariadne_step: %s", ariadne_step)
 
             # Do one thing at a time and return at the beginning of the main loop
-            logger.info("END %s: Remove a multiple edge (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+            logger.info("END %s: Remove a multiple edge (len f1, f2: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
 
         # Remove an F3 or F4 or F5
         else:
 
-            logger.info("BEGIN %s: Remove an F3, F4 or F5 (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+            logger.info("BEGIN %s: Remove an F3, F4 or F5 (len f1, f2: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
 
             # Get the vertices at the ends of the edge to remove
             # And find the other four neighbors :>.---.<: (If the --- is the removed edge, the four external dots represent the vertices I'm looking for)
@@ -1704,7 +1712,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
             # Update the statistics for the distribution of Fs
             if third_face_to_update == fourth_face_to_update:
 
-                # DONE: There is a small bug (SEE BUG-001) to care about here at the end of the process when four faces F3 remains (as in the Mercedes Benz symbol). ==
+                # DONE: There is a small bug (SEE BUG-001) to care about here at the end of the process when four faces F3 remains (as in the Mercedes Benz symbol)
                 if len(third_face_to_update) in stats['F#'].keys():
                     stats['F#'][len(third_face_to_update)] += 1
                 else:
@@ -1754,7 +1762,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
             log_faces(g_faces)
 
         # END of main loop (-1 because the counter has been just incremented)
-        logger.info("F# = %s", stats['F#'])
+        logger.info("F# = %s", dict(sorted(stats['F#'].items())))
         logger.info("END %s: Main loop - len(ariadne_s_thread) = %s", i_global_counter, len(ariadne_s_thread))
 
         json.dump(stats['F#'], f_distribution)

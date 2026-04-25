@@ -93,7 +93,7 @@ Face priority (`choices` parameter): F2 always first, then a permutation of F3/F
 - Every graph processed must be planar, cubic (3-regular), and loop-free — enforced by `check_graph_planarity_3_regularity_no_loops`
 - `g_faces` must always cover every edge exactly twice (once per direction)
 - After removal, the reduced graph must not be 1-edge-connected (bridge-free)
-- All selection strategy functions must return a 5-tuple `(edge, f1, f2, f1_plus_f2, extra)` — `extra` is currently always `None`
+- All selection strategy functions must return a 5-tuple `(edge, f1, f2, f1_plus_f2, event)` — `event` is a selection-event signal consumed by `reduce_faces`. `None` for S1/S2/S3. For S4 it is `'fallback'` when the global F5 fallback fires with an active wave (the caller resets the wave), otherwise `None`.
 
 ## Coding Style
 

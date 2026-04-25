@@ -1,3 +1,42 @@
+25/Apr/2026
+
+• Ho fatto review statica e verifiche locali. Nessuna modifica al codice. Verifiche: pytest tests -q passa con 26 passed; smoke python 4ct.py -s4 -r1 10 da ct/ passa, ma non esercita
+  davvero la fase F5.
+
+  Performance
+
+  - La selezione è circa O(F^2) per iterazione e può diventare O(F^3) sull’intera riduzione: ogni edge candidata cerca la faccia adiacente con scan lineare su g_faces, ad esempio in
+    ct/4ct.py:1163, ct/4ct.py:949, ct/4ct.py:1005.
+  - join_faces() viene calcolata per molti candidati solo per scartarli dopo is_the_graph_one_edge_connected; corretto, ma costoso perché copia liste e fa altre scansioni.
+  - La locality riduce solo la fase F5; F2/F3/F4 restano sempre globali anche durante una wave.
+  - reduce_faces() scrive JSON a ogni iterazione su debug.f_distribution in ct/4ct.py:1768, quindi su mappe grandi l’I/O diventa rumore prestazionale.
+  - Il cProfile è sempre attivo nel main in ct/4ct.py:2186, utile per debug ma penalizzante come default.
+
+  Errori Logici / Rischi
+
+  - Probabile bug nella wave: dopo un fallback globale attivo, reduce_faces() prima aggiorna la frontier e poi la azzera in ct/4ct.py:1598. Questo interrompe la propagazione invece di
+    ripartire dal punto trovato globalmente. È in tensione con la strategia “fallback globale, poi restart local expansion”.
+  - La fallback F5 non è una vera fallback generica: prova solo F5-F5 e F5-F6, poi termina con exit(-1) in ct/4ct.py:1212. Esiste _select_max_neighbor_from_candidates() in ct/4ct.py:1033,
+    ma non viene usata. Se non vuoi dipendere strettamente dal teorema “esiste sempre una coppia F5-F5/F5-F6 valida”, questo è fragile.
+  - La fase F2 con wave attiva termina il processo con exit(-1) in ct/4ct.py:1148. Anche se l’evento è considerato impossibile, sarebbe più sicuro gestirlo come normale F2 o fallire con
+    eccezione testabile.
+  - La fase F2 sceglie casualmente e non verifica is_the_graph_one_edge_connected() in ct/4ct.py:1137. Se l’invariante “le F2 sono sempre valide” è essenziale, va documentato e coperto da
+    test.
+  - g_faces.remove(f1) e g_faces.remove(f2) rimuovono per uguaglianza, non per identità, in ct/4ct.py:1625 e ct/4ct.py:1684. Con facce duplicate per valore può essere rimossa la faccia
+    sbagliata.
+  - Le specifiche locali sono incoerenti: alcune note dicono F5-F6 prima di F5-F5, altre il contrario; alcune dicono F2 max-neighbor, il codice fa random. Questo non è necessariamente un
+    bug, ma rende difficile validare l’algoritmo.
+
+  Miglioramenti Proposti
+
+  1. Introdurre indici incrementali: edge_to_face, faces_by_len, e opzionalmente vertex_to_faces. Questo elimina quasi tutti gli scan lineari per trovare adiacenze.
+  2. Decidere formalmente la semantica del fallback S4: secondo me dovrebbe avviare una nuova frontier dal f1_plus_f2_temp scelto globalmente, non azzerarla.
+  3. Aggiungere una fallback finale su tutte le F5 con _select_max_neighbor_from_candidates() prima di exit(-1), oppure aggiungere un assert/test che dimostri che F5-F5/F5-F6 è sempre
+     sufficiente.
+  4. Sostituire exit(-1) con eccezioni specifiche, così i casi impossibili diventano testabili.
+  5. Rimuovere facce per identità o per indice, non con list.remove().
+  6. Aggiungere test su reduce_faces(), soprattutto: fallback con wave attiva, F2 con wave attiva, facce duplicate, e caso in cui non ci siano coppie F5-F5/F5-F6 valide.
+
 16/Apr/2026
 
 You are an expert algorithm designer and graph theorist.

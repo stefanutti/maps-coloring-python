@@ -1119,7 +1119,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
         edge_to_remove, f1, f2, f1_plus_f2_temp, None
     """
 
-    logger.info("BEGIN %s: select_edge_to_remove_unavoidable_set (faces left: %s)", i_global_counter, len(g_faces))
+    logger.info("BEGIN %s: select_edge_to_remove_unavoidable_set (faces left: %s, wave frontier size: %s)", i_global_counter, len(g_faces), len(recently_modified_vertices) if recently_modified_vertices is not None else "N/A")
 
     if choices != 2345:
         logger.warning("select_edge_to_remove_unavoidable_set: the 'choices' parameter is ignored; F2/F3/F4 order is fixed as [2, 3, 4]. Received: %s", choices)
@@ -1145,7 +1145,8 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
             # TODO: verify this happen. It should not, because when a wave is active, only F4 can appear after having removed an F5 edge
             if recently_modified_vertices is not None:
                 stats['SELECT-S4-F4-INTERRUPT'] += 1
-                logger.info("aaaaaaaaaaaaaaaaaaa")
+                logger.error("Unexpected F2 face found while wave frontier is active. This should not happen. Check the stats and debug logs. Edge: %s", edge)
+                exit(-1)
             logger.info("END %s: found in F2 phase (random). Edge: %s", i_global_counter, edge)
             return edge, candidate_f1, candidate_f2, candidate_joined, None
 
@@ -1207,13 +1208,15 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
 
     best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_from_f5_pairs(g_faces, all_f5, pair_neighbor_size=5)
     if best_edge is not None:
-        stats['SELECT-S4-F5-FALLBACK'] += 1
+        if recently_modified_vertices is not None:
+            stats['SELECT-S4-F5-FALLBACK'] += 1
         logger.info("END %s: found via global F5-F5 fallback. Edge: %s", i_global_counter, best_edge)
         return best_edge, best_f1, best_f2, best_f1_plus_f2, None
 
     best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_f5_f6_edge(g_faces, all_f5)
     if best_edge is not None:
-        stats['SELECT-S4-F5-FALLBACK'] += 1
+        if recently_modified_vertices is not None:
+            stats['SELECT-S4-F5-FALLBACK'] += 1
         logger.info("END %s: found via global F5-F6 fallback. Edge: %s", i_global_counter, best_edge)
         return best_edge, best_f1, best_f2, best_f1_plus_f2, None
 

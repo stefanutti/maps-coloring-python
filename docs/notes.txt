@@ -1,3 +1,175 @@
+16/Apr/2026
+
+You are an expert algorithm designer and graph theorist.
+
+## Task
+
+Read the ct/4ct.py and the ct/ct_graph_utils.py files to understand what is implemented.
+
+Modify the --selection4 algorithm that performs **iterative edge-removal reduction** on a **planar 3-regular graph (cubic planar graph)** based on face configurations.
+
+---
+
+## Definitions
+
+* The graph is planar and embedded (faces are explicitly available).
+* Each face has a size equal to the number of edges (F2, F3, F4, F5, F6, etc.).
+* Two faces are *adjacent* if they share an edge.
+* Configurations:
+  * **F2**: face with 2 edges
+  * **F3**: face with 3 edges
+  * **F4**: face with 4 edges
+  * **F5-F5**: two adjacent faces both of size 5
+  * **F5-F6**: two adjacent faces of size 5 and 6
+
+---
+
+## High-Level Strategy
+
+The algorithm proceeds in **two phases**:
+
+### Phase 1 — Eliminate small faces (F2, F3, F4)
+
+Repeat until no F2, F3, or F4 faces remain:
+
+1. Select **any face randomly** among all faces of type F2, F3, or F4, in the order specified by the parameter --choices.
+
+2. Apply the following rules:
+
+   * **F2**:
+
+     * Remove **one of its two edges randomly**.
+     * No additional constraints.
+
+   * **F3 or F4**:
+
+     * Select an edge of the face such that the adjacent face sharing that edge has the **largest size** among candidates.
+     * Remove that edge.
+
+3. After each removal:
+
+   * Update the planar embedding and face structure.
+   * Continue until no F2, F3, F4 remain anywhere in the graph.
+
+---
+
+### Phase 2 — Handle unavoidable configurations (F5-F6, F5-F5)
+
+At this point, the graph contains only configurations involving F5 and F6.
+
+#### Priority Order:
+
+1. **F5-F6 (highest priority)**
+2. **F5-F5**
+
+---
+
+## Local expansion strategy ("wave-like propagation")
+
+The reduction should proceed **locally** whenever possible:
+
+* Maintain a set of **recently modified faces**. Optimize saving the vertices if necessary.
+* Prefer selecting configurations **adjacent to already processed areas**.
+* This creates a wave-like propagation over the graph.
+
+---
+
+## Selection Rules
+
+### Step 1 — Try local selection
+
+From the neighborhood of recently modified faces:
+
+0. After the Phase 1, the **recently modified faces** is not set
+1. If there exists an **F5-F5 configuration**, select it.
+2. Else if there exists an **F5-F6 configuration**, select it.
+3. Else fallback (see below).
+
+---
+
+### Step 2 — Edge removal rules
+
+* **F5-F5**:
+
+  * Apply the corresponding rule already defined in the program.
+  * This should transform the othe F5 into an F4.
+
+* **F5-F6**:
+
+  * Select one of the two edges belonging to the **F5 face** that shares a **vertex with the F6 face**.
+  * Remove that edge.
+  * This should transform the F6 into an F5.
+
+---
+
+### Step 3 — Dynamic reappearance of small faces
+
+After any edge removal:
+
+* If a new **F4** face appears:
+
+  * **Immediately process it** using the F4 rule (from Phase 1).
+  * This has priority over continuing with F5-based reductions.
+  * Consider this removal as part of the local selection and add this face to the **recently modified faces** 
+
+---
+
+### Step 4 — Fallback Strategy
+
+If no valid configuration (F5-F6 or F5-F5) exists in the local neighborhood:
+
+* Select **globally at random**:
+  * Any available F5-F5, otherwise F5-F6.
+* Restart local expansion from that point.
+
+---
+
+## Important Constraints
+
+* Always update:
+
+  * Face structure
+  * Adjacency relations
+  * Planar embedding consistency
+
+* The algorithm must be:
+
+  * Deterministic except where randomness is explicitly required
+  * Modular (clear functions for face detection, adjacency, edge removal)
+
+---
+
+## Suggested Implementation Structure
+
+* `find_faces_by_size(graph)`
+* `find_adjacent_faces(face)`
+* `select_edge_F3_F4(face)`
+* `select_edge_F5-F6(face_pair)`
+* `remove_edge(graph, edge)`
+* `update_faces(graph)`
+* `get_local_candidates(graph, region)`
+* `fallback_selection(graph)`
+
+---
+
+## Output
+
+* Return the sequence of edge removals.
+* Optionally store intermediate graph states for reconstruction.
+
+---
+
+## Notes
+
+* Do NOT implement coloring.
+* Focus only on the reduction process.
+* Ensure correctness of face updates after each modification.
+* The algorithm must terminate.
+
+---
+
+Implement clean, well-documented, and testable code.
+
 14/Apr/2026
 
 Algoritmo da implementare

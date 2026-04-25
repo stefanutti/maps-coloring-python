@@ -210,10 +210,10 @@ pip-log.txt
 .coverage
 .tox
 
-#Translations
+# Translations
 *.mo
 
-#Mr Developer
+# Mr Developer
 .mr.developer.cfg
 .vscode/.ropeproject/objectdb
 
@@ -225,3 +225,5 @@ ct/planar_inputs/plantri_output_params-d-m5-T.planar
 # plantri binaries (built artifacts)
 ct/plantri/plantri55_modified/fullgen
 ct/plantri/plantri55_modified/plantri
+
+ct/debug/debug.f_distribution.json.dump

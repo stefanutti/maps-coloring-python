@@ -365,8 +365,9 @@ def faces_by_vertices(graph):
     return list_faces
 
 
-def graph_dual(g):
+def graph_dual_old(g):
     """
+    Legacy O(F^2) implementation of graph_dual. Kept for reference/regression tests.
     Return the dual of a graph. Used to create random graphs.\n
     Originally taken from Sage (http://trac.sagemath.org/ticket/6236).
     Adapted for NetworkX.
@@ -382,7 +383,7 @@ def graph_dual(g):
 
     f = [tuple(face) for face in faces_by_vertices(g)]
     f_edges = [tuple(zip(i, i[1:] + (i[0],))) for i in f]
-    
+
     # Create dual graph using NetworkX
     dual = nx.MultiGraph()
     for i, f1 in enumerate(f_edges):
@@ -393,6 +394,57 @@ def graph_dual(g):
                 f2_reversed = set((e[1], e[0]) for e in f2)
                 if f1_set.intersection(f2_reversed):
                     dual.add_edge(f[i], f[j])
+
+    return dual
+
+
+def graph_dual(g):
+    """
+    Return the dual of a graph. Used to create random graphs.\n
+    Originally taken from Sage (http://trac.sagemath.org/ticket/6236).
+    Adapted for NetworkX.
+
+    Optimized O(E) implementation: index each undirected primal edge to the
+    faces that contain it, then derive adjacent face pairs in one pass.
+    Preserves the original behavior (one dual edge per adjacent face pair,
+    even when multiple primal edges are shared between them).
+
+    Parameters
+    ----------
+        g: The graph
+
+    Returns
+    -------
+        dual: The dual of a graph
+    """
+
+    faces = [tuple(face) for face in faces_by_vertices(g)]
+
+    # Index each undirected primal edge to the set of face indices containing it.
+    edge_to_faces = {}
+    for i, face in enumerate(faces):
+        n = len(face)
+        for k in range(n):
+            key = frozenset((face[k], face[(k + 1) % n]))
+            bucket = edge_to_faces.get(key)
+            if bucket is None:
+                edge_to_faces[key] = {i}
+            else:
+                bucket.add(i)
+
+    # Build the deduplicated set of adjacent face pairs.
+    pairs = set()
+    for face_indices in edge_to_faces.values():
+        if len(face_indices) < 2:
+            continue
+        indices = sorted(face_indices)
+        for a in range(len(indices)):
+            for b in range(a + 1, len(indices)):
+                pairs.add((indices[a], indices[b]))
+
+    dual = nx.MultiGraph()
+    for i, j in pairs:
+        dual.add_edge(faces[i], faces[j])
 
     return dual
 

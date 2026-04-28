@@ -697,7 +697,152 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
 
 
 
-def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter, prev_face=None):
+def _remove_by_identity(items, item):
+    """
+    Remove `item` from `items` using object identity, not list equality.
+    Faces can occasionally have the same tuple representation, so equality is
+    not a safe proxy for "this exact face object".
+    """
+    for index, candidate in enumerate(items):
+        if candidate is item:
+            del items[index]
+            return index
+    logger.error("Unexpected condition (face not found by identity). Mario you'd better go back to paper")
+    exit(-1)
+
+
+class FaceIndex:
+    """
+    Incremental indexes over `g_faces`.
+
+    `g_faces` remains the source of truth. This object only stores derived
+    lookup tables and must be updated immediately before/after every face
+    removal, insertion, or in-place mutation.
+    """
+
+    def __init__(self, g_faces):
+        self.g_faces = g_faces
+        self.edge_to_faces = collections.defaultdict(list)
+        self.faces_by_len = collections.defaultdict(list)
+        self.vertex_to_faces = collections.defaultdict(list)
+        self.face_positions = {}
+        self.rebuild()
+
+    def rebuild(self):
+        self.edge_to_faces.clear()
+        self.faces_by_len.clear()
+        self.vertex_to_faces.clear()
+        self.refresh_positions()
+        for face in self.g_faces:
+            self.index_face(face)
+
+    def refresh_positions(self):
+        self.face_positions = {id(face): index for index, face in enumerate(self.g_faces)}
+
+    def _insert_ordered(self, bucket, face):
+        if any(candidate is face for candidate in bucket):
+            return
+
+        face_position = self.face_positions.get(id(face), len(self.g_faces))
+        for index, candidate in enumerate(bucket):
+            candidate_position = self.face_positions.get(id(candidate), len(self.g_faces))
+            if candidate_position > face_position:
+                bucket.insert(index, face)
+                return
+        bucket.append(face)
+
+    def _remove_from_bucket(self, mapping, key, face):
+        bucket = mapping.get(key)
+        if bucket is None:
+            logger.error("Unexpected condition (index key not found: %s). Mario you'd better go back to paper", key)
+            exit(-1)
+        _remove_by_identity(bucket, face)
+        if not bucket:
+            del mapping[key]
+
+    def index_face(self, face):
+        self._insert_ordered(self.faces_by_len[len(face)], face)
+        for edge in set(face):
+            self._insert_ordered(self.edge_to_faces[edge], face)
+        for vertex in _vertices_of(face):
+            self._insert_ordered(self.vertex_to_faces[vertex], face)
+
+    def unindex_face(self, face):
+        self._remove_from_bucket(self.faces_by_len, len(face), face)
+        for edge in set(face):
+            self._remove_from_bucket(self.edge_to_faces, edge, face)
+        for vertex in _vertices_of(face):
+            self._remove_from_bucket(self.vertex_to_faces, vertex, face)
+
+    def faces_of_size(self, size):
+        return [face for face in self.faces_by_len.get(size, []) if id(face) in self.face_positions]
+
+    def first_face_with_edge(self, edge, exclude_face=None):
+        for face in self.edge_to_faces.get(edge, []):
+            if face is not exclude_face and id(face) in self.face_positions:
+                return face
+        return None
+
+    def first_face_with_vertex(self, vertex):
+        for face in self.vertex_to_faces.get(vertex, []):
+            if id(face) in self.face_positions:
+                return face
+        return None
+
+    def faces_touching_vertices(self, vertices, face_size=None):
+        seen = set()
+        result = []
+        for vertex in vertices:
+            for face in self.vertex_to_faces.get(vertex, []):
+                face_id = id(face)
+                if face_id in seen or face_id not in self.face_positions:
+                    continue
+                if face_size is not None and len(face) != face_size:
+                    continue
+                seen.add(face_id)
+                result.append(face)
+        result.sort(key=lambda face: self.face_positions[id(face)])
+        return result
+
+    def validate(self):
+        expected = FaceIndex.__new__(FaceIndex)
+        expected.g_faces = self.g_faces
+        expected.edge_to_faces = collections.defaultdict(list)
+        expected.faces_by_len = collections.defaultdict(list)
+        expected.vertex_to_faces = collections.defaultdict(list)
+        expected.face_positions = {id(face): index for index, face in enumerate(self.g_faces)}
+        for face in self.g_faces:
+            expected.index_face(face)
+
+        checks = [
+            ("edge_to_faces", self.edge_to_faces, expected.edge_to_faces),
+            ("faces_by_len", self.faces_by_len, expected.faces_by_len),
+            ("vertex_to_faces", self.vertex_to_faces, expected.vertex_to_faces),
+        ]
+        for name, actual, wanted in checks:
+            actual_ids = {key: [id(face) for face in faces] for key, faces in actual.items()}
+            wanted_ids = {key: [id(face) for face in faces] for key, faces in wanted.items()}
+            if actual_ids != wanted_ids:
+                logger.error("Unexpected condition (%s index out of sync). Mario you'd better go back to paper", name)
+                exit(-1)
+        return True
+
+
+def _face_index_or_build(g_faces, face_index):
+    return face_index if face_index is not None else FaceIndex(g_faces)
+
+
+def _replace_faces_with_merged_face(g_faces, face_index, f1, f2, merged_face):
+    face_index.unindex_face(f1)
+    face_index.unindex_face(f2)
+    _remove_by_identity(g_faces, f1)
+    _remove_by_identity(g_faces, f2)
+    g_faces.insert(-1, merged_face)
+    face_index.refresh_positions()
+    face_index.index_face(merged_face)
+
+
+def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter, prev_face=None, face_index=None):
     """
     Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
 
@@ -719,6 +864,7 @@ def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter
     """
 
     logger.info("BEGIN %s: Search the right edge to remove (faces left: %s)", i_global_counter, len(g_faces))
+    face_index = _face_index_or_build(g_faces, face_index)
 
     choices_str = str(choices)
     if len(choices_str) != 4 or choices_str[0] != '2':
@@ -727,18 +873,18 @@ def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter
     face_size_priority = [int(c) for c in choices_str]
 
     def _best_for_size(target_size):
-        faces = [f for f in g_faces if len(f) == target_size]
+        faces = face_index.faces_of_size(target_size)
         best_edge = best_f1 = best_f2 = best_joined = None
         best_f2_len = 0
         for candidate_f1 in faces:
             for edge in candidate_f1:
                 rotated = rotate(edge, 1)
                 if target_size == 2:
-                    temp = [f for f in g_faces if rotated in f]
-                    temp.remove(candidate_f1)
-                    candidate_f2 = temp[0]
+                    candidate_f2 = face_index.first_face_with_edge(rotated, exclude_face=candidate_f1)
                 else:
-                    candidate_f2 = next(f for f in g_faces if rotated in f)
+                    candidate_f2 = face_index.first_face_with_edge(rotated)
+                if candidate_f2 is None:
+                    continue
                 candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
                 if is_the_graph_one_edge_connected(candidate_joined):
                     continue
@@ -767,7 +913,7 @@ def select_edge_to_remove_by_largest_neighbor(g_faces, choices, i_global_counter
     return edge_to_remove, f1, f2, f1_plus_f2_temp, None
 
 
-def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter, prev_face=None):
+def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter, prev_face=None, face_index=None):
     """
     Select an edge, that if removed doesn't have to leave the graph as 1-edge-connected.
 
@@ -786,6 +932,7 @@ def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter, prev_fac
     """
 
     logger.info("BEGIN %s: Search the right edge to remove (faces left: %s)", i_global_counter, len(g_faces))
+    face_index = _face_index_or_build(g_faces, face_index)
 
     choices_str = str(choices)
     if len(choices_str) != 4 or choices_str[0] != '2':
@@ -794,7 +941,7 @@ def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter, prev_fac
     face_size_priority = [int(c) for c in choices_str]
 
     f1 = next(
-        (f for size in face_size_priority for f in g_faces if len(f) == size),
+        (f for size in face_size_priority for f in face_index.faces_of_size(size)),
         g_faces[0],
     )
 
@@ -805,11 +952,12 @@ def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter, prev_fac
         (
             (edge, f2, joined)
             for edge in f1
-                for f2 in [
-                    next(f for f in g_faces if rotate(edge, 1) in f and f is not f1)
-                    if len(f1) == 2
-                    else next(f for f in g_faces if rotate(edge, 1) in f)
-                ]
+            for f2 in [
+                face_index.first_face_with_edge(rotate(edge, 1), exclude_face=f1)
+                if len(f1) == 2
+                else face_index.first_face_with_edge(rotate(edge, 1))
+            ]
+            if f2 is not None
             for joined in [join_faces(f1, f2, edge)]
             if not is_the_graph_one_edge_connected(joined)
         ),
@@ -826,7 +974,7 @@ def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter, prev_fac
     return edge_to_remove, f1, f2, f1_plus_f2_temp, None
 
 
-def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, prev_face=None):
+def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, prev_face=None, face_index=None):
     """
     Select an edge to remove using a strategy tailored for F5 faces.
 
@@ -849,6 +997,7 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, p
     """
 
     logger.info("BEGIN %s: Search the right edge to remove - f5_shared_vertex (faces left: %s)", i_global_counter, len(g_faces))
+    face_index = _face_index_or_build(g_faces, face_index)
 
     choices_str = str(choices)
     if len(choices_str) != 4 or choices_str[0] != '2':
@@ -860,18 +1009,18 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, p
 
     def _try_for_size(target_size):
         nonlocal log_suffix
-        faces = [f for f in g_faces if len(f) == target_size]
+        faces = face_index.faces_of_size(target_size)
 
         if target_size <= 4:
             for candidate_f1 in faces:
                 for edge in candidate_f1:
                     rotated = rotate(edge, 1)
                     if target_size == 2:
-                        temp = [f for f in g_faces if rotated in f]
-                        temp.remove(candidate_f1)
-                        candidate_f2 = temp[0]
+                        candidate_f2 = face_index.first_face_with_edge(rotated, exclude_face=candidate_f1)
                     else:
-                        candidate_f2 = next(f for f in g_faces if rotated in f)
+                        candidate_f2 = face_index.first_face_with_edge(rotated)
+                    if candidate_f2 is None:
+                        continue
                     candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
                     if not is_the_graph_one_edge_connected(candidate_joined):
                         return (edge, candidate_f1, candidate_f2, candidate_joined)
@@ -884,7 +1033,8 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, p
                     neighbor
                     for edge in candidate_f1
                     # single-element list binds neighbor so it can be tested and yielded in one expression
-                    for neighbor in [next(face for face in g_faces if rotate(edge, 1) in face)]
+                    for neighbor in [face_index.first_face_with_edge(rotate(edge, 1))]
+                    if neighbor is not None
                     if len(neighbor) in (5, 6)
                 ),
                 None,
@@ -896,7 +1046,9 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, p
                     v1_shared = edge[0] in adj_vertices
                     v2_shared = edge[1] in adj_vertices
                     if v1_shared != v2_shared:
-                        candidate_f2 = next(f for f in g_faces if rotate(edge, 1) in f)
+                        candidate_f2 = face_index.first_face_with_edge(rotate(edge, 1))
+                        if candidate_f2 is None:
+                            continue
                         candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
                         if not is_the_graph_one_edge_connected(candidate_joined):
                             log_suffix = " [f5_shared_vertex: adj=%s]" % len(adjacent_target)
@@ -905,7 +1057,9 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, p
         # Fallback for F5: any valid edge
         for candidate_f1 in faces:
             for edge in candidate_f1:
-                candidate_f2 = next(f for f in g_faces if rotate(edge, 1) in f)
+                candidate_f2 = face_index.first_face_with_edge(rotate(edge, 1))
+                if candidate_f2 is None:
+                    continue
                 candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
                 if not is_the_graph_one_edge_connected(candidate_joined):
                     log_suffix = " [f5_shared_vertex: fallback]"
@@ -927,7 +1081,7 @@ def select_edge_to_remove_f5_shared_vertex(g_faces, choices, i_global_counter, p
     return edge_to_remove, f1, f2, f1_plus_f2_temp, None
 
 
-def _select_from_f5_pairs(g_faces, f5_candidates, pair_neighbor_size):
+def _select_from_f5_pairs(g_faces, f5_candidates, pair_neighbor_size, face_index=None):
     """
     For each F5 in f5_candidates, find adjacent faces of size pair_neighbor_size.
     When found, evaluate the 4 edges incident to the shared edge's endpoints
@@ -940,13 +1094,14 @@ def _select_from_f5_pairs(g_faces, f5_candidates, pair_neighbor_size):
     best_f2 = None
     best_f1_plus_f2 = None
     best_f2_len = 0
+    face_index = _face_index_or_build(g_faces, face_index)
 
     for face_a in f5_candidates:
         for i_shared in range(len(face_a)):
             shared_edge = face_a[i_shared]  # (v1, v2) as it appears in face_a
             rotated_shared = rotate(shared_edge, 1)  # (v2, v1)
 
-            face_b = next((f for f in g_faces if rotated_shared in f), None)
+            face_b = face_index.first_face_with_edge(rotated_shared)
             if face_b is None or len(face_b) != pair_neighbor_size:
                 continue
 
@@ -965,7 +1120,7 @@ def _select_from_f5_pairs(g_faces, f5_candidates, pair_neighbor_size):
 
             for candidate_f1, edge in candidate_edges:
                 rotated_edge = rotate(edge, 1)
-                candidate_f2 = next((f for f in g_faces if rotated_edge in f), None)
+                candidate_f2 = face_index.first_face_with_edge(rotated_edge)
                 if candidate_f2 is None:
                     continue
 
@@ -984,7 +1139,7 @@ def _select_from_f5_pairs(g_faces, f5_candidates, pair_neighbor_size):
     return best_edge, best_f1, best_f2, best_f1_plus_f2
 
 
-def _select_f5_f6_edge(g_faces, f5_candidates):
+def _select_f5_f6_edge(g_faces, f5_candidates, face_index=None):
     """
     For each F5 in f5_candidates adjacent to an F6, evaluate the 2 edges of the F5
     face at the shared edge's endpoints (excluding the shared edge itself).
@@ -996,13 +1151,14 @@ def _select_f5_f6_edge(g_faces, f5_candidates):
     best_f2 = None
     best_f1_plus_f2 = None
     best_f2_len = 0
+    face_index = _face_index_or_build(g_faces, face_index)
 
     for face_a in f5_candidates:
         n_a = len(face_a)
         for i_shared in range(n_a):
             shared_edge = face_a[i_shared]
             rotated_shared = rotate(shared_edge, 1)
-            face_b = next((f for f in g_faces if rotated_shared in f), None)
+            face_b = face_index.first_face_with_edge(rotated_shared)
             if face_b is None or len(face_b) != 6:
                 continue
 
@@ -1014,7 +1170,7 @@ def _select_f5_f6_edge(g_faces, f5_candidates):
 
             for edge in candidate_edges:
                 rotated_edge = rotate(edge, 1)
-                candidate_f2 = next((f for f in g_faces if rotated_edge in f), None)
+                candidate_f2 = face_index.first_face_with_edge(rotated_edge)
                 if candidate_f2 is None:
                     continue
                 candidate_joined = join_faces(face_a, candidate_f2, edge)
@@ -1026,41 +1182,6 @@ def _select_f5_f6_edge(g_faces, f5_candidates):
                     best_f1 = face_a
                     best_f2 = candidate_f2
                     best_f1_plus_f2 = candidate_joined
-
-    return best_edge, best_f1, best_f2, best_f1_plus_f2
-
-
-def _select_max_neighbor_from_candidates(g_faces, candidates):
-    """
-    Max-neighbor selection over the given candidate face list.
-    Returns (best_edge, best_f1, best_f2, best_f1_plus_f2) or (None, None, None, None).
-    """
-    best_edge = None
-    best_f1 = None
-    best_f2 = None
-    best_f1_plus_f2 = None
-    best_f2_len = 0
-
-    for candidate_f1 in candidates:
-        for i_edge in range(len(candidate_f1)):
-            edge = candidate_f1[i_edge]
-            rotated_edge = rotate(edge, 1)
-
-            candidate_f2 = next((f for f in g_faces if rotated_edge in f), None)
-            if candidate_f2 is None:
-                continue
-
-            candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
-
-            if is_the_graph_one_edge_connected(candidate_joined):
-                continue
-
-            if len(candidate_f2) > best_f2_len:
-                best_f2_len = len(candidate_f2)
-                best_edge = edge
-                best_f1 = candidate_f1
-                best_f2 = candidate_f2
-                best_f1_plus_f2 = candidate_joined
 
     return best_edge, best_f1, best_f2, best_f1_plus_f2
 
@@ -1088,7 +1209,7 @@ def update_wave_frontier(current, f1_len, f1_plus_f2, v1, v2):
     return (base | _vertices_of(f1_plus_f2)) - {v1, v2}
 
 
-def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, recently_modified_vertices=None):
+def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, recently_modified_vertices=None, face_index=None):
     """
     Selection strategy 4: unavoidable set with wave-like locality.
 
@@ -1123,6 +1244,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
     """
 
     logger.info("BEGIN %s: select_edge_to_remove_unavoidable_set (faces left: %s, wave frontier size: %s)", i_global_counter, len(g_faces), len(recently_modified_vertices) if recently_modified_vertices is not None else "N/A")
+    face_index = _face_index_or_build(g_faces, face_index)
 
     if choices != 2345:
         logger.warning("select_edge_to_remove_unavoidable_set: the 'choices' parameter is ignored; F2/F3/F4 order is fixed as [2, 3, 4]. Received: %s", choices)
@@ -1130,7 +1252,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
     # Phase F2 / F3 / F4  — global, locality ignored
     for target_size in [2, 3, 4]:
 
-        faces_of_this_size = [f for f in g_faces if len(f) == target_size]
+        faces_of_this_size = face_index.faces_of_size(target_size)
         if not faces_of_this_size:
             continue
 
@@ -1140,9 +1262,10 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
             i_edge = randint(0, 1)
             edge = candidate_f1[i_edge]
             rotated_edge = rotate(edge, 1)
-            temp = [face for face in g_faces if rotated_edge in face]
-            temp.remove(candidate_f1)
-            candidate_f2 = temp[0]
+            candidate_f2 = face_index.first_face_with_edge(rotated_edge, exclude_face=candidate_f1)
+            if candidate_f2 is None:
+                logger.error("Unexpected condition (adjacent face not found for F2 edge: %s). Mario you'd better go back to paper", edge)
+                exit(-1)
             candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
 
             # Q: It should not happen, because when a wave is active, only F4 can appear after having removed an F5 edge
@@ -1163,7 +1286,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
             for i_edge in range(len(candidate_f1)):
                 edge = candidate_f1[i_edge]
                 rotated_edge = rotate(edge, 1)
-                candidate_f2 = next((face for face in g_faces if rotated_edge in face), None)
+                candidate_f2 = face_index.first_face_with_edge(rotated_edge)
                 if candidate_f2 is None:
                     continue
                 candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
@@ -1185,13 +1308,13 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
     # Phase F5  — only reached when no F2/F3/F4 exist
     # Locality: restrict to F5 faces touching the wave frontier
     if recently_modified_vertices:
-        local_f5 = [f for f in g_faces if len(f) == 5 and any(v in recently_modified_vertices for edge in f for v in edge)]
+        local_f5 = face_index.faces_touching_vertices(recently_modified_vertices, face_size=5)
     else:
         local_f5 = []
 
     # Step 1 — local F5-F5 (highest priority)
     if local_f5:
-        best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_from_f5_pairs(g_faces, local_f5, pair_neighbor_size=5)
+        best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_from_f5_pairs(g_faces, local_f5, pair_neighbor_size=5, face_index=face_index)
         if best_edge is not None:
             stats['SELECT-S4-F5-F5'] += 1
             logger.info("END %s: select_edge_to_remove_unavoidable_set edge found via local F5-F5 pair. Edge: %s", i_global_counter, best_edge)
@@ -1199,16 +1322,16 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
 
     # Step 2 — local F5-F6
     if local_f5:
-        best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_f5_f6_edge(g_faces, local_f5)
+        best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_f5_f6_edge(g_faces, local_f5, face_index=face_index)
         if best_edge is not None:
             stats['SELECT-S4-F5-F6'] += 1
             logger.info("END %s: select_edge_to_remove_unavoidable_set edge found via local F5-F6 pair. Edge: %s", i_global_counter, best_edge)
             return best_edge, best_f1, best_f2, best_f1_plus_f2, None
 
     # Step 4 — global fallback (no local candidates, or local search found nothing)
-    all_f5 = [f for f in g_faces if len(f) == 5]
+    all_f5 = face_index.faces_of_size(5)
 
-    best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_from_f5_pairs(g_faces, all_f5, pair_neighbor_size=5)
+    best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_from_f5_pairs(g_faces, all_f5, pair_neighbor_size=5, face_index=face_index)
     if best_edge is not None:
         wave_was_active = recently_modified_vertices is not None
         if wave_was_active:
@@ -1216,7 +1339,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
         logger.info("END %s: select_edge_to_remove_unavoidable_set edge found via global F5-F5 fallback. Edge: %s", i_global_counter, best_edge)
         return best_edge, best_f1, best_f2, best_f1_plus_f2, ('fallback' if wave_was_active else None)
 
-    best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_f5_f6_edge(g_faces, all_f5)
+    best_edge, best_f1, best_f2, best_f1_plus_f2 = _select_f5_f6_edge(g_faces, all_f5, face_index=face_index)
     if best_edge is not None:
         wave_was_active = recently_modified_vertices is not None
         if wave_was_active:
@@ -1557,6 +1680,9 @@ def reduce_faces(g_faces, choices, selection_strategy):
     is_the_end_of_the_reduction_process = False
     i_global_counter = 0
     recently_modified_vertices = None
+    face_index = FaceIndex(g_faces)
+    if logger.isEnabledFor(logging.DEBUG):
+        face_index.validate()
 
     # Open the file to append the rows with the changing distribution during the reduction phase
     f_distribution = open("debug/debug.f_distribution.json.dump", "a")
@@ -1584,7 +1710,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
 
         # Select an edge from the graph
         # This is one of the most important function to work on, to apply different strategies
-        edge_to_remove, f1, f2, f1_plus_f2_temp, selection_event = selection_strategy(g_faces, choices, i_global_counter, recently_modified_vertices)
+        edge_to_remove, f1, f2, f1_plus_f2_temp, selection_event = selection_strategy(g_faces, choices, i_global_counter, recently_modified_vertices, face_index)
 
         # Since Euler's formula is right :-) an edge to remove must exist, and it means that I made a programming error if I get here without finding it
         if edge_to_remove == ():
@@ -1621,9 +1747,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
             stats['F#'][len_of_the_face_to_reduce_f2] -= 1
 
             # f1 and f2 have been joined before to test 1-edge-connectivity ... I can use that!
-            g_faces.remove(f1)
-            g_faces.remove(f2)
-            g_faces.insert(-1, f1_plus_f2_temp)
+            _replace_faces_with_merged_face(g_faces, face_index, f1, f2, f1_plus_f2_temp)
 
             # Update the statistics for the distribution of Fs
             if len(f1_plus_f2_temp) in stats['F#'].keys():
@@ -1634,13 +1758,18 @@ def reduce_faces(g_faces, choices, selection_strategy):
             # I already prepared f1 and f2, but when these two faces are joined also the other face that has the two vertices has to be updated
             # A vertex is shared by three faces (two of these are f1 and f2). For this F2 case, the two vertices belong to only a third face
             # NOTE: For F3, F4, F5 ... v1 and v2 may have two different faces (other than f1 and f2)
-            third_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v1))
+            third_face_to_update = face_index.first_face_with_vertex(v1)
+            if third_face_to_update is None:
+                logger.error("Unexpected condition (third face to update not found). Mario you'd better go back to paper")
+                exit(-1)
 
             # Update the statistics for the distribution of Fs
             stats['F#'][len(third_face_to_update)] -= 1
 
+            face_index.unindex_face(third_face_to_update)
             remove_vertex_from_face(third_face_to_update, v1)
             remove_vertex_from_face(third_face_to_update, v2)  # For this F2 case, the two vertices belong to only a third face
+            face_index.index_face(third_face_to_update)
 
             # Update the statistics for the distribution of Fs
             if len(third_face_to_update) in stats['F#'].keys():
@@ -1680,9 +1809,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
             stats['F#'][len_of_the_face_to_reduce_f2] -= 1
 
             # f1 and f2 have been joined before to test 1-edge-connectivity ... I can use that!
-            g_faces.remove(f1)
-            g_faces.remove(f2)
-            g_faces.insert(-1, f1_plus_f2_temp)
+            _replace_faces_with_merged_face(g_faces, face_index, f1, f2, f1_plus_f2_temp)
 
             # Update the statistics for the distribution of Fs
             if len(f1_plus_f2_temp) in stats['F#'].keys():
@@ -1693,23 +1820,36 @@ def reduce_faces(g_faces, choices, selection_strategy):
             # I already prepared f1 and f2, but when these two faces are joined also the other faces that has the two vertices have to be updated
             # A vertex is shared by three faces (two of these are f1 and f2)
             # NOTE: For F3, F4, F5 ... v1 and v2, most of the times will have f3 and f4 different ... but they can also be the same face
-            third_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v1))
-            fourth_face_to_update = next(face for face in g_faces if check_if_vertex_is_in_face(face, v2))
+            third_face_to_update = face_index.first_face_with_vertex(v1)
+            fourth_face_to_update = face_index.first_face_with_vertex(v2)
+            if third_face_to_update is None or fourth_face_to_update is None:
+                logger.error("Unexpected condition (third/fourth face to update not found). Mario you'd better go back to paper")
+                exit(-1)
             if logger.isEnabledFor(logging.DEBUG): logger.debug("third_face_to_update: %s", third_face_to_update)
             if logger.isEnabledFor(logging.DEBUG): logger.debug("fourth_face_to_update: %s", fourth_face_to_update)
 
             # Update the statistics for the distribution of Fs
-            if third_face_to_update == fourth_face_to_update:
+            if third_face_to_update is fourth_face_to_update:
                 stats['F#'][len(third_face_to_update)] -= 1
             else:
                 stats['F#'][len(third_face_to_update)] -= 1
                 stats['F#'][len(fourth_face_to_update)] -= 1
 
-            remove_vertex_from_face(third_face_to_update, v1)
-            remove_vertex_from_face(fourth_face_to_update, v2)
+            if third_face_to_update is fourth_face_to_update:
+                face_index.unindex_face(third_face_to_update)
+                remove_vertex_from_face(third_face_to_update, v1)
+                remove_vertex_from_face(third_face_to_update, v2)
+                face_index.index_face(third_face_to_update)
+            else:
+                face_index.unindex_face(third_face_to_update)
+                face_index.unindex_face(fourth_face_to_update)
+                remove_vertex_from_face(third_face_to_update, v1)
+                remove_vertex_from_face(fourth_face_to_update, v2)
+                face_index.index_face(third_face_to_update)
+                face_index.index_face(fourth_face_to_update)
 
             # Update the statistics for the distribution of Fs
-            if third_face_to_update == fourth_face_to_update:
+            if third_face_to_update is fourth_face_to_update:
 
                 # DONE: There is a small bug (SEE BUG-001) to care about here at the end of the process when four faces F3 remains (as in the Mercedes Benz symbol)
                 if len(third_face_to_update) in stats['F#'].keys():
@@ -1740,6 +1880,9 @@ def reduce_faces(g_faces, choices, selection_strategy):
 
             # Do one thing at a time and return at the beginning of the main loop
             logger.info("END %s: Remove an F3, F4 or F5 (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+
+        if logger.isEnabledFor(logging.DEBUG):
+            face_index.validate()
 
         # Check 3-regularity (I commented this slow procedure
         # I did it run for a while, now I feel confident about this first part of the code)

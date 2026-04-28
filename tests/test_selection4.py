@@ -166,6 +166,43 @@ def test_unavoidable_set_f2_returns_edge_from_f2_face(mod):
     assert rmv is None
 
 
+def test_unavoidable_set_f2_with_active_frontier_is_interrupt_not_exit(mod):
+    """F2 can appear while a wave is active; S4 must process it instead of aborting."""
+    g = make_f2_graph()
+    before = mod.stats['SELECT-S4-F4-INTERRUPT']
+    edge, f1, f2, f1_plus_f2, rmv = mod.select_edge_to_remove_unavoidable_set(
+        g, 2345, 0, recently_modified_vertices={10, 11}
+    )
+    assert f1 is g[0]
+    assert edge in g[0]
+    assert f2 is not None
+    assert f1_plus_f2 is not None
+    assert rmv is None
+    assert mod.stats['SELECT-S4-F4-INTERRUPT'] == before + 1
+
+
+def test_face_index_incremental_replace_and_mutate_validates(mod):
+    """FaceIndex stays in sync when only touched faces are unindexed/reindexed."""
+    f1 = [(0, 1), (1, 2), (2, 0)]
+    f2 = [(1, 0), (0, 3), (3, 1)]
+    f3 = [(2, 1), (1, 4), (4, 2)]
+    ocean = [(3, 0), (0, 2), (2, 4), (4, 3)]
+    g = [f1, f2, f3, ocean]
+    face_index = mod.FaceIndex(g)
+
+    merged = mod.join_faces(f1, f2, (0, 1))
+    mod._replace_faces_with_merged_face(g, face_index, f1, f2, merged)
+    assert face_index.validate() is True
+    assert face_index.first_face_with_edge((1, 0)) is None
+    assert face_index.first_face_with_vertex(1) is f3
+
+    face_index.unindex_face(f3)
+    mod.remove_vertex_from_face(f3, 1)
+    face_index.index_face(f3)
+    assert face_index.validate() is True
+    assert face_index.first_face_with_vertex(1) is None
+
+
 # ---------------------------------------------------------------------------
 # Tests: F5/F6 helper — _select_f5_f6_edge
 # ---------------------------------------------------------------------------

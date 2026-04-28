@@ -217,7 +217,7 @@ pip-log.txt
 .mr.developer.cfg
 .vscode/.ropeproject/objectdb
 
-/ct/debug/
+/ct/debug
 
 # generated / large outputs
 ct/planar_inputs/plantri_output_params-d-m5-T.planar

@@ -217,7 +217,7 @@ pip-log.txt
 .mr.developer.cfg
 .vscode/.ropeproject/objectdb
 
-/ct/debug/
+/ct/debug
 
 # generated / large outputs
 ct/planar_inputs/plantri_output_params-d-m5-T.planar
@@ -225,5 +225,3 @@ ct/planar_inputs/plantri_output_params-d-m5-T.planar
 # plantri binaries (built artifacts)
 ct/plantri/plantri55_modified/fullgen
 ct/plantri/plantri55_modified/plantri
-
-ct/debug/debug.f_distribution.json.dump

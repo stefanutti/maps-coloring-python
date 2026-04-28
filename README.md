@@ -131,6 +131,8 @@ optional arguments:
                         (maximizes f2 size across all candidates)
   -s3, --selection3     Edge selection strategy 3: for F5 faces, select edge
                         with one shared vertex with adjacent F5/F6
+  -s4, --selection4     Edge selection strategy 4: unavoidable set — max
+                        neighbor for F2/F3/F4, F5 pairs with locality
 </pre>
 
 ## Converters (`ct/converters/`)

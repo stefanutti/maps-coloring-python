@@ -805,11 +805,11 @@ def select_edge_to_remove_first_fit(g_faces, choices, i_global_counter, prev_fac
         (
             (edge, f2, joined)
             for edge in f1
-            for f2 in [
-                next(f for f in g_faces if rotate(edge, 1) in f and f is not f1)
-                if len(f1) == 2
-                else next(f for f in g_faces if rotate(edge, 1) in f)
-            ]
+                for f2 in [
+                    next(f for f in g_faces if rotate(edge, 1) in f and f is not f1)
+                    if len(f1) == 2
+                    else next(f for f in g_faces if rotate(edge, 1) in f)
+                ]
             for joined in [join_faces(f1, f2, edge)]
             if not is_the_graph_one_edge_connected(joined)
         ),
@@ -1145,11 +1145,10 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
             candidate_f2 = temp[0]
             candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
 
-            # TODO: verify this happen. It should not, because when a wave is active, only F4 can appear after having removed an F5 edge
+            # Q: It should not happen, because when a wave is active, only F4 can appear after having removed an F5 edge
+            # R: This is not true, if there large groups of F5s (F5-F5-F5), when the two vertices of the removed edge (F5 in the middle), F5-(F5)-F5 touch the two lateral F5 (F5)-F5-(F5) those two lateral phases become two F4
             if recently_modified_vertices is not None:
                 stats['SELECT-S4-F4-INTERRUPT'] += 1
-                logger.error("Unexpected F2 face found while wave frontier is active. This should not happen. Check the stats and debug logs. Edge: %s", edge)
-                exit(-1)
             logger.info("END %s: select_edge_to_remove_unavoidable_set edge found in F2 phase (random). Edge: %s", i_global_counter, edge)
             return edge, candidate_f1, candidate_f2, candidate_joined, None
 

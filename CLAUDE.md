@@ -74,10 +74,10 @@ Each strategy selects which edge to remove at each reduction step. All return `(
 
 | Strategy | Function | Behavior |
 |----------|----------|----------|
-| S1 | `select_edge_to_remove` | First valid edge of first face in priority order |
+| S1 | `select_edge_to_remove_first_fit` | First valid edge of first face in priority order |
 | S2 | `select_edge_to_remove_by_largest_neighbor` | Valid edge whose adjacent face f2 is largest |
 | S3 | `select_edge_to_remove_f5_shared_vertex` | For F5: prefer edges sharing exactly one vertex with an adjacent F5/F6 |
-| S4 | `select_edge_to_remove_selection4` | Locality-aware: prioritizes faces containing recently-modified vertices (wave frontier) |
+| S4 | `select_edge_to_remove_unavoidable_set` | Locality-aware: prioritizes faces containing recently-modified vertices (wave frontier) |
 
 Face priority (`choices` parameter): F2 always first, then a permutation of F3/F4/F5. Encoded as an integer, e.g. `2345`.
 

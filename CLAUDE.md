@@ -96,9 +96,5 @@ Face priority (`choices` parameter): F2 always first, then a permutation of F3/F
 - All selection strategy functions must return a 5-tuple `(edge, f1, f2, f1_plus_f2, event)` — `event` is a selection-event signal consumed by `reduce_faces`. `None` for S1/S2/S3. For S4 it is `'fallback'` when the global F5 fallback fires with an active wave (the caller resets the wave), otherwise `None`.
 
 ## Coding Style
-
-- **Immutability** — Return new values; do not mutate existing objects.
-- **Nesting depth** — Maximum 4 levels.
-- **No silent failures** — log context on error; `exit(-1)` on unrecoverable state.
-- Comment only non-obvious logic — never restate what the code already says.
+4restate what the code already says.
 - Write code with clear, linear control flow that minimizes break, continue, and early return, allowing them only when they clearly improve readability (e.g., simple guard clauses) and avoiding unnecessary nesting or complex jumps.

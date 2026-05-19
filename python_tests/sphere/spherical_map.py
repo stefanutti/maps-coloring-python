@@ -38,6 +38,10 @@ class Edge:
     v_end     : int
     waypoints : list[np.ndarray] = field(default_factory=list)
 
+    def __post_init__(self):
+        if self.waypoints is None:
+            self.waypoints = []
+
 
 @dataclass
 class SphericalMap:
@@ -47,7 +51,7 @@ class SphericalMap:
     faces    : dict[int, list[int]]  = field(default_factory=dict)
     colors   : dict[int, str]        = field(default_factory=dict)
     next_vid : int = 0
-    next_eid : int = 0
+    next_eid : int = 1   # eid 0 reserved: signed encoding requires -eid != +eid
     next_fid : int = 0
 
     def _add_vertex(self, pos: np.ndarray) -> int:
@@ -82,9 +86,9 @@ def make_initial_map() -> SphericalMap:
     v0 = smap._add_vertex(np.array([0.0, 0.0,  1.0]))   # north pole
     v1 = smap._add_vertex(np.array([0.0, 0.0, -1.0]))   # south pole
 
-    eq0 = np.array([ 1.0,   0.0,    0.0])
-    eq1 = np.array([-0.5,   0.866,  0.0])
-    eq2 = np.array([-0.5,  -0.866,  0.0])
+    eq0 = np.array([ 1.0,   0.0,           0.0])
+    eq1 = np.array([-0.5,   np.sqrt(3)/2,  0.0])
+    eq2 = np.array([-0.5,  -np.sqrt(3)/2,  0.0])
 
     e0 = smap._add_edge(v0, v1, [normalize(eq0)])
     e1 = smap._add_edge(v0, v1, [normalize(eq1)])

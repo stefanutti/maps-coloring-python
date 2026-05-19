@@ -69,3 +69,18 @@ def test_make_initial_map_each_edge_in_two_faces():
             edge_face_count[abs(eid)] = edge_face_count.get(abs(eid), 0) + 1
     for eid, count in edge_face_count.items():
         assert count == 2, f"edge {eid} appears in {count} faces"
+
+def test_make_initial_map_directed_edge_invariant():
+    smap = make_initial_map()
+    forward_count: dict[int, int] = {}
+    backward_count: dict[int, int] = {}
+    for fid, eids in smap.faces.items():
+        for s in eids:
+            eid = abs(s)
+            if s > 0:
+                forward_count[eid] = forward_count.get(eid, 0) + 1
+            else:
+                backward_count[eid] = backward_count.get(eid, 0) + 1
+    for eid in smap.edges:
+        assert forward_count.get(eid, 0) == 1, f"edge {eid} forward count != 1"
+        assert backward_count.get(eid, 0) == 1, f"edge {eid} backward count != 1"

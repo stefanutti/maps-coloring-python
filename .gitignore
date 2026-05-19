@@ -1,3 +1,5 @@
+.superpowers/
+
 #################
 ## Eclipse
 #################
@@ -212,10 +214,6 @@ pip-log.txt
 
 # Translations
 *.mo
-
-# Mr Developer
-.mr.developer.cfg
-.vscode/.ropeproject/objectdb
 
 /ct/debug
 

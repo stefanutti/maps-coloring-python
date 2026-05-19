@@ -142,7 +142,7 @@ def auto_waypoints(
         c = normalize(np.mean(np.array(face_verts), axis=0))
         m = normalize(p + q)
         w = normalize(m + strength * (c - m))
-        if point_in_face(w, face_verts):
+        if not np.any(np.isnan(w)) and point_in_face(w, face_verts):
             return [w]
     except Exception:
         pass

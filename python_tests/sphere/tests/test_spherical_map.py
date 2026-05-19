@@ -119,9 +119,9 @@ def test_auto_waypoints_inside_face():
         assert point_in_face(wps[0], face_verts)
 
 def test_auto_waypoints_fallback_returns_empty():
-    # Antipodal points → midpoint undefined, should return []
+    # Antipodal points → p+q = zero vector → NaN → must fallback to []
     p = np.array([1.0, 0.0, 0.0])
     q = np.array([-1.0, 0.0, 0.0])
     face_verts = [p, np.array([0.0, 1.0, 0.0]), q]
     result = auto_waypoints(p, q, face_verts)
-    assert isinstance(result, list)
+    assert result == [], f"expected [], got {result}"

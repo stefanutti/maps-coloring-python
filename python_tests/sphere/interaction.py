@@ -85,7 +85,7 @@ class InteractionController:
             self._screen_cache[eid] = [world_to_screen(p) for p in pts3d]
         self._cache_dirty = False
 
-    def _find_edge_at_cursor(self, mx: float, my: float) -> tuple[int | None, float]:
+    def _find_edge_at_cursor(self, mx: float, my: float) -> tuple[int | None, float | None]:
         if self._cache_dirty:
             self._rebuild_screen_cache()
         best_eid, best_t, best_dist = None, 0.0, math.inf
@@ -99,7 +99,7 @@ class InteractionController:
                     best_dist = d
                     best_eid  = eid
                     best_t    = (i + t_local) / (n - 1)
-        return (best_eid, best_t) if best_dist < _PICK_THRESHOLD_PX else (None, 0.0)
+        return (best_eid, best_t) if best_dist < _PICK_THRESHOLD_PX else (None, None)
 
     def _snap_pos_on_edge(self, eid: int, t: float) -> np.ndarray:
         e = self.smap.edges[eid]
@@ -133,9 +133,14 @@ class InteractionController:
 
     def _on_left_click(self, *_) -> None:
         if self._hovered_eid is None:
-            if self.state == self.WAYPOINT_MODE and self._snap_pos is not None:
-                self._state_waypoints.append(self._snap_pos.copy())
-                self._update_hud()
+            if self.state == self.WAYPOINT_MODE:
+                picked = self.renderer.plotter.pick_mouse_position()
+                if picked is not None:
+                    pt = np.array(picked, dtype=float)
+                    norm = np.linalg.norm(pt)
+                    if norm > 1e-9:
+                        self._state_waypoints.append(pt / norm)
+                        self._update_hud()
             return
 
         eid = self._hovered_eid

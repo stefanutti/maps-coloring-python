@@ -386,3 +386,54 @@ def split_face(
     smap.colors[fid1] = assign_color(smap, fid1)
     smap.colors[fid2] = assign_color(smap, fid2)
     return fid1, fid2
+
+
+def _largest_face(smap: SphericalMap) -> int:
+    """Return fid of face with most edges in boundary."""
+    return max(smap.faces, key=lambda f: len(smap.faces[f]))
+
+
+def _non_adjacent_edge_pair(smap: SphericalMap, fid: int) -> tuple[int, int]:
+    """Return two edge ids from face boundary that are not consecutive (maximally separated)."""
+    boundary = smap.faces[fid]
+    n = len(boundary)
+    if n < 3:
+        return abs(boundary[0]), abs(boundary[0])  # same-edge fallback
+    return abs(boundary[0]), abs(boundary[n // 2])
+
+
+def split_face_auto(
+    smap     : SphericalMap,
+    fid      : int | None = None,
+    strategy : str = "balanced",
+) -> tuple[int, int]:
+    if fid is None:
+        fid = _largest_face(smap)
+
+    if strategy == "balanced":
+        eid1, eid2 = _non_adjacent_edge_pair(smap, fid)
+        return split_face(smap, fid, eid1, 0.5, eid2, 0.5)
+
+    # "random"
+    import random
+    boundary = smap.faces[fid]
+    idx1 = random.randrange(len(boundary))
+    idx2 = random.randrange(len(boundary))
+    eid1 = abs(boundary[idx1])
+    eid2 = abs(boundary[idx2])
+    t1 = random.uniform(0.2, 0.8)
+    t2 = random.uniform(0.2, 0.8)
+    return split_face(smap, fid, eid1, t1, eid2, t2)
+
+
+def grow_map(
+    smap     : SphericalMap,
+    renderer,
+    n_splits : int = 10,
+    strategy : str = "balanced",
+    show     : bool = True,
+) -> None:
+    for _ in range(n_splits):
+        fid1, fid2 = split_face_auto(smap, strategy=strategy)
+        if show and renderer is not None:
+            renderer.update_after_split(smap, fid1, fid2)

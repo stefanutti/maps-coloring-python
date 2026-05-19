@@ -218,3 +218,23 @@ def test_split_face_repeated_splits():
         eid2 = abs(boundary[1 % len(boundary)])
         split_face(smap, fid, eid1, 0.5, eid2, 0.5)
     _check_invariants(smap)
+
+
+from sphere.spherical_map import split_face_auto, grow_map
+
+def test_split_face_auto_balanced_invariants():
+    smap = make_initial_map()
+    split_face_auto(smap, strategy="balanced")
+    _check_invariants(smap)
+
+def test_split_face_auto_random_invariants():
+    smap = make_initial_map()
+    split_face_auto(smap, strategy="random")
+    _check_invariants(smap)
+
+def test_grow_map_10_splits_invariants():
+    smap = make_initial_map()
+    grow_map(smap, renderer=None, n_splits=10, show=False)
+    _check_invariants(smap)
+    assert len(smap.faces) == 13   # 3 + 10
+    assert len(smap.vertices) == 22  # 2 + 10*2

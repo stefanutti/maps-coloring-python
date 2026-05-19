@@ -158,8 +158,7 @@ class InteractionController:
             self._update_hud()
 
         elif self.state == self.FIRST_SELECTED:
-            fid = self._face_of_edge(eid)
-            if fid != self._state_fid:
+            if not any(abs(s) == eid for s in self.smap.faces[self._state_fid]):
                 self._update_hud(extra="[edge belongs to different face — pick an edge of the same face]")
                 return
             self._state_q  = eid

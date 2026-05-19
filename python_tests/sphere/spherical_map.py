@@ -15,13 +15,13 @@ def slerp(a: np.ndarray, b: np.ndarray, t: float) -> np.ndarray:
         # Nearly identical vectors: linear blend is safe
         return normalize(a + t * (b - a))
     if dot < -0.9999:
-        # Nearly antipodal: pick an arbitrary perpendicular axis to rotate around
+        # Nearly antipodal: use Rodrigues rotation to avoid division by sin(π) ≈ 0
         perp = np.array([1.0, 0.0, 0.0])
         if abs(np.dot(a, perp)) > 0.9:
             perp = np.array([0.0, 1.0, 0.0])
         axis = normalize(np.cross(a, perp))
-        theta = math.pi
-        return (math.sin((1 - t) * theta) * a + math.sin(t * theta) * axis) / math.sin(theta)
+        angle = t * math.pi
+        return normalize(math.cos(angle) * a + math.sin(angle) * np.cross(axis, a))
     theta = math.acos(dot)
     return (math.sin((1 - t) * theta) * a + math.sin(t * theta) * b) / math.sin(theta)
 
@@ -147,27 +147,27 @@ def auto_waypoints(
     face_verts: list[np.ndarray],
     strength: float = 0.35,
 ) -> list[np.ndarray]:
-    try:
-        c = normalize(np.mean(np.array(face_verts), axis=0))
-        m = normalize(p + q)
-        w = normalize(m + strength * (c - m))
-        if not np.any(np.isnan(w)) and point_in_face(w, face_verts):
-            return [w]
-    except Exception:
-        pass
+    c = normalize(np.mean(np.array(face_verts), axis=0))
+    m = normalize(p + q)
+    w = normalize(m + strength * (c - m))
+    if not np.any(np.isnan(w)) and point_in_face(w, face_verts):
+        return [w]
     return []
 
 
 def _split_waypoints(waypoints: list[np.ndarray], t_split: float) -> tuple[list[np.ndarray], list[np.ndarray]]:
-    """Split waypoints at parameter t_split. Returns (before, after) sublists."""
+    """Split waypoints at parameter t_split. Returns (before, after) sublists.
+    Waypoints that coincide with the split point are dropped from both sub-edges.
+    """
     before, after = [], []
     n = len(waypoints)
     for i, w in enumerate(waypoints):
-        t = (i + 1) / (n + 1)
-        if t < t_split:
+        t_w = (i + 1) / (n + 1)
+        if t_w < t_split - 1e-12:
             before.append(w)
-        else:
+        elif t_w > t_split + 1e-12:
             after.append(w)
+        # else: coincides with split point — drop from both sub-edges
     return before, after
 
 
@@ -292,6 +292,17 @@ def _replace_edge_in_face(boundary: list[int], old_eid: int, replacement_fwd: li
     return result
 
 
+def _eval_edge_at_t(smap: SphericalMap, eid: int, t: float) -> np.ndarray:
+    """Evaluate position along edge eid at parameter t in [0,1], respecting waypoints."""
+    e = smap.edges[eid]
+    chain = [smap.vertices[e.v_start]] + list(e.waypoints) + [smap.vertices[e.v_end]]
+    n_segs = len(chain) - 1
+    seg_t = t * n_segs
+    seg_idx = min(int(seg_t), n_segs - 1)
+    local_t = seg_t - seg_idx
+    return slerp(chain[seg_idx], chain[seg_idx + 1], local_t)
+
+
 def split_face(
     smap      : SphericalMap,
     fid       : int,
@@ -309,7 +320,7 @@ def split_face(
     face_verts = _face_vertex_positions(smap, fid)
 
     e1 = smap.edges[eid1]
-    p_pos = slerp(smap.vertices[e1.v_start], smap.vertices[e1.v_end], t1)
+    p_pos = _eval_edge_at_t(smap, eid1, t1)
     p_vid = smap._add_vertex(p_pos)
 
     same_edge = (eid1 == eid2)
@@ -318,10 +329,10 @@ def split_face(
         # Ensure t1 < t2 for clean splitting
         if t1 > t2:
             t1, t2 = t2, t1
-            p_pos = slerp(smap.vertices[e1.v_start], smap.vertices[e1.v_end], t1)
+            p_pos = _eval_edge_at_t(smap, eid1, t1)
             smap.vertices[p_vid] = normalize(p_pos)
 
-        q_pos = slerp(smap.vertices[e1.v_start], smap.vertices[e1.v_end], t2)
+        q_pos = _eval_edge_at_t(smap, eid1, t2)
         q_vid = smap._add_vertex(q_pos)
 
         wp_before, wp_rest = _split_waypoints(e1.waypoints, t1)
@@ -336,7 +347,7 @@ def split_face(
         e2_sub_fwd = None  # no separate eid2 in same_edge case
     else:
         e2 = smap.edges[eid2]
-        q_pos = slerp(smap.vertices[e2.v_start], smap.vertices[e2.v_end], t2)
+        q_pos = _eval_edge_at_t(smap, eid2, t2)
         q_vid = smap._add_vertex(q_pos)
 
         wp1_before, wp1_after = _split_waypoints(e1.waypoints, t1)
@@ -381,9 +392,8 @@ def split_face(
             old_boundary, eid1, e1a, e1b, eid2, e2a, e2b, arc_fwd
         )
 
-    fid1 = smap._add_face(f1_boundary, old_color)
+    fid1 = smap._add_face(f1_boundary, old_color)  # inherits old face's color
     fid2 = smap._add_face(f2_boundary, old_color)
-    smap.colors[fid1] = assign_color(smap, fid1)
     smap.colors[fid2] = assign_color(smap, fid2)
     return fid1, fid2
 
@@ -434,6 +444,19 @@ def grow_map(
     show     : bool = True,
 ) -> None:
     for _ in range(n_splits):
-        fid1, fid2 = split_face_auto(smap, strategy=strategy)
         if show and renderer is not None:
-            renderer.update_after_split(smap, fid1, fid2)
+            old_eids = set(smap.edges.keys())
+            old_vids = set(smap.vertices.keys())
+            old_fids = set(smap.faces.keys())
+
+        fid1, fid2 = split_face_auto(smap, strategy=strategy)
+
+        if show and renderer is not None:
+            removed_fid = (old_fids - set(smap.faces.keys())).pop()
+            renderer.update_after_split(
+                smap, fid1, fid2,
+                removed_fid=removed_fid,
+                removed_eids=list(old_eids - set(smap.edges.keys())),
+                new_eids=list(set(smap.edges.keys()) - old_eids),
+                new_vids=list(set(smap.vertices.keys()) - old_vids),
+            )

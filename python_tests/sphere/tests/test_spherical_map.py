@@ -42,3 +42,30 @@ def test_point_in_face_outside():
     ]
     outside = np.array([-1.0, 0.0, 0.0])
     assert not point_in_face(outside, verts)
+
+
+from sphere.spherical_map import Edge, SphericalMap, make_initial_map
+
+def test_make_initial_map_euler():
+    smap = make_initial_map()
+    V = len(smap.vertices)
+    E = len(smap.edges)
+    F = len(smap.faces)
+    assert V == 2
+    assert E == 3
+    assert F == 3
+    assert V - E + F == 2  # Euler
+
+def test_make_initial_map_all_vertices_on_sphere():
+    smap = make_initial_map()
+    for v in smap.vertices.values():
+        assert abs(np.linalg.norm(v) - 1.0) < 1e-10
+
+def test_make_initial_map_each_edge_in_two_faces():
+    smap = make_initial_map()
+    edge_face_count: dict[int, int] = {}
+    for fid, eids in smap.faces.items():
+        for eid in eids:
+            edge_face_count[abs(eid)] = edge_face_count.get(abs(eid), 0) + 1
+    for eid, count in edge_face_count.items():
+        assert count == 2, f"edge {eid} appears in {count} faces"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import math
 import numpy as np
+from dataclasses import dataclass, field
 
 
 def normalize(v: np.ndarray) -> np.ndarray:
@@ -29,3 +30,68 @@ def point_in_face(pt: np.ndarray, face_verts: list[np.ndarray]) -> bool:
         if np.dot(np.cross(a, b), pt) < 0:
             return False
     return True
+
+
+@dataclass
+class Edge:
+    v_start   : int
+    v_end     : int
+    waypoints : list[np.ndarray] = field(default_factory=list)
+
+
+@dataclass
+class SphericalMap:
+    vertices : dict[int, np.ndarray] = field(default_factory=dict)
+    edges    : dict[int, Edge]       = field(default_factory=dict)
+    # face boundary: list of signed eids. +eid = forward, -eid = reversed.
+    faces    : dict[int, list[int]]  = field(default_factory=dict)
+    colors   : dict[int, str]        = field(default_factory=dict)
+    next_vid : int = 0
+    next_eid : int = 0
+    next_fid : int = 0
+
+    def _add_vertex(self, pos: np.ndarray) -> int:
+        vid = self.next_vid
+        self.vertices[vid] = normalize(pos)
+        self.next_vid += 1
+        return vid
+
+    def _add_edge(self, v_start: int, v_end: int,
+                  waypoints: list[np.ndarray] | None = None) -> int:
+        eid = self.next_eid
+        self.edges[eid] = Edge(v_start, v_end, waypoints or [])
+        self.next_eid += 1
+        return eid
+
+    def _add_face(self, signed_eids: list[int], color: str) -> int:
+        fid = self.next_fid
+        self.faces[fid] = signed_eids
+        self.colors[fid] = color
+        self.next_fid += 1
+        return fid
+
+
+PALETTE = [
+    "#e53935", "#1e88e5", "#43a047", "#fb8c00",
+    "#8e24aa", "#00acc1", "#f4511e", "#6d4c41", "#546e7a", "#c0ca33",
+]
+
+
+def make_initial_map() -> SphericalMap:
+    smap = SphericalMap()
+    v0 = smap._add_vertex(np.array([0.0, 0.0,  1.0]))   # north pole
+    v1 = smap._add_vertex(np.array([0.0, 0.0, -1.0]))   # south pole
+
+    eq0 = np.array([ 1.0,   0.0,    0.0])
+    eq1 = np.array([-0.5,   0.866,  0.0])
+    eq2 = np.array([-0.5,  -0.866,  0.0])
+
+    e0 = smap._add_edge(v0, v1, [normalize(eq0)])
+    e1 = smap._add_edge(v0, v1, [normalize(eq1)])
+    e2 = smap._add_edge(v0, v1, [normalize(eq2)])
+
+    # Positive eid = forward, negative = reversed
+    smap._add_face([ e0, -e1], PALETTE[0])   # f0: luna 0°-120°
+    smap._add_face([ e1, -e2], PALETTE[1])   # f1: luna 120°-240°
+    smap._add_face([ e2, -e0], PALETTE[2])   # f2: oceano 240°-360°
+    return smap

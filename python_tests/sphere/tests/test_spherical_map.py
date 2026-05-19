@@ -162,6 +162,19 @@ def _check_invariants(smap):
     for vid, pos in smap.vertices.items():
         assert abs(np.linalg.norm(pos) - 1.0) < 1e-9, f"vertex {vid} not on sphere"
 
+    # Each face boundary must be a continuous closed walk
+    for fid, boundary in smap.faces.items():
+        for i, s in enumerate(boundary):
+            e = smap.edges[abs(s)]
+            end_vid = e.v_end if s > 0 else e.v_start
+            ns = boundary[(i + 1) % len(boundary)]
+            ne = smap.edges[abs(ns)]
+            start_vid = ne.v_start if ns > 0 else ne.v_end
+            assert end_vid == start_vid, (
+                f"face {fid} boundary broken between position {i} and {i+1}: "
+                f"edge {abs(s)} ends at v{end_vid}, next edge {abs(ns)} starts at v{start_vid}"
+            )
+
 
 def test_split_face_euler_invariant():
     smap = make_initial_map()

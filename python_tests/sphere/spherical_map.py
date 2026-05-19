@@ -255,7 +255,7 @@ def _rebuild_boundary_diff_edges(
         # Replace higher index (idx1) first
         expanded = expanded[:idx1] + [sub1_to_p, sub1_from_p] + expanded[idx1 + 1:]
         expanded = expanded[:idx2] + [sub2_to_q, sub2_from_q] + expanded[idx2 + 1:]
-        p_after_idx = idx1
+        p_after_idx = idx1 + 1   # shifted by the earlier idx2 insertion
         q_after_idx = idx2
 
     n = len(expanded)
@@ -268,10 +268,10 @@ def _rebuild_boundary_diff_edges(
         q_cut = (q_cut - p_cut) % n
         p_cut = 0
 
-    # F1: path from p to q (exclusive) + arc_fwd (p->q)
-    # F2: path from q to p (exclusive) + (-arc_fwd) (q->p)
-    f1 = expanded[p_cut:q_cut] + [arc_fwd]
-    f2 = expanded[q_cut:] + expanded[:p_cut] + [-arc_fwd]
+    # F1: path from p to q (exclusive) + arc closing q->p (-arc_fwd)
+    # F2: path from q to p (exclusive) + arc closing p->q (arc_fwd)
+    f1 = expanded[p_cut:q_cut] + [-arc_fwd]
+    f2 = expanded[q_cut:] + expanded[:p_cut] + [arc_fwd]
     return f1, f2
 
 

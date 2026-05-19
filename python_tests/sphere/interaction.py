@@ -53,13 +53,13 @@ class InteractionController:
     def _register_callbacks(self) -> None:
         plotter = self.renderer.plotter
         plotter.track_mouse_position()
-        plotter.add_observer("MouseMoveEvent",       self._on_mouse_move)
-        plotter.add_observer("LeftButtonPressEvent", self._on_left_click)
+        plotter.iren.add_observer("MouseMoveEvent",       self._on_mouse_move)
+        plotter.iren.add_observer("LeftButtonPressEvent", self._on_left_click)
         plotter.add_key_event("Return",    self._on_confirm)
         plotter.add_key_event("space",     self._on_confirm)
         plotter.add_key_event("Escape",    self._on_escape)
         plotter.add_key_event("BackSpace", self._on_backspace)
-        plotter.add_observer("EndInteractionEvent", self._on_camera_moved)
+        plotter.iren.add_observer("EndInteractionEvent", self._on_camera_moved)
 
     def _on_camera_moved(self, *_) -> None:
         self._cache_dirty = True

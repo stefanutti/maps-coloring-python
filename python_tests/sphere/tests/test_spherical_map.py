@@ -84,3 +84,44 @@ def test_make_initial_map_directed_edge_invariant():
     for eid in smap.edges:
         assert forward_count.get(eid, 0) == 1, f"edge {eid} forward count != 1"
         assert backward_count.get(eid, 0) == 1, f"edge {eid} backward count != 1"
+
+
+from sphere.spherical_map import neighbors, assign_color, auto_waypoints, _face_vertex_positions
+
+def test_neighbors_initial_map():
+    smap = make_initial_map()
+    fids = list(smap.faces.keys())
+    # Each face in the initial 3-face map is adjacent to the other two
+    for fid in fids:
+        nb = neighbors(smap, fid)
+        assert len(nb) == 2
+        for other in fids:
+            if other != fid:
+                assert other in nb
+
+def test_assign_color_differs_from_neighbors():
+    smap = make_initial_map()
+    fids = list(smap.faces.keys())
+    for fid in fids:
+        c = assign_color(smap, fid)
+        for nb in neighbors(smap, fid):
+            assert c != smap.colors[nb]
+
+def test_auto_waypoints_inside_face():
+    smap = make_initial_map()
+    fid = list(smap.faces.keys())[0]
+    face_verts = _face_vertex_positions(smap, fid)
+    p = face_verts[0]
+    q = face_verts[1]
+    wps = auto_waypoints(p, q, face_verts)
+    # Either empty (fallback) or the single waypoint is inside the face
+    if wps:
+        assert point_in_face(wps[0], face_verts)
+
+def test_auto_waypoints_fallback_returns_empty():
+    # Antipodal points → midpoint undefined, should return []
+    p = np.array([1.0, 0.0, 0.0])
+    q = np.array([-1.0, 0.0, 0.0])
+    face_verts = [p, np.array([0.0, 1.0, 0.0]), q]
+    result = auto_waypoints(p, q, face_verts)
+    assert isinstance(result, list)

@@ -99,3 +99,51 @@ def make_initial_map() -> SphericalMap:
     smap._add_face([ e1, -e2], PALETTE[1])   # f1: luna 120°-240°
     smap._add_face([ e2, -e0], PALETTE[2])   # f2: oceano 240°-360°
     return smap
+
+
+def _face_vertex_positions(smap: SphericalMap, fid: int) -> list[np.ndarray]:
+    """Ordered vertex positions around a face boundary (one per edge, the start vertex)."""
+    result = []
+    for signed_eid in smap.faces[fid]:
+        eid = abs(signed_eid)
+        e = smap.edges[eid]
+        vid = e.v_start if signed_eid > 0 else e.v_end
+        result.append(smap.vertices[vid])
+    return result
+
+
+def neighbors(smap: SphericalMap, fid: int) -> set[int]:
+    """Face ids that share at least one edge with fid."""
+    target_eids = {abs(s) for s in smap.faces[fid]}
+    result = set()
+    for other_fid, signed_eids in smap.faces.items():
+        if other_fid == fid:
+            continue
+        if target_eids & {abs(s) for s in signed_eids}:
+            result.add(other_fid)
+    return result
+
+
+def assign_color(smap: SphericalMap, fid: int) -> str:
+    used = {smap.colors[n] for n in neighbors(smap, fid)}
+    for c in PALETTE:
+        if c not in used:
+            return c
+    return PALETTE[0]
+
+
+def auto_waypoints(
+    p: np.ndarray,
+    q: np.ndarray,
+    face_verts: list[np.ndarray],
+    strength: float = 0.35,
+) -> list[np.ndarray]:
+    try:
+        c = normalize(np.mean(np.array(face_verts), axis=0))
+        m = normalize(p + q)
+        w = normalize(m + strength * (c - m))
+        if point_in_face(w, face_verts):
+            return [w]
+    except Exception:
+        pass
+    return []

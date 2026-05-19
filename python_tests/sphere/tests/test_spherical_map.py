@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 from sphere.spherical_map import normalize, slerp, geodesic_samples, point_in_face
 
 def test_normalize_unit_length():

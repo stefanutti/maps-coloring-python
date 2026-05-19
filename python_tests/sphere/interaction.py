@@ -41,8 +41,9 @@ class InteractionController:
         self._state_waypoints: list[np.ndarray] = []
         self._state_fid      : int | None   = None
 
-        self._hovered_eid    : int | None   = None
-        self._snap_pos       : np.ndarray | None = None
+        self._hovered_eid    : int | None         = None
+        self._hovered_t      : float | None       = None
+        self._snap_pos       : np.ndarray | None  = None
 
         self._screen_cache   : dict[int, list[tuple[float, float]]] = {}
         self._cache_dirty    : bool = True
@@ -88,7 +89,7 @@ class InteractionController:
     def _find_edge_at_cursor(self, mx: float, my: float) -> tuple[int | None, float | None]:
         if self._cache_dirty:
             self._rebuild_screen_cache()
-        best_eid, best_t, best_dist = None, 0.0, math.inf
+        best_eid, best_t, best_dist = None, None, math.inf
         for eid, screen_pts in self._screen_cache.items():
             n = len(screen_pts)
             for i in range(n - 1):
@@ -107,7 +108,7 @@ class InteractionController:
 
     def _face_of_edge(self, eid: int) -> int | None:
         for fid, signed_eids in self.smap.faces.items():
-            if eid in [abs(s) for s in signed_eids]:
+            if any(abs(s) == eid for s in signed_eids):
                 return fid
         return None
 
@@ -120,6 +121,7 @@ class InteractionController:
         if eid != prev_hovered:
             self.renderer.highlight_edge(eid, prev_hovered)
             self._hovered_eid = eid
+            self._hovered_t   = t
 
         if eid is not None:
             new_snap = self._snap_pos_on_edge(eid, t)
@@ -134,6 +136,7 @@ class InteractionController:
     def _on_left_click(self, *_) -> None:
         if self._hovered_eid is None:
             if self.state == self.WAYPOINT_MODE:
+                # pick_mouse_position() ray-casts to the sphere surface; mouse_position returns 2D pixels
                 picked = self.renderer.plotter.pick_mouse_position()
                 if picked is not None:
                     pt = np.array(picked, dtype=float)
@@ -144,8 +147,7 @@ class InteractionController:
             return
 
         eid = self._hovered_eid
-        mx, my = self.renderer.plotter.mouse_position
-        _, t = self._find_edge_at_cursor(mx, my)
+        t   = self._hovered_t
 
         if self.state == self.IDLE:
             fid = self._face_of_edge(eid)

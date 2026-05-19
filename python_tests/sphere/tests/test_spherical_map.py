@@ -125,3 +125,83 @@ def test_auto_waypoints_fallback_returns_empty():
     face_verts = [p, np.array([0.0, 1.0, 0.0]), q]
     result = auto_waypoints(p, q, face_verts)
     assert result == [], f"expected [], got {result}"
+
+
+from sphere.spherical_map import split_face
+
+def _check_invariants(smap):
+    """Assert cubic + planar + Euler invariants."""
+    V = len(smap.vertices)
+    E = len(smap.edges)
+    F = len(smap.faces)
+    assert V - E + F == 2, f"Euler: {V}-{E}+{F}={V-E+F}"
+
+    # Each edge appears in exactly 2 faces (forward once, backward once)
+    forward_count: dict[int, int] = {}
+    backward_count: dict[int, int] = {}
+    for fid, signed_eids in smap.faces.items():
+        for s in signed_eids:
+            eid = abs(s)
+            if s > 0:
+                forward_count[eid] = forward_count.get(eid, 0) + 1
+            else:
+                backward_count[eid] = backward_count.get(eid, 0) + 1
+    for eid in smap.edges:
+        assert forward_count.get(eid, 0) == 1, f"edge {eid} forward count != 1"
+        assert backward_count.get(eid, 0) == 1, f"edge {eid} backward count != 1"
+
+    # Each vertex has degree exactly 3
+    deg: dict[int, int] = {}
+    for e in smap.edges.values():
+        deg[e.v_start] = deg.get(e.v_start, 0) + 1
+        deg[e.v_end]   = deg.get(e.v_end, 0) + 1
+    for vid, d in deg.items():
+        assert d == 3, f"vertex {vid} has degree {d}"
+
+    # All vertices on unit sphere
+    for vid, pos in smap.vertices.items():
+        assert abs(np.linalg.norm(pos) - 1.0) < 1e-9, f"vertex {vid} not on sphere"
+
+
+def test_split_face_euler_invariant():
+    smap = make_initial_map()
+    fid = list(smap.faces.keys())[0]
+    boundary = smap.faces[fid]
+    eid1 = abs(boundary[0])
+    eid2 = abs(boundary[1])
+    split_face(smap, fid, eid1, 0.5, eid2, 0.5)
+    _check_invariants(smap)
+
+
+def test_split_face_returns_two_new_face_ids():
+    smap = make_initial_map()
+    fid = list(smap.faces.keys())[0]
+    boundary = smap.faces[fid]
+    eid1 = abs(boundary[0])
+    eid2 = abs(boundary[1])
+    old_fids = set(smap.faces.keys())
+    f1, f2 = split_face(smap, fid, eid1, 0.5, eid2, 0.5)
+    new_fids = set(smap.faces.keys())
+    assert fid not in new_fids
+    assert f1 in new_fids
+    assert f2 in new_fids
+    assert len(new_fids) == len(old_fids) + 1
+
+
+def test_split_face_same_edge():
+    smap = make_initial_map()
+    fid = list(smap.faces.keys())[0]
+    eid = abs(smap.faces[fid][0])
+    split_face(smap, fid, eid, 0.3, eid, 0.7)
+    _check_invariants(smap)
+
+
+def test_split_face_repeated_splits():
+    smap = make_initial_map()
+    for _ in range(5):
+        fid = list(smap.faces.keys())[0]
+        boundary = smap.faces[fid]
+        eid1 = abs(boundary[0])
+        eid2 = abs(boundary[1 % len(boundary)])
+        split_face(smap, fid, eid1, 0.5, eid2, 0.5)
+    _check_invariants(smap)

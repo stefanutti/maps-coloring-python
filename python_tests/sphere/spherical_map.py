@@ -11,8 +11,17 @@ def normalize(v: np.ndarray) -> np.ndarray:
 def slerp(a: np.ndarray, b: np.ndarray, t: float) -> np.ndarray:
     a, b = normalize(a), normalize(b)
     dot = float(np.clip(np.dot(a, b), -1.0, 1.0))
-    if abs(dot) > 0.9999:
+    if dot > 0.9999:
+        # Nearly identical vectors: linear blend is safe
         return normalize(a + t * (b - a))
+    if dot < -0.9999:
+        # Nearly antipodal: pick an arbitrary perpendicular axis to rotate around
+        perp = np.array([1.0, 0.0, 0.0])
+        if abs(np.dot(a, perp)) > 0.9:
+            perp = np.array([0.0, 1.0, 0.0])
+        axis = normalize(np.cross(a, perp))
+        theta = math.pi
+        return (math.sin((1 - t) * theta) * a + math.sin(t * theta) * axis) / math.sin(theta)
     theta = math.acos(dot)
     return (math.sin((1 - t) * theta) * a + math.sin(t * theta) * b) / math.sin(theta)
 
@@ -147,3 +156,233 @@ def auto_waypoints(
     except Exception:
         pass
     return []
+
+
+def _split_waypoints(waypoints: list[np.ndarray], t_split: float) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    """Split waypoints at parameter t_split. Returns (before, after) sublists."""
+    before, after = [], []
+    n = len(waypoints)
+    for i, w in enumerate(waypoints):
+        t = (i + 1) / (n + 1)
+        if t < t_split:
+            before.append(w)
+        else:
+            after.append(w)
+    return before, after
+
+
+def _rebuild_boundary_same_edge(
+    old_boundary: list[int],
+    eid1: int,
+    e1a: int, e1m: int, e1b: int,
+    arc_fwd: int,
+    e1_v_start: int,
+) -> tuple[list[int], list[int]]:
+    """Rebuild boundaries when both new vertices are on the same edge.
+    Returns (bigon_boundary, main_boundary).
+
+    arc_fwd connects p->q (same direction as e1m).
+    The bigon is bounded by e1m (p->q) and -arc_fwd (q->p): [e1m, -arc_fwd].
+    The main face replaces eid1 with [e1a, arc_fwd, e1b] (using arc forward).
+
+    If the face traversed eid1 backward (-eid1), the bigon becomes [-e1m, arc_fwd]
+    and the main face replaces -eid1 with [-e1b, -arc_fwd, -e1a].
+    """
+    idx = next(i for i, s in enumerate(old_boundary) if abs(s) == eid1)
+    s = old_boundary[idx]
+    fwd = (s > 0)
+
+    if fwd:
+        # face traverses v_start->p->q->v_end (forward)
+        # bigon: p->q via e1m, then q->p via -arc_fwd
+        f1 = [e1m, -arc_fwd]
+        # main face: replace eid1 with e1a, arc_fwd, e1b
+        replacement = [e1a, arc_fwd, e1b]
+    else:
+        # face traverses v_end->q->p->v_start (reversed)
+        # bigon: q->p via -e1m, then p->q via arc_fwd
+        f1 = [-e1m, arc_fwd]
+        # main face: replace -eid1 with -e1b, -arc_fwd, -e1a
+        replacement = [-e1b, -arc_fwd, -e1a]
+
+    f2 = old_boundary[:idx] + replacement + old_boundary[idx + 1:]
+    return f1, f2
+
+
+def _rebuild_boundary_diff_edges(
+    old_boundary: list[int],
+    eid1: int, e1a: int, e1b: int,
+    eid2: int, e2a: int, e2b: int,
+    arc_fwd: int,
+) -> tuple[list[int], list[int]]:
+    """Rebuild boundaries when the two new vertices are on different edges.
+
+    The boundary contains eid1 and eid2 at some positions.
+    We replace each with its two sub-edges, then cut at p and q.
+    F1 gets the arc p->q (arc_fwd), F2 gets the arc q->p (-arc_fwd).
+    """
+    idx1 = next(i for i, s in enumerate(old_boundary) if abs(s) == eid1)
+    idx2 = next(i for i, s in enumerate(old_boundary) if abs(s) == eid2)
+    s1 = old_boundary[idx1]
+    s2 = old_boundary[idx2]
+    fwd1 = (s1 > 0)
+    fwd2 = (s2 > 0)
+
+    if fwd1:
+        sub1_to_p = e1a    # e1.v_start -> p (forward)
+        sub1_from_p = e1b  # p -> e1.v_end (forward)
+    else:
+        sub1_to_p = -e1b   # e1.v_end -> p (= e1b reversed)
+        sub1_from_p = -e1a  # p -> e1.v_start (= e1a reversed)
+
+    if fwd2:
+        sub2_to_q = e2a
+        sub2_from_q = e2b
+    else:
+        sub2_to_q = -e2b
+        sub2_from_q = -e2a
+
+    expanded = list(old_boundary)
+    if idx1 < idx2:
+        # Replace higher index first to avoid shifting lower index
+        expanded = expanded[:idx2] + [sub2_to_q, sub2_from_q] + expanded[idx2 + 1:]
+        expanded = expanded[:idx1] + [sub1_to_p, sub1_from_p] + expanded[idx1 + 1:]
+        # p is at end of expanded[idx1] (sub1_to_p ends at p)
+        # idx2 shifted by +1 because we inserted one extra element before it
+        p_after_idx = idx1
+        q_after_idx = idx2 + 1
+    else:
+        # Replace higher index (idx1) first
+        expanded = expanded[:idx1] + [sub1_to_p, sub1_from_p] + expanded[idx1 + 1:]
+        expanded = expanded[:idx2] + [sub2_to_q, sub2_from_q] + expanded[idx2 + 1:]
+        p_after_idx = idx1
+        q_after_idx = idx2
+
+    n = len(expanded)
+    p_cut = p_after_idx + 1  # index of first element AFTER p
+    q_cut = q_after_idx + 1  # index of first element AFTER q
+
+    # Normalize so p_cut <= q_cut (rotate boundary so p comes first)
+    if p_cut > q_cut:
+        expanded = expanded[p_cut:] + expanded[:p_cut]
+        q_cut = (q_cut - p_cut) % n
+        p_cut = 0
+
+    # F1: path from p to q (exclusive) + arc_fwd (p->q)
+    # F2: path from q to p (exclusive) + (-arc_fwd) (q->p)
+    f1 = expanded[p_cut:q_cut] + [arc_fwd]
+    f2 = expanded[q_cut:] + expanded[:p_cut] + [-arc_fwd]
+    return f1, f2
+
+
+def _replace_edge_in_face(boundary: list[int], old_eid: int, replacement_fwd: list[int]) -> list[int]:
+    """Replace old_eid (or -old_eid) in boundary with the given replacement sub-edges.
+    If the original edge was traversed forward (+old_eid), uses replacement_fwd directly.
+    If traversed backward (-old_eid), uses the reversal of replacement_fwd.
+    """
+    result = []
+    for s in boundary:
+        if abs(s) == old_eid:
+            if s > 0:
+                result.extend(replacement_fwd)
+            else:
+                result.extend(-e for e in reversed(replacement_fwd))
+        else:
+            result.append(s)
+    return result
+
+
+def split_face(
+    smap      : SphericalMap,
+    fid       : int,
+    eid1      : int,
+    t1        : float,
+    eid2      : int,
+    t2        : float,
+    waypoints : list[np.ndarray] | None = None,
+) -> tuple[int, int]:
+    """Split face fid by placing new vertex p on eid1 at t1 and q on eid2 at t2.
+    Returns (fid1, fid2) — the two new face ids.
+    If eid1==eid2, places both vertices on the same edge (creates a bigon face).
+    """
+    # Collect face vertex positions before any edge deletion
+    face_verts = _face_vertex_positions(smap, fid)
+
+    e1 = smap.edges[eid1]
+    p_pos = slerp(smap.vertices[e1.v_start], smap.vertices[e1.v_end], t1)
+    p_vid = smap._add_vertex(p_pos)
+
+    same_edge = (eid1 == eid2)
+
+    if same_edge:
+        # Ensure t1 < t2 for clean splitting
+        if t1 > t2:
+            t1, t2 = t2, t1
+            p_pos = slerp(smap.vertices[e1.v_start], smap.vertices[e1.v_end], t1)
+            smap.vertices[p_vid] = normalize(p_pos)
+
+        q_pos = slerp(smap.vertices[e1.v_start], smap.vertices[e1.v_end], t2)
+        q_vid = smap._add_vertex(q_pos)
+
+        wp_before, wp_rest = _split_waypoints(e1.waypoints, t1)
+        wp_mid, wp_after   = _split_waypoints(wp_rest, (t2 - t1) / (1 - t1) if t1 < 1.0 else 0.5)
+
+        e1a = smap._add_edge(e1.v_start, p_vid, wp_before)
+        e1m = smap._add_edge(p_vid, q_vid, wp_mid)
+        e1b = smap._add_edge(q_vid, e1.v_end, wp_after)
+        # sub-edges in forward order: e1a, e1m, e1b
+        e1_sub_fwd = [e1a, e1m, e1b]
+        del smap.edges[eid1]
+        e2_sub_fwd = None  # no separate eid2 in same_edge case
+    else:
+        e2 = smap.edges[eid2]
+        q_pos = slerp(smap.vertices[e2.v_start], smap.vertices[e2.v_end], t2)
+        q_vid = smap._add_vertex(q_pos)
+
+        wp1_before, wp1_after = _split_waypoints(e1.waypoints, t1)
+        e1a = smap._add_edge(e1.v_start, p_vid, wp1_before)
+        e1b = smap._add_edge(p_vid, e1.v_end, wp1_after)
+        e1_sub_fwd = [e1a, e1b]
+        del smap.edges[eid1]
+
+        wp2_before, wp2_after = _split_waypoints(e2.waypoints, t2)
+        e2a = smap._add_edge(e2.v_start, q_vid, wp2_before)
+        e2b = smap._add_edge(q_vid, e2.v_end, wp2_after)
+        e2_sub_fwd = [e2a, e2b]
+        del smap.edges[eid2]
+
+    # Patch all OTHER faces that reference eid1 or eid2 (adjacent faces)
+    for other_fid, other_boundary in list(smap.faces.items()):
+        if other_fid == fid:
+            continue
+        new_boundary = other_boundary
+        if any(abs(s) == eid1 for s in new_boundary):
+            new_boundary = _replace_edge_in_face(new_boundary, eid1, e1_sub_fwd)
+        if not same_edge and e2_sub_fwd is not None and any(abs(s) == eid2 for s in new_boundary):
+            new_boundary = _replace_edge_in_face(new_boundary, eid2, e2_sub_fwd)
+        smap.faces[other_fid] = new_boundary
+
+    # Compute new arc waypoints (face_verts was captured before edge deletion)
+    arc_waypoints = waypoints if waypoints is not None else auto_waypoints(p_pos, q_pos, face_verts)
+    arc_fwd = smap._add_edge(p_vid, q_vid, arc_waypoints)
+
+    # Rebuild the two face boundaries
+    old_boundary = list(smap.faces[fid])
+    old_color = smap.colors[fid]
+    del smap.faces[fid]
+    del smap.colors[fid]
+
+    if same_edge:
+        f1_boundary, f2_boundary = _rebuild_boundary_same_edge(
+            old_boundary, eid1, e1a, e1m, e1b, arc_fwd, e1.v_start
+        )
+    else:
+        f1_boundary, f2_boundary = _rebuild_boundary_diff_edges(
+            old_boundary, eid1, e1a, e1b, eid2, e2a, e2b, arc_fwd
+        )
+
+    fid1 = smap._add_face(f1_boundary, old_color)
+    fid2 = smap._add_face(f2_boundary, old_color)
+    smap.colors[fid1] = assign_color(smap, fid1)
+    smap.colors[fid2] = assign_color(smap, fid2)
+    return fid1, fid2

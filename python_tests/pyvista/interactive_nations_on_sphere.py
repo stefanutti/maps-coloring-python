@@ -4,7 +4,7 @@ from scipy.spatial import cKDTree
 
 def main():
     # Creiamo una sfera ad alta risoluzione
-    sphere = pv.Sphere(radius=1.0, theta_resolution=1200, phi_resolution=1200)
+    sphere = pv.Sphere(radius=1.0, theta_resolution=120, phi_resolution=120)
     
     # Memorizziamo i centri di ciascuna cella (tasselli sferici)
     cell_centers = sphere.cell_centers().points

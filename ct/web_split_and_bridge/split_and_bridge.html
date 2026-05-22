@@ -567,7 +567,11 @@
       showNodeLabels: false,
       showEdgeLabels: true,
       initialized: false,
-      currentLayout: 'preset'
+      currentLayout: 'preset',
+      edgeBendDrag: null,
+      edgeBendWindowListenerInstalled: false,
+      edgeContextMenuListenerInstalled: false,
+      selectedSplitEdges: []
     };
 
     const DEFAULT_CONFIG = {
@@ -624,7 +628,14 @@
     window.__setDebugEnabled = setDebugEnabled;
 
     // Costruisce attributi edge con merge opzionale
-    function edgeAttributes(extra = {}) { return { size: config.edgeBaseWidth, ...extra }; }
+    function edgeAttributes(extra = {}) {
+      return {
+        size: config.edgeBaseWidth,
+        controlPointDistances: [0],
+        controlPointWeights: [0.5],
+        ...extra
+      };
+    }
 
     // Resetta i contatori id nodo/edge
     function resetIdCounters() {
@@ -941,13 +952,18 @@
         } else if (actualSource === canonV || actualTarget === canonU) {
           orient = -1;
         }
-        const baseOffset = count === 1 ? 0 : computeMultiEdgeOffset(index, count, lengthRaw, canonU, canonV);
-        const distances = [baseOffset * orient];
-        graph.setEdgeAttribute(edgeId, 'controlPointDistances', distances);
-        if (cy) {
-          const cyEdge = cy.getElementById(edgeId);
-          if (cyEdge && cyEdge.length) cyEdge.data('controlPointDistances', distances);
+        const attrs = graph.getEdgeAttributes(edgeId) || {};
+        if (attrs.manualControlPoint) {
+          applyEdgeControlGeometry(
+            edgeId,
+            normalizeControlPointDistances(attrs.controlPointDistances),
+            normalizeControlPointWeights(attrs.controlPointWeights),
+            true
+          );
+          return;
         }
+        const baseOffset = count === 1 ? 0 : computeMultiEdgeOffset(index, count, lengthRaw, canonU, canonV);
+        applyEdgeControlGeometry(edgeId, [baseOffset * orient], [0.5], false);
       });
       debug('parallel.update.end', `${u}-${v} edges=${edgeIds.length}`);
     }
@@ -1017,8 +1033,10 @@
       if (cy && edgeToSplit) {
         const cyEdge = cy.getElementById(edgeToSplit);
         if (cyEdge && cyEdge.length > 0) {
-          const controlPointDistances = cyEdge.pstyle('control-point-distances').pfValue;
-          const controlPointWeight = cyEdge.pstyle('control-point-weights').pfValue[0];
+          const controlPointDistancesValue = cyEdge.pstyle('control-point-distances').pfValue;
+          const controlPointWeightsValue = cyEdge.pstyle('control-point-weights').pfValue;
+          const controlPointDistances = Array.isArray(controlPointDistancesValue) ? controlPointDistancesValue : [controlPointDistancesValue];
+          const controlPointWeight = Array.isArray(controlPointWeightsValue) ? controlPointWeightsValue[0] : controlPointWeightsValue;
 
           if (controlPointDistances && controlPointDistances.length > 0 && controlPointDistances[0] !== 0) {
             const sourcePos = cyEdge.source().position();
@@ -1349,6 +1367,7 @@
               source: edge.source,
               target: edge.target,
               controlPointDistances: distances,
+              controlPointWeights: edge.attrs.controlPointWeights || [0.5],
               color: edge.attrs.color || config.edgeBaseColor,
               label: edge.attrs.label || edge.edgeId,
               width: config.edgeBaseWidth
@@ -1390,6 +1409,7 @@
             target: target,
             // Usa i valori di curvatura già calcolati e memorizzati nell'attributo
             controlPointDistances: attrs.controlPointDistances || [0],
+            controlPointWeights: attrs.controlPointWeights || [0.5],
             color: attrs.color || config.edgeBaseColor,
             label: attrs.label || edgeId,
             width: config.edgeBaseWidth
@@ -1443,6 +1463,7 @@
       ensurePhysicsVelocities();
       applyNodeBaseSize(config.nodeBaseSize);
       applyEdgeBaseWidth(config.edgeBaseWidth);
+      syncSplitEdgeSelectionToCy();
       debug('cy.sync.end', `nodes=${state.cy.nodes().length} edges=${state.cy.edges().length}`);
     }
 
@@ -1482,12 +1503,21 @@
               'line-color': 'data(color)',
               'curve-style': 'unbundled-bezier',
               'control-point-distances': 'data(controlPointDistances)',
-              'control-point-weights': 0.5,
+              'control-point-weights': 'data(controlPointWeights)',
               'edge-distances': 'node-position',
               label: 'data(label)',
               'font-size': 7,
               'text-rotation': 'autorotate',
               opacity: 0.9
+            }
+          },
+          {
+            selector: 'edge.split-selected',
+            style: {
+              width: 'data(selectedWidth)',
+              'line-color': '#ff9800',
+              opacity: 1,
+              'z-index': 10
             }
           }
         ]
@@ -1501,6 +1531,7 @@
       applyLabelVisibility();
       applyNodeBaseSize(config.nodeBaseSize);
       applyEdgeBaseWidth(config.edgeBaseWidth);
+      syncSplitEdgeSelectionToCy();
       debug('cy.init.end', `nodes=${state.cy.nodes().length} edges=${state.cy.edges().length}`);
     }
 
@@ -1511,6 +1542,168 @@
         .selector('node').style('label', state.showNodeLabels ? 'data(label)' : '')
         .selector('edge').style('label', state.showEdgeLabels ? 'data(label)' : '')
         .update();
+    }
+
+    function normalizeControlPointDistances(values) {
+      if (!Array.isArray(values) || !values.length) return [0];
+      const value = Number(values[0]);
+      return [Number.isFinite(value) ? value : 0];
+    }
+
+    function normalizeControlPointWeights(values) {
+      if (!Array.isArray(values) || !values.length) return [0.5];
+      const value = Number(values[0]);
+      if (!Number.isFinite(value)) return [0.5];
+      return [Math.max(0.05, Math.min(0.95, value))];
+    }
+
+    function applyEdgeControlGeometry(edgeId, distances, weights, manual) {
+      const { graph, cy } = state;
+      if (!graph || !graph.hasEdge(edgeId)) return;
+      const nextDistances = normalizeControlPointDistances(distances);
+      const nextWeights = normalizeControlPointWeights(weights);
+      graph.setEdgeAttribute(edgeId, 'controlPointDistances', nextDistances);
+      graph.setEdgeAttribute(edgeId, 'controlPointWeights', nextWeights);
+      graph.setEdgeAttribute(edgeId, 'manualControlPoint', !!manual);
+      if (cy) {
+        const cyEdge = cy.getElementById(edgeId);
+        if (cyEdge && cyEdge.length) {
+          cyEdge.data('controlPointDistances', nextDistances);
+          cyEdge.data('controlPointWeights', nextWeights);
+        }
+      }
+    }
+
+    function getEdgeInputToken(edgeId) {
+      const { graph } = state;
+      if (!graph || !graph.hasEdge(edgeId)) return edgeId;
+      const attrs = graph.getEdgeAttributes(edgeId) || {};
+      return attrs.label !== undefined ? String(attrs.label) : String(edgeId);
+    }
+
+    function updateEdgeSplitInputFromSelection() {
+      const input = document.getElementById('edgeSplitInput');
+      if (!input) return;
+      if (!state.selectedSplitEdges.length) return;
+      input.value = state.selectedSplitEdges.map(getEdgeInputToken).join(', ');
+    }
+
+    function syncSplitEdgeSelectionToCy() {
+      if (!state.graph) return;
+      state.selectedSplitEdges = state.selectedSplitEdges.filter(edgeId => state.graph.hasEdge(edgeId));
+      if (!state.cy) {
+        updateEdgeSplitInputFromSelection();
+        return;
+      }
+
+      const selectedIds = new Set(state.selectedSplitEdges);
+      state.cy.edges().forEach(edge => {
+        if (selectedIds.has(edge.id())) {
+          const width = Number(edge.data('width'));
+          const baseWidth = Number.isFinite(width) ? width : config.edgeBaseWidth;
+          edge.data('selectedWidth', Math.max(baseWidth + 2, 3));
+          edge.addClass('split-selected');
+        } else {
+          edge.removeClass('split-selected');
+          edge.removeData('selectedWidth');
+        }
+      });
+      updateEdgeSplitInputFromSelection();
+    }
+
+    function selectSplitEdge(edgeId) {
+      if (!state.graph || !state.graph.hasEdge(edgeId)) return;
+      const existingSelections = state.selectedSplitEdges.filter(id => state.graph.hasEdge(id));
+      existingSelections.push(edgeId);
+      state.selectedSplitEdges = existingSelections.slice(-2);
+      syncSplitEdgeSelectionToCy();
+      debug('edge.split.select', state.selectedSplitEdges.map(getEdgeInputToken).join(', '));
+    }
+
+    function handleEdgeContextSelection(event) {
+      const edge = event.target;
+      if (!edge || !edge.length) return;
+      if (event.originalEvent) {
+        event.originalEvent.preventDefault();
+        event.originalEvent.stopPropagation();
+      }
+      selectSplitEdge(edge.id());
+    }
+
+    function preventGraphContextMenu(event) {
+      event.preventDefault();
+    }
+
+    function calculateEdgeControlGeometry(edge, position) {
+      if (!edge || !edge.length || !position) return null;
+      const sourcePos = edge.source().position();
+      const targetPos = edge.target().position();
+      const dx = targetPos.x - sourcePos.x;
+      const dy = targetPos.y - sourcePos.y;
+      const lengthSq = dx * dx + dy * dy;
+      if (lengthSq < 1e-6) return null;
+
+      const rawWeight = ((position.x - sourcePos.x) * dx + (position.y - sourcePos.y) * dy) / lengthSq;
+      const weight = Math.max(0.05, Math.min(0.95, rawWeight));
+      const baseX = sourcePos.x + dx * weight;
+      const baseY = sourcePos.y + dy * weight;
+      const length = Math.sqrt(lengthSq);
+      const normalX = -dy / length;
+      const normalY = dx / length;
+      const signedDistance = (position.x - baseX) * normalX + (position.y - baseY) * normalY;
+
+      return {
+        distances: [Math.round(signedDistance * 100) / 100],
+        weights: [Math.round(weight * 1000) / 1000]
+      };
+    }
+
+    function beginEdgeBendDrag(event) {
+      if (event.originalEvent && typeof event.originalEvent.button === 'number' && event.originalEvent.button !== 0) return;
+      const edge = event.target;
+      if (!edge || !edge.length) return;
+      stopPhysics();
+      state.edgeBendDrag = {
+        edgeId: edge.id(),
+        startPosition: event.position ? { x: event.position.x, y: event.position.y } : null,
+        moved: false,
+        previousPanningEnabled: state.cy.userPanningEnabled(),
+        previousBoxSelectionEnabled: typeof state.cy.boxSelectionEnabled === 'function' ? state.cy.boxSelectionEnabled() : null
+      };
+      state.cy.userPanningEnabled(false);
+      if (typeof state.cy.boxSelectionEnabled === 'function') state.cy.boxSelectionEnabled(false);
+      if (event.originalEvent) event.originalEvent.preventDefault();
+      debug('edge.bend.start', edge.id());
+    }
+
+    function updateEdgeBendDrag(event) {
+      const drag = state.edgeBendDrag;
+      if (!drag || !event.position || !state.cy) return;
+      const edge = state.cy.getElementById(drag.edgeId);
+      if (!edge || !edge.length) return;
+
+      if (!drag.moved && drag.startPosition) {
+        const dx = event.position.x - drag.startPosition.x;
+        const dy = event.position.y - drag.startPosition.y;
+        if (Math.hypot(dx, dy) < 2) return;
+      }
+
+      const geometry = calculateEdgeControlGeometry(edge, event.position);
+      if (!geometry) return;
+      drag.moved = true;
+      applyEdgeControlGeometry(drag.edgeId, geometry.distances, geometry.weights, true);
+      if (event.originalEvent) event.originalEvent.preventDefault();
+    }
+
+    function endEdgeBendDrag() {
+      const drag = state.edgeBendDrag;
+      if (!drag || !state.cy) return;
+      state.cy.userPanningEnabled(drag.previousPanningEnabled);
+      if (typeof state.cy.boxSelectionEnabled === 'function' && drag.previousBoxSelectionEnabled !== null) {
+        state.cy.boxSelectionEnabled(drag.previousBoxSelectionEnabled);
+      }
+      if (drag.moved) debug('edge.bend.end', drag.edgeId);
+      state.edgeBendDrag = null;
     }
 
     // Registra interazioni utente su nodi/edge
@@ -1554,6 +1747,21 @@
         const edgeId = event.target.id();
         logEdgeInfo(edgeId, 'Edge tap');
       });
+
+      state.cy.on('mousedown', 'edge', beginEdgeBendDrag);
+      state.cy.on('mousemove', updateEdgeBendDrag);
+      state.cy.on('tapdrag', updateEdgeBendDrag);
+      state.cy.on('mouseup', endEdgeBendDrag);
+      state.cy.on('tapend', endEdgeBendDrag);
+      state.cy.on('cxttap', 'edge', handleEdgeContextSelection);
+      if (!state.edgeBendWindowListenerInstalled) {
+        window.addEventListener('mouseup', endEdgeBendDrag);
+        state.edgeBendWindowListenerInstalled = true;
+      }
+      if (!state.edgeContextMenuListenerInstalled) {
+        container.addEventListener('contextmenu', preventGraphContextMenu);
+        state.edgeContextMenuListenerInstalled = true;
+      }
     }
 
     function restartPhysicsSimulation() {
@@ -1601,6 +1809,7 @@
             edge.data('width', finalWidth);
           });
         });
+        syncSplitEdgeSelectionToCy();
         state.cy.style().update();
       }
     }
@@ -1828,6 +2037,10 @@
       state.graph.forEachEdge((eid, attrs) => {
         if (!attrs || !Array.isArray(attrs.controlPointDistances)) {
           state.graph.setEdgeAttribute(eid, 'controlPointDistances', [0]);
+          fixed++;
+        }
+        if (!attrs || !Array.isArray(attrs.controlPointWeights)) {
+          state.graph.setEdgeAttribute(eid, 'controlPointWeights', [0.5]);
           fixed++;
         }
       });

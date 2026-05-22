@@ -2,7 +2,7 @@ from __future__ import annotations
 import math
 import numpy as np
 import pyvista as pv
-from sphere.spherical_map import SphericalMap, slerp, geodesic_samples, split_face
+from sphere.spherical_map import SphericalMap, slerp, geodesic_samples, split_face, _eval_edge_at_t
 
 _N_PICK_SAMPLES = 20
 _PICK_THRESHOLD_PX = 14
@@ -66,11 +66,12 @@ class InteractionController:
 
     def _rebuild_screen_cache(self) -> None:
         renderer = self.renderer.plotter.renderer
-        h = self.renderer.plotter.window_size[1]
 
         def world_to_screen(pt3d: np.ndarray) -> tuple[float, float]:
-            x, y, _ = renderer.world_to_display(pt3d[0], pt3d[1], pt3d[2])
-            return float(x), float(h - y)
+            renderer.SetWorldPoint(pt3d[0], pt3d[1], pt3d[2], 1.0)
+            renderer.WorldToDisplay()
+            x, y, _ = renderer.GetDisplayPoint()
+            return float(x), float(y)
 
         self._screen_cache = {}
         for eid, edge in self.smap.edges.items():
@@ -103,8 +104,7 @@ class InteractionController:
         return (best_eid, best_t) if best_dist < _PICK_THRESHOLD_PX else (None, None)
 
     def _snap_pos_on_edge(self, eid: int, t: float) -> np.ndarray:
-        e = self.smap.edges[eid]
-        return slerp(self.smap.vertices[e.v_start], self.smap.vertices[e.v_end], t)
+        return _eval_edge_at_t(self.smap, eid, t)
 
     def _face_of_edge(self, eid: int) -> int | None:
         for fid, signed_eids in self.smap.faces.items():
@@ -155,6 +155,7 @@ class InteractionController:
             self._state_p   = eid
             self._state_t1  = t
             self.state = self.FIRST_SELECTED
+            self.renderer.show_selection_marker("select_p", self._snap_pos, "lime")
             self._update_hud()
 
         elif self.state == self.FIRST_SELECTED:
@@ -164,9 +165,10 @@ class InteractionController:
             self._state_q  = eid
             self._state_t2 = t
             self.state = self.WAYPOINT_MODE
+            self.renderer.show_selection_marker("select_q", self._snap_pos, "orange")
             self._update_hud()
 
-    def _on_confirm(self, *_) -> None:
+    def _on_confirm(self) -> None:
         if self.state != self.WAYPOINT_MODE:
             return
         fid  = self._state_fid
@@ -195,10 +197,10 @@ class InteractionController:
         self._cache_dirty = True
         self._reset_state()
 
-    def _on_escape(self, *_) -> None:
+    def _on_escape(self) -> None:
         self._reset_state()
 
-    def _on_backspace(self, *_) -> None:
+    def _on_backspace(self) -> None:
         if self.state == self.WAYPOINT_MODE and self._state_waypoints:
             self._state_waypoints.pop()
             self._update_hud()
@@ -208,6 +210,7 @@ class InteractionController:
         self._state_p = self._state_q = self._state_fid = None
         self._state_t1 = self._state_t2 = 0.0
         self._state_waypoints = []
+        self.renderer.clear_selection_markers()
         self._update_hud()
 
     def _update_hud(self, extra: str = "") -> None:

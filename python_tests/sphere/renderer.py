@@ -65,12 +65,18 @@ class SphereRenderer:
         self._update_hud()
 
     def _build_all(self, smap: SphericalMap) -> None:
-        for fid in smap.faces:
-            self._add_face_actor(fid)
+        self._add_sphere_shell()
         for eid in smap.edges:
             self._add_edge_actor(eid)
         for vid in smap.vertices:
             self._add_vertex_actor(vid)
+
+    def _add_sphere_shell(self) -> None:
+        shell = pv.Sphere(radius=1.0, theta_resolution=36, phi_resolution=36)
+        self.plotter.add_mesh(
+            shell, style="wireframe", color="#ffffff", opacity=0.12,
+            line_width=0.6, name="sphere_shell",
+        )
 
     def _add_face_actor(self, fid: int) -> None:
         mesh = _face_poly_data(self.smap, fid)
@@ -108,28 +114,33 @@ class SphereRenderer:
         if prev_pos is not None:
             self.plotter.remove_actor("snap_vertex")
         if pos is not None:
-            sphere = pv.Sphere(radius=0.016, center=pos)
-            self.plotter.add_mesh(sphere, color="orange", name="snap_vertex")
+            sphere = pv.Sphere(radius=0.014, center=pos)
+            self.plotter.add_mesh(sphere, color="white", name="snap_vertex")
+
+    def show_selection_marker(self, name: str, pos: np.ndarray, color: str) -> None:
+        self.plotter.remove_actor(name)
+        sphere = pv.Sphere(radius=0.020, center=pos)
+        self.plotter.add_mesh(sphere, color=color, name=name)
+
+    def clear_selection_markers(self) -> None:
+        self.plotter.remove_actor("select_p")
+        self.plotter.remove_actor("select_q")
 
     def update_after_split(
         self,
         smap: SphericalMap,
-        fid1: int,
-        fid2: int,
+        _fid1: int = 0,
+        _fid2: int = 0,
         removed_fid: int | None = None,
         removed_eids: list[int] | None = None,
         new_eids: list[int] | None = None,
         new_vids: list[int] | None = None,
     ) -> None:
+        del removed_fid
         self.smap = smap
-        if removed_fid is not None and removed_fid in self._face_actors:
-            self.plotter.remove_actor(self._face_actors.pop(removed_fid))
         for eid in (removed_eids or []):
             if eid in self._edge_actors:
                 self.plotter.remove_actor(self._edge_actors.pop(eid))
-        for fid in [fid1, fid2]:
-            if fid in smap.faces:
-                self._add_face_actor(fid)
         for eid in (new_eids or []):
             if eid in smap.edges:
                 self._add_edge_actor(eid)

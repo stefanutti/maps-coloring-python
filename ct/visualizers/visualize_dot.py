@@ -73,7 +73,7 @@ def main():
                            linewidths=0.5)
 
     # Draw vertex labels with a white halo for readability
-    nx.draw_networkx_labels(G, pos, ax=ax, font_size=10, font_color='black',
+    nx.draw_networkx_labels(G, pos, ax=ax, font_size=8, font_color='black',
                             bbox=dict(boxstyle='round,pad=0.1', facecolor='white', alpha=0.6, edgecolor='none'))
 
     ax.set_title(f"Planar graph: {G.number_of_nodes()} vertices, {G.number_of_edges()} edges",
@@ -92,7 +92,7 @@ def main():
 
     # Save to file and show
     output_file = dot_file.rsplit('.', 1)[0] + '_planar.png'
-    plt.savefig(output_file, dpi=200, bbox_inches='tight', facecolor=fig.get_facecolor())
+    plt.savefig(output_file, dpi=1600, bbox_inches='tight', facecolor=fig.get_facecolor())
     print(f"Saved to {output_file}")
     plt.show()
 

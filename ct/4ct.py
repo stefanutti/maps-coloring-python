@@ -218,7 +218,7 @@ def initialize_statistics():
     stats['SELECT-S4-F5-F5'] = 0
     stats['SELECT-S4-F5-F6'] = 0
     stats['SELECT-S4-F5-FALLBACK'] = 0
-    stats['SELECT-S4-F4-INTERRUPT'] = 0
+    stats['SELECT-S4-LESS-THAN-F5-INTERRUPT'] = 0
 
     stats['TOTAL_RANDOM_KEMPE_SWITCHES'] = 0
     stats['MAX_RANDOM_KEMPE_SWITCHES'] = 0
@@ -245,10 +245,11 @@ def print_stats():
     logger.info("------------------")
     logger.info("BEGIN: Print stats")
     logger.info("------------------")
+    logger.info("Stats: ---")
 
     ordered_stats = collections.OrderedDict(sorted(stats.items()))
     for stat in ordered_stats:
-        logger.info("Stat: %s = %s", stat, stats[stat])
+        logger.info("Stats: %s = %s", stat, stats[stat])
 
     logger.info("----------------")
     logger.info("END: Print stats")
@@ -571,6 +572,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
 
         # For F5 to compute the new colors is difficult (and needs to be proved if always works in all cases)
         # I need to handle the different cases
+        # Ref.: https://four-color-theorem.com/2016/05/03/four-color-theorem-down-to-a-single-case/
         c1 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face))
         c3 = get_edge_color(the_colored_graph, (vertex_to_join_near_v1_on_the_face, vertex_in_the_top_middle))
         c4 = get_edge_color(the_colored_graph, (vertex_in_the_top_middle, vertex_to_join_near_v2_on_the_face))
@@ -580,6 +582,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
 
         # If the first edge bolongs to an F2 and if c1 = c2, then the F2 other color is == to c4
         # And in this case I need to avoid this situation or the are_edges_on_the_same_kempe_cycle(c1, c4) would terminate immedially on the F2
+        # This is only for debugging, but it is useful to verify if this case may happen. It should not happen, but if it happens, I need to avoid it
         if is_multiedge(the_colored_graph, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face):
             if c1 == c2:
                 c1_other_color = get_the_other_colors([c1, c3])[0]
@@ -617,6 +620,8 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
                 # Update stats
                 stats['CASE-F5-C1==C2-SameKempeLoop-C1-C4'] += 1
                 if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1==C2-SameKempeLoop-C1-C4")
+            else:
+                if logger.isEnabledFor(logging.DEBUG): logger.debug("Neither e1 and e2 are not on the same Kempe loop (c1, c3) or (c2, c4), and the switch of the top colors (c3, c4) does not solve the problem. Try rendom switches around the graph")
 
         else:  # c1 != c2
 
@@ -1225,7 +1230,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
 
     This function is read-only with respect to `recently_modified_vertices`:
     it uses the parameter for locality filtering and for incrementing the
-    SELECT-S4-F4-INTERRUPT stat, but never writes it. The caller
+    SELECT-S4-LESS-THAN-F5-INTERRUPT stat, but never writes it. The caller
     (`reduce_faces`) is the sole writer via `update_wave_frontier`.
 
     Parameters
@@ -1259,8 +1264,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
         # F2: pick a random face and a random edge (both parallel edges are always valid)
         if target_size == 2:
             candidate_f1 = faces_of_this_size[randint(0, len(faces_of_this_size) - 1)]
-            i_edge = randint(0, 1)
-            edge = candidate_f1[i_edge]
+            edge = candidate_f1[randint(0, 1)]
             rotated_edge = rotate(edge, 1)
             candidate_f2 = face_index.first_face_with_edge(rotated_edge, exclude_face=candidate_f1)
             if candidate_f2 is None:
@@ -1269,13 +1273,17 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
             candidate_joined = join_faces(candidate_f1, candidate_f2, edge)
 
             # Q: It should not happen, because when a wave is active, only F4 can appear after having removed an F5 edge
-            # R: This is not true, if there large groups of F5s (F5-F5-F5), when the two vertices of the removed edge (F5 in the middle), F5-(F5)-F5 touch the two lateral F5 (F5)-F5-(F5) those two lateral phases become two F4
+            # R: This is not true, if there large groups of F5s (F5-F5-F5), when the two vertices of the removed edge (F5 in the middle),
+            #    F5-(F5)-F5 touch the two lateral F5 (F5)-F5-(F5) those two lateral phases become two F4, that can become F3 and then F2,
+            #    expecially at the end of the reduction when the graph is smaller. So it is possible to have F2 even with an active wave.
             if recently_modified_vertices is not None:
-                stats['SELECT-S4-F4-INTERRUPT'] += 1
+                stats['SELECT-S4-LESS-THAN-F5-INTERRUPT'] += 1
+
             logger.info("END %s: select_edge_to_remove_unavoidable_set edge found in F2 phase (random). Edge: %s", i_global_counter, edge)
             return edge, candidate_f1, candidate_f2, candidate_joined, None
 
-        # F3/F4: pick the valid edge whose adjacent face is largest
+        # F3/F4: pick the valid edge whose adjacent face is largest, among all faces of this size. Locality is ignored in this phase, to prioritize face size over wave-frontier proximity.
+        # When a wave starts, no F2, F3, F4 exist and F4 or less can appear only locally around the modified vertices, so this global search should not cause too much disturbance to the wave locality.
         best_edge = None
         best_f1 = None
         best_f2 = None
@@ -1301,7 +1309,7 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
 
         if best_edge is not None:
             if recently_modified_vertices is not None:
-                stats['SELECT-S4-F4-INTERRUPT'] += 1
+                stats['SELECT-S4-LESS-THAN-F5-INTERRUPT'] += 1
             logger.info("END %s: select_edge_to_remove_unavoidable_set edge found in F%s phase. Edge: %s (f2 size: %s)", i_global_counter, target_size, best_edge, best_f2_len)
             return best_edge, best_f1, best_f2, best_f1_plus_f2, None
 

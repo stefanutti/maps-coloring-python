@@ -6,7 +6,13 @@ producano i risultati attesi.
 """
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'ct'))
+
+# Configure path to find ct_graph_utils regardless of execution directory
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if os.path.exists(os.path.join(parent_dir, 'ct_graph_utils.py')):
+    sys.path.insert(0, parent_dir)
+else:
+    sys.path.insert(0, os.path.join(parent_dir, 'ct'))
 
 import pytest
 import networkx as nx

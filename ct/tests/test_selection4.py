@@ -14,7 +14,11 @@ import pytest
 
 @pytest.fixture(scope="module")
 def mod():
-    ct_path = os.path.join(os.path.dirname(__file__), '..', 'ct')
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if os.path.exists(os.path.join(parent_dir, '4ct.py')):
+        ct_path = parent_dir
+    else:
+        ct_path = os.path.join(parent_dir, 'ct')
     sys.path.insert(0, ct_path)
     spec = importlib.util.spec_from_file_location(
         "ct_4ct",
@@ -169,7 +173,7 @@ def test_unavoidable_set_f2_returns_edge_from_f2_face(mod):
 def test_unavoidable_set_f2_with_active_frontier_is_interrupt_not_exit(mod):
     """F2 can appear while a wave is active; S4 must process it instead of aborting."""
     g = make_f2_graph()
-    before = mod.stats['SELECT-S4-F4-INTERRUPT']
+    before = mod.stats['SELECT-S4-LESS-THAN-F5-INTERRUPT']
     edge, f1, f2, f1_plus_f2, rmv = mod.select_edge_to_remove_unavoidable_set(
         g, 2345, 0, recently_modified_vertices={10, 11}
     )
@@ -178,7 +182,7 @@ def test_unavoidable_set_f2_with_active_frontier_is_interrupt_not_exit(mod):
     assert f2 is not None
     assert f1_plus_f2 is not None
     assert rmv is None
-    assert mod.stats['SELECT-S4-F4-INTERRUPT'] == before + 1
+    assert mod.stats['SELECT-S4-LESS-THAN-F5-INTERRUPT'] == before + 1
 
 
 def test_face_index_incremental_replace_and_mutate_validates(mod):

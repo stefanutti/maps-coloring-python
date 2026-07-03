@@ -11,7 +11,11 @@ import pytest
 
 @pytest.fixture(scope="module")
 def mod():
-    ct_path = os.path.join(os.path.dirname(__file__), '..', 'ct')
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if os.path.exists(os.path.join(parent_dir, '4ct.py')):
+        ct_path = parent_dir
+    else:
+        ct_path = os.path.join(parent_dir, 'ct')
     sys.path.insert(0, ct_path)
     spec = importlib.util.spec_from_file_location(
         "ct_4ct",

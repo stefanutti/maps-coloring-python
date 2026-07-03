@@ -2330,7 +2330,10 @@ if __name__ == '__main__':
 
     # Set logging facilities
     logger = logging.getLogger()
-    logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
+    log_conf = 'logging.conf'
+    if not os.path.exists(log_conf):
+        log_conf = os.path.join(os.path.dirname(__file__), 'logging.conf')
+    logging.config.fileConfig(log_conf, disable_existing_loggers=False)
 
     # Go
     profiler = cProfile.Profile()

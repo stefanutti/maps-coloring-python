@@ -677,7 +677,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
                 if logger.isEnabledFor(logging.DEBUG): logger.debug("The selected random edge it is a multiedge")
 
             # Only for debug: which map is causing this impasse?
-            if i_attempt == 1000:
+            if i_attempt == 2000:
                 export_graph(the_colored_graph, "debug/debug.really_bad_case_infinite_loop")
                 logger.error("ERROR: Infinite loop. Check the debug.really_bad_case.* files")
                 logger.error("Try to shuffle the faces at the beginning: sage 4ct.py -p debug/debug.previous_run.planar -c <USE the same sequence you used the previous run> -s")

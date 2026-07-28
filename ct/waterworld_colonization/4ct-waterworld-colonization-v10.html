@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coastal construction — the growing island</title>
+<style>
+  :root{
+    --abyss:#0B1220; --panel:rgba(13,24,44,.72); --hairline:rgba(199,229,240,.18);
+    --foam:#D7EEF4; --foam-dim:rgba(215,238,244,.62); --ok:#8FD8A8; --bad:#E58A7A; --warn:#EBC17E;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--abyss);color:var(--foam);font-family:Georgia,'Times New Roman',serif;overflow:hidden}
+  canvas{display:block;position:fixed;inset:0;cursor:grab;touch-action:none}
+  canvas.grabbing{cursor:grabbing}
+  .panel{position:fixed;background:var(--panel);border:1px solid var(--hairline);
+         backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:10px;padding:14px 18px}
+  .cartouche{top:22px;left:24px;max-width:400px}
+  .eyebrow{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:10px;
+           letter-spacing:.24em;color:var(--foam-dim)}
+  .title{font-style:italic;font-weight:400;font-size:26px;letter-spacing:.01em;margin-top:6px;
+         white-space:nowrap}
+  .subtitle{font-size:12.5px;color:var(--foam-dim);margin-top:6px;line-height:1.45}
+  .ledger{top:22px;right:24px;min-width:225px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace}
+  .ledger h2{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:400;
+             font-size:26px;letter-spacing:.01em;color:var(--foam);margin-bottom:10px}
+  .row{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:var(--foam)}
+  .row .k{color:var(--foam-dim)}
+  .inv{margin-top:10px;padding-top:9px;border-top:1px solid var(--hairline);font-size:12px}
+  .inv b{font-weight:400}
+  .inv .ok{color:var(--ok)} .inv .bad{color:var(--bad)} .inv .warn{color:var(--warn)}
+  .legend{bottom:24px;left:24px;font-size:11.5px;line-height:1.9;color:var(--foam-dim)}
+  .swatch{display:inline-block;width:22px;height:0;border-top:2px solid #DEF4FC;
+          margin-right:8px;vertical-align:3px}
+  .swatch.dim{border-top:1px solid rgba(215,238,244,.45)}
+  .controls{bottom:24px;right:24px;display:flex;flex-wrap:wrap;align-items:center;
+         justify-content:flex-end;gap:0;max-width:calc(100vw - 48px);padding:6px 8px}
+  .ctrl-group{display:flex;align-items:center;gap:8px;padding:0 10px}
+  .ctrl-group+.ctrl-group{border-left:1px solid var(--hairline)}
+  .ctrl-label{font-size:11px;letter-spacing:.12em;color:var(--foam-dim);
+         font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace}
+  button{font-family:inherit;font-size:12.5px;letter-spacing:.06em;color:var(--foam);cursor:pointer;
+         background:transparent;border:1px solid var(--hairline);border-radius:8px;padding:7px 14px;
+         display:inline-flex;align-items:center;gap:6px;
+         transition:border-color .2s, background .2s, opacity .2s}
+  button:hover{border-color:rgba(199,229,240,.45)}
+  button:disabled{opacity:.4;cursor:default}
+  button:disabled:hover{border-color:var(--hairline)}
+  button:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
+  button.primary{background:rgba(215,238,244,.10)}
+  .ico-svg{width:14px;height:14px;display:block;flex-shrink:0}
+  input[type=range]{width:100px;accent-color:#8FC6DB;background:transparent}
+  input[type=color]{width:26px;height:22px;border:1px solid var(--hairline);border-radius:5px;
+         background:transparent;padding:0;cursor:pointer}
+  input[type=color]::-webkit-color-swatch-wrapper{padding:2px}
+  input[type=color]::-webkit-color-swatch{border:none;border-radius:3px}
+  .full-toast{bottom:82px;right:24px;font-size:12.5px;color:var(--warn);
+              opacity:0;pointer-events:none;transition:opacity .5s ease;text-align:right}
+  .full-toast.show{opacity:1;pointer-events:auto}
+  .toast-x{border:none;background:transparent;padding:0 0 0 10px;font-size:16px;line-height:1;
+           color:var(--foam-dim);vertical-align:-1px}
+  .toast-x:hover{color:var(--foam);border-color:transparent}
+  .hint{bottom:24px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.12em;
+        color:var(--foam-dim);text-align:center;line-height:1.7;
+        font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace}
+  @media (max-width:760px){
+    .panel{padding:10px 12px}
+    .cartouche{top:14px;left:14px;max-width:46vw}
+    .eyebrow{font-size:9px}
+    .title{font-size:17px;white-space:normal}
+    .subtitle{display:none}
+    .ledger{top:14px;right:14px;min-width:0;max-width:46vw}
+    .ledger h2{font-size:16px;margin-bottom:6px}
+    .row{font-size:10.5px;padding:2px 0}
+    .inv{font-size:9.5px;margin-top:6px;padding-top:6px}
+    .legend{display:none}
+    .hint{display:none}
+    .controls{left:10px;right:10px;bottom:10px;max-width:calc(100vw - 20px);
+              justify-content:center;gap:4px 0;padding:6px}
+    .ctrl-group{padding:0 7px;gap:6px}
+    button{padding:6px 10px;font-size:11px}
+    .ctrl-label{font-size:9.5px}
+    input[type=range]{width:64px}
+    #fullToast{bottom:150px}
+    #closeToast{bottom:190px!important}
+    .full-toast{left:10px;right:10px;text-align:center;font-size:11px}
+  }
+</style>
+</head>
+<body>
+<canvas id="sea"></canvas>
+
+<div class="panel cartouche">
+  <div class="eyebrow">Coastal construction · cubic maps</div>
+  <div class="title">Waterworld colonization</div>
+  <div class="subtitle">Region after region, the coast advances, and no region with fewer
+  than five neighbors is ever buried.</div>
+</div>
+
+<div class="panel ledger">
+  <h2>Ship's log</h2>
+  <div class="row"><span class="k">Faces (land)</span><span id="sF">3</span></div>
+  <div class="row"><span class="k">Ocean</span><span id="sO">1</span></div>
+  <div class="row"><span class="k">Coast C</span><span id="sC">2</span></div>
+  <div class="row"><span class="k">Pentagons F5</span><span id="s5">0</span></div>
+  <div class="row"><span class="k">Wells n&gt;6</span><span id="sW">0</span></div>
+  <div class="row"><span class="k">Moves</span><span id="sM">0</span></div>
+  <div class="row"><span class="k">Fallback F3</span><span id="sFB">0</span></div>
+  <div class="inv"><b>Σ(6−n)F<sub>n</sub> − C = <span id="sInv" class="ok">6 ✓</span></b></div>
+</div>
+
+<div class="panel legend">
+  <span class="swatch"></span>Coastline<br>
+  <span class="swatch dim"></span>Inland borders
+</div>
+
+<div class="panel full-toast" id="fullToast">The island now fills the globe — press Restart to grow a new one.</div>
+<div class="panel full-toast" id="closeToast" style="bottom:118px">Now every face (included the ocean), coastal or landlocked, has at least five sides.
+  <button class="toast-x" id="closeToastX" aria-label="Dismiss message">×</button></div>
+
+<div class="panel hint">Drag to rotate, Scroll to soom</div>
+
+<div class="panel controls">
+  <div class="ctrl-group">
+    <button id="btnRun" aria-label="Start or stop the growth">Start</button>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">Pace</span>
+    <input id="speed" type="range" min="1" max="40" value="7" step="1" aria-label="Moves per second">
+  </div>
+  <div class="ctrl-group">
+    <input id="fillColor" type="color" value="#78838c" aria-label="Default color for newly closed regions">
+  </div>
+  <div class="ctrl-group">
+    <button id="btnClose" aria-label="Promote every small face and complete the map; the ocean stays open">Close map</button>
+    <button id="btnExport" title="Export" aria-label="Save every face's vertex list to a JSON file">
+      <svg class="ico-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    </button>
+    <button id="btnReset" title="Restart" aria-label="Restart with a new random island">
+      <svg class="ico-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<input type="color" id="regionColorPicker" style="position:fixed;left:-9999px;width:0;height:0;opacity:0;pointer-events:none" aria-hidden="true" tabindex="-1">
+
+<script>
+"use strict";
+/* ============================================================
+   COASTAL CONSTRUCTION — drawn on a sphere of FIXED size.
+
+   The construction lives in the plane (radius, angle); rendering
+   maps it onto the sphere: planar radius r -> colatitude r/Rs,
+   planar angle -> longitude. Rs is a fixed constant, chosen once
+   and never rescaled while the island grows — the globe you see
+   at move 1 is the same globe you see at move 2000. Growth stops
+   by itself once the polar cap would run out of room (colatitude
+   approaching the antipodal point).
+
+   v4: the seed is no longer a hand-built theta graph. It is a
+   single tracked face plus the ocean — the ledger's "Faces" row
+   never counts the ocean (it never did, even for the old L/R
+   seed), so it reads 1, but by Euler's V-E+F=2 the seed is already
+   a valid degenerate graph: 1 vertex (the point where the loop
+   closes on itself), 1 edge (the loop), 2 faces once the ocean is
+   counted. That seam vertex doesn't yet separate two DIFFERENT
+   land faces, though, so Sigma(6-n)Fn - C = 6 still fails (a lone
+   land face can never satisfy it). Move 1 is the one special move:
+   firstMove() cuts the loop at two new points and pushes the
+   middle out into a second land face, producing the theta graph
+   (2 vertices, 3 edges, 2 land faces + ocean) as its *result*
+   rather than its starting condition. From move 2 onward nothing
+   is special — every further step is an ordinary
+   doMove()/attemptMove() call, exactly like every move after it.
+
+   Combinatorics is the real algorithm, untouched:
+   n = k+3 (or 2), C' = C + 4 - n, promotions +1 behind each
+   endpoint, sealing rule L1 (never bury a face with n < 5).
+
+   v3 fix: each new border used to be placed at a radius derived
+   from a single global move counter, shared by the whole coast.
+   Because face selection favors small-n faces, some stretches of
+   coast get extended every few moves while others sit untouched —
+   with a shared counter, a neglected stretch would eventually jump
+   straight out to wherever the counter had reached, drawing a long
+   radial spike instead of growing gradually. Now every new border
+   is placed one DELTA beyond the *local* radius of the edge it
+   extends, so each patch of coast always advances by exactly one
+   step relative to itself, however far ahead or behind its
+   neighbors are.
+
+   The camera (tilt/yaw/zoom) is user-controlled: drag to orbit,
+   scroll or pinch to zoom. It only rotates/scales the view — the
+   construction itself and Rs are untouched by it.
+
+   v5: the ledger now counts how often attemptMove() falls back to
+   the always-legal F3 move (40 failed doMove() draws in a row).
+   fallbackCount is purely a diagnostic tally — it never affects
+   the construction, only the "Fallback F3" row.
+
+   v6: "Close map" — an on-demand endgame that COMPLETES the map
+   without ever burying the ocean. The ocean is itself a face of
+   the finished map (of degree C = coast.length), and the coast
+   faces keep their ocean access forever. Closing is therefore
+   promotion only, still governed by the same rule L1 that
+   ordinary growth obeys:
+
+     1. every face still touching the coast with n<5 is grown
+        (never buried) until it reaches n>=5, via ordinary
+        standard moves (see execStandardMove) with k>=2 — the
+        move's own new face is born safe (n=k+3>=5) and it only
+        fires when the k "wholes" it swallows are safe to bury
+        (already n>=5, or not fully consumed): exactly rule L1,
+        just targeted rather than random. Each such move shrinks
+        the coast (C -> C+1-k), and the ocean — being a face of
+        the final map — must end at C>=5 like every other face,
+        so shrinking obeys a headroom rule: with `points` = the
+        promotions still owed to coast faces (Σ 5−n over the
+        deficient ones), each of which will cost one shrinking
+        move of its own, a k-move is allowed only down to
+        C' >= 4+points (i.e. C >= 5 exactly when the last owed
+        point is spent);
+     2. when no such move validates (candidate wholes still
+        deficient, or not enough headroom), two fallbacks fire in
+        order: a k=1 move burying one safe edge between TWO
+        deficient endpoint faces (+1 each for the one point owed
+        by its new F4, at constant C), and finally a targeted k=0
+        insertion — always legal, +1 to both endpoint faces, C
+        grows by one; aimed at two deficient neighbors it keeps
+        the owed points constant while buying headroom.
+
+   The endgame ends when every coast face has n>=5 AND C>=5 (and
+   at least two distinct regions still shore the ocean): the map
+   is declared complete with the ocean still open — no final cap,
+   nothing more is buried. Every landlocked face has n>=5 by L1,
+   every coast face by promotion, and the ocean face has C>=5.
+   The checked identity never changes: Sigma(6-n)Fn - C = 6, which
+   counting the ocean as the face of degree C is exactly
+   Sigma(6-n)Fn = 12 over ALL faces of the closed sphere map.
+
+   v7: nicer vertex spacing. Split points used to be allowed as
+   close as 8 planar units to an existing vertex — with DELTA=10
+   between consecutive arcs, two radial borders could end up
+   nearly coincident on screen. spreadT() now keeps splits at
+   least SPLIT_MARGIN=24 units (capped at 40% of the edge, so
+   short edges still split near their middle) away from the
+   edge's endpoints, and draws from a triangular distribution
+   biased toward the middle of the edge instead of a uniform one.
+   A second fix targets the doubled-ray artifact: a move whose
+   buried stretch of coast is RADIAL puts p and q at almost the
+   same angle, so its shell border (ray out, arc, ray back)
+   degenerates into two nearly coincident radial lines. doMove()
+   now rejects any growth move (F2 or standard) whose buried
+   section sweeps less than 0.05 rad; the draw is simply retried
+   elsewhere, like any other failed draw. The closing endgame is
+   exempt — its moves must never fail, or it could not terminate.
+   Purely visual: which edges are split and every combinatorial
+   rule are untouched — only WHERE along the edge the cut lands.
+   Crowding still wins eventually: once faces multiply, edges get
+   shorter than the margin and splits sit mid-edge, as before.
+
+   v8: rays follow the sphere. The two radial legs of each shell
+   border were single straight segments in the plane; projection
+   maps points, not lines, so on the sphere a long leg rendered
+   as a straight chord cutting under the surface (clearly visible
+   zoomed in). shellBorder() now samples the rays every RAY_STEP
+   units — as the arc leg always was — so they render as proper
+   meridian arcs. Geometry-only: same endpoints, same combinatorics,
+   just more intermediate points along the same planar line.
+
+   v9: closed regions get color. Every face already tracks its own
+   coastal edges (in `coast`) while it still touches the ocean, but
+   once a face is fully buried nothing recorded its finished shape —
+   the geometry that used to separate it from the ocean simply
+   became an interior wall shared with whatever new face buried it,
+   and was discarded. pairInterior() now records that shared wall on
+   BOTH sides the moment it's created (in firstMove, doMove's F2
+   branch, execStandardMove, and attemptMove's F3 fallback) — one
+   directed copy per face, oriented so consecutive edges chain head
+   to tail. A face's `interior` list therefore accumulates exactly
+   `n` edges by the time its last coastal edge is buried (coastCount
+   hits 0); sealFace() chains them into a closed planar polygon
+   (`f.poly`) right at that moment and stamps the face with whatever
+   color is currently loaded in the "Fill" swatch. draw() fills every
+   sealed face's polygon (only when every one of its projected points
+   is on the near side of the sphere — a face straddling the horizon
+   is left unfilled that frame rather than drawn wrong) underneath the
+   border strokes. Clicking (not dragging) the canvas unprojects the
+   pointer to a planar point via the inverse of projTo's camera math,
+   ray-casts it against every sealed face's polygon, and — on a hit —
+   opens a native color input pre-loaded with that face's current
+   color so a single region can be recolored on its own. Purely
+   additive: no combinatorial rule, split point, or drawn border
+   changes; the new bookkeeping only ever reads geometry that other
+   moves already compute (sp.gB, sq.gA, each whole's own points).
+   ============================================================ */
+
+const canvas = document.getElementById('sea');
+const ctx = canvas.getContext('2d');
+let W=0, H=0, DPR=1, scale=1;
+
+function computeScale(){ scale = Math.min(W,H)*0.46/Rs*zoom; }
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio||1);
+  W = innerWidth; H = innerHeight;
+  canvas.width = W*DPR; canvas.height = H*DPR;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  computeScale();
+}
+
+/* ---------- constants ---------- */
+const DELTA = 10;                  // delta_step
+const R0 = DELTA * 5;              // initial face radius (planar)
+const PHI_MAX = 2.85;              // cap edge: how close to the antipodal point we allow
+const Rs = 620;                    // FIXED sphere radius (world units) — never rescaled
+const RMAX = Rs * PHI_MAX;         // max planar radius the construction may reach
+
+/* ---------- camera: tilt (pitch), yaw (spin), zoom — all user-controlled ---------- */
+let tilt = 0.5, yaw = 0, zoom = 1;
+let CT = Math.cos(tilt), ST = Math.sin(tilt);
+let CY = Math.cos(yaw), SY = Math.sin(yaw);
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+
+addEventListener('resize', resize); resize();
+
+/* ---------- polyline helpers (planar construction) ---------- */
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const ptsOf=e=>[e.a,...e.pts,e.b];
+function polyLen(P){ let s=0; for(let i=1;i<P.length;i++) s+=dist(P[i-1],P[i]); return s; }
+function edgeLen(e){ return polyLen(ptsOf(e)); }
+function splitPoly(P,t){
+  const L=polyLen(P)*t; let s=0;
+  for(let i=1;i<P.length;i++){
+    const d=dist(P[i-1],P[i]);
+    if(s+d>=L || i===P.length-1){
+      const u=d? Math.min(1,Math.max(0,(L-s)/d)) : 0;
+      const p={x:P[i-1].x+(P[i].x-P[i-1].x)*u, y:P[i-1].y+(P[i].y-P[i-1].y)*u};
+      return {p, A:P.slice(0,i).concat([p]), B:[p].concat(P.slice(i))};
+    }
+    s+=d;
+  }
+}
+function splitEdge(e,t){
+  const r=splitPoly(ptsOf(e),t);
+  return {p:r.p,
+    gA:{a:r.A[0], pts:r.A.slice(1,-1), b:r.A[r.A.length-1]},
+    gB:{a:r.B[0], pts:r.B.slice(1,-1), b:r.B[r.B.length-1]}};
+}
+const angOf=p=>Math.atan2(p.y,p.x);
+function sweepOf(P){
+  let s=0;
+  for(let i=1;i<P.length;i++){
+    let d=angOf(P[i])-angOf(P[i-1]);
+    while(d> Math.PI) d-=2*Math.PI;
+    while(d<-Math.PI) d+=2*Math.PI;
+    s+=d;
+  }
+  return s;
+}
+
+/* ---------- state ---------- */
+let coast, faces, sumLand, moves, maxR, invOK, running=true, full=false;
+let inkLines;                      // every border ever drawn, as planar polylines
+let fallbackCount;                 // how many times attemptMove() hit the F3 fallback
+let closing, closeDone;            // v6: "Close map" endgame state
+let defaultColor='#78838c';        // v9: current auto-fill color, stamped onto a face the moment it seals
+
+function reset(){
+  faces=[]; moves=0; maxR=R0; full=false; inkLines=[]; fallbackCount=0;
+  closing=false; closeDone=false;
+  const NA=48, circle=[];
+  for(let i=0;i<NA;i++){ const t=-Math.PI/2 - 2*Math.PI*i/NA;
+    circle.push({x:R0*Math.cos(t), y:R0*Math.sin(t)}); }
+  const seed=circle[0];
+  const f0={n:0,coastCount:1,sealed:false,interior:[],color:null,vertices:[seed]};
+  faces.push(f0);
+  coast=[ {a:seed, b:seed, pts:circle.slice(1), face:f0} ];   // one land face, one self-closing loop
+  sumLand=6;
+  inkLines.push([...circle, seed]);
+  check();                         // sumLand-C = 5, so invOK is (correctly) false: with only 1 land
+                                    // face (ocean isn't counted) the identity can't hold yet —
+                                    // firstMove() is what fixes that
+  running=false;
+  btnRun.disabled=false; btnRun.textContent='Start'; btnRun.classList.remove('primary');
+  fullToast.classList.remove('show');
+  btnClose.disabled=false; btnClose.textContent='Close map';
+  closeToast.classList.remove('show');
+}
+
+function firstMove(){              // the seed's one special move: cuts the bare loop into a theta graph
+  const f=faces[0], e=coast[0];
+  const s1=splitEdge(e, spreadT(edgeLen(e)));
+  const s2=splitEdge(s1.gB, spreadT(edgeLen(s1.gB)));
+  const p=s1.p, q=s2.p;
+  const O=shellBorder(p,q, ptsOf(s2.gA));
+  inkLines.push([p,...O,q]);
+  f.n+=2; sumLand-=2;
+  const nf={n:2,coastCount:1,sealed:false,interior:[],color:null,vertices:[p,q]}; sumLand+=4;
+  faces.push(nf);
+  f.vertices=[p,q];        // v10: the seed's lone (a===b) vertex stops being one — p,q replace it
+  pairInterior(f, {a:p,b:q,pts:s2.gA.pts}, nf);   // v9: the old middle arc becomes the f/nf wall
+  // e.a===e.b (the loop's one seam point) so the two cut pieces rejoin into a single coast
+  // edge instead of splitting in two — that's what keeps this a 2-vertex theta graph, not 3
+  coast=[ {a:q, b:p, pts:s2.gB.pts.concat([e.a], s1.gA.pts), face:f},
+          {a:p, b:q, pts:O, face:nf} ];
+  moves++; check();
+}
+
+/* ---------- the shell border: ray out, arc, ray back ----------
+   v8: the two rays used to be single straight planar segments; projection
+   maps points, not lines, so on the sphere a long segment renders as a chord cutting under the
+   surface. Rays are now sampled every RAY_STEP units, like the arc always was, so they hug the
+   sphere as meridian arcs. The returned polyline still runs from just after p to just before q —
+   the caller appends p and q itself, exactly as before. */
+const RAY_STEP = 12;
+function shellBorder(p, q, S){
+  let R = 0;
+  for(const pt of S) R = Math.max(R, Math.hypot(pt.x,pt.y));
+  R += DELTA;
+  if(R>maxR) maxR=R;
+  const ap=angOf(p), sweep=sweepOf(S), aq=ap+sweep;   // ap+sweep lands on q's angle (mod 2π)
+  const pts=[];
+  const rp=Math.hypot(p.x,p.y), ca=Math.cos(ap), sa=Math.sin(ap);
+  const nOut=Math.max(1, Math.ceil((R-rp)/RAY_STEP));
+  for(let i=1;i<=nOut;i++){ const r=rp+(R-rp)*i/nOut;
+    pts.push({x:r*ca, y:r*sa}); }
+  const nSeg=Math.max(2, Math.ceil(Math.abs(sweep)*R/6));
+  for(let i=1;i<=nSeg;i++){ const t=ap+sweep*i/nSeg;
+    pts.push({x:R*Math.cos(t), y:R*Math.sin(t)}); }
+  const rq=Math.hypot(q.x,q.y), cb=Math.cos(aq), sb=Math.sin(aq);
+  const nBack=Math.max(1, Math.ceil((R-rq)/RAY_STEP));
+  for(let i=1;i<nBack;i++){ const r=R-(R-rq)*i/nBack;
+    pts.push({x:r*cb, y:r*sb}); }
+  return pts;
+}
+
+/* ---------- v9: per-face boundary bookkeeping, for filling closed regions ----------
+   pairInterior records a wall shared by two faces the instant it's created (as either side of a
+   burial, or the split-off middle of an F2/firstMove own-growth), one oriented copy per face so
+   consecutive edges always chain head (a) to tail (b). chainInterior walks those copies once a
+   face is fully sealed (its `interior` list has grown to exactly `n` edges by then) into one
+   closed planar polygon, cached as f.poly so it only has to be computed once per face. */
+function pairInterior(fA, e, fB){
+  fA.interior.push(e);
+  fB.interior.push({a:e.b, b:e.a, pts:[...e.pts].reverse()});
+}
+function chainInterior(edges){
+  const used=new Array(edges.length).fill(false);
+  const poly=[edges[0].a, ...edges[0].pts, edges[0].b];
+  used[0]=true; let cur=edges[0].b;
+  for(let steps=1; steps<edges.length; steps++){
+    for(let i=0;i<edges.length;i++){
+      if(used[i]) continue;
+      if(edges[i].a===cur){ poly.push(...edges[i].pts, edges[i].b); cur=edges[i].b; used[i]=true; break; }
+      if(edges[i].b===cur){ poly.push(...[...edges[i].pts].reverse(), edges[i].a); cur=edges[i].a; used[i]=true; break; }
+    }
+  }
+  return poly;
+}
+function sealFace(f){
+  f.sealed=true; f.color=defaultColor; f.poly=chainInterior(f.interior);
+}
+
+/* ---------- v10: live per-face vertex cycle ----------
+   f.vertices is the face's combinatorial boundary — its true graph vertices (the shared point
+   objects returned by splitEdge), not the intermediate arc points used only for drawing — kept in
+   cyclic order (clockwise in the fixed planar (x,y) construction, matching how the seed circle
+   itself was swept: increasing index = decreasing angle). It is complete and correct at every
+   move, coastal or interior, not just once a face seals: every move that grows a face inserts its
+   new vertex/vertices at the exact point of the edge it splits, so f.vertices always has exactly
+   f.n entries. insertVertices relies on u,v being adjacent in the list — true by construction,
+   since the edge being split has always had no vertex between its two endpoints yet. */
+function insertVertices(vertices, u, v, extra){
+  const n=vertices.length;
+  for(let i=0;i<n;i++){
+    if(vertices[i]===u && vertices[(i+1)%n]===v){
+      vertices.splice(i+1, 0, ...extra);
+      return;
+    }
+  }
+}
+
+/* ---------- move machinery ---------- */
+function perimeter(){ let s=0; for(const e of coast) s+=edgeLen(e); return s; }
+
+function pickIndex(){
+  const C=coast.length; let best=(Math.random()*C)|0, bs=1e9;
+  for(let s=0;s<6;s++){ const r=(Math.random()*C)|0; const f=coast[r].face;
+    const sc=(f.n<5? f.n : 9)+Math.random();
+    if(sc<bs){bs=sc;best=r;} }
+  return best;
+}
+
+const SPLIT_MARGIN = 24;           // v7: keep split points well clear of existing vertices (was 8)
+function spreadT(L){
+  const t = Math.min(0.4, SPLIT_MARGIN/L);
+  const r = (Math.random()+Math.random())/2;   // triangular: drawn toward the middle of the edge
+  return t + r*(1-2*t);
+}
+
+function sampleK(){
+  const C=coast.length, avg=perimeter()/C;
+  let w;
+  if(avg>34)      w=[['F2',.08],[0,.52],[1,.16],[2,.14],[3,.10]];
+  else if(avg<20) w=[[0,.14],[1,.14],[2,.36],[3,.30],['well',.06]];
+  else            w=[['F2',.04],[0,.34],[1,.18],[2,.24],[3,.17],['well',.03]];
+  let r=Math.random(), acc=0, pick=0;
+  for(const [k,p] of w){ acc+=p; if(r<=acc){pick=k;break;} }
+  if(pick==='well') return C>30 ? 5+((Math.random()*5)|0) : 2;
+  return pick==='F2' ? -1 : pick;
+}
+
+/* the k whole coast edges a standard move (see execStandardMove) would fully swallow */
+function wholesOf(i,k){
+  const C=coast.length, w=[]; for(let s=1;s<=k;s++) w.push(coast[(i+s)%C]);
+  return w;
+}
+function canSealWholes(wholes){                  /* L1 — never bury a face with n<5 */
+  const cnt=new Map();
+  for(const w of wholes) cnt.set(w.face,(cnt.get(w.face)||0)+1);
+  for(const [f,c] of cnt) if(c===f.coastCount && f.n<5) return false;
+  return true;
+}
+/* standard move: split coast[i] and coast[(i+k+1)%C], bury the k edges between
+   them into one new face of n=k+3. Caller must have already checked canSealWholes.
+   v7: sp/sq may be passed precomputed so the caller can inspect the splits first;
+   when omitted (e.g. the closing endgame) they are drawn here, and the move never fails */
+function execStandardMove(i,k,spGiven,sqGiven){
+  const C=coast.length, j=(i+k+1)%C, wholes=wholesOf(i,k);
+  const eP=coast[i], eQ=coast[j], fP=eP.face, fQ=eQ.face;
+  const sp=spGiven||splitEdge(eP,spreadT(edgeLen(eP))), p=sp.p;
+  const sq=sqGiven||splitEdge(eQ,spreadT(edgeLen(eQ))), q=sq.p;
+  fP.n++; fQ.n++; sumLand-=2;
+
+  const n=k+3;
+  const nf={n,coastCount:1,sealed:false,interior:[],color:null}; sumLand+=6-n;
+  // v10: nf is always the "reversed" side of every pairInterior call below, so its cyclic order
+  // runs the opposite way from fP/fQ/wholes' — walk the coastal edge (p->q) forward, then back
+  // through the wholes tail-to-head (their .a, nearest whole first) down to eP.b
+  nf.vertices=[p, q, eQ.a, ...[...wholes].reverse().map(w=>w.a)];
+  insertVertices(fP.vertices, eP.a, eP.b, [p]);
+  insertVertices(fQ.vertices, eQ.a, eQ.b, [q]);
+  // wholes' own faces keep their existing vertices unchanged — burying a coast edge only
+  // reclassifies it as interior, its two endpoints were already adjacent in that face's cycle
+
+  // v9: the inner path from p to q (fP's remnant, each buried whole, fQ's remnant) is nf's wall
+  // against whatever it just buried — record it on both sides before the wholes' faces might seal
+  pairInterior(fP, {a:p,b:eP.b,pts:sp.gB.pts}, nf);
+  for(const w of wholes) pairInterior(w.face, {a:w.a,b:w.b,pts:w.pts}, nf);
+  pairInterior(fQ, {a:eQ.a,b:q,pts:sq.gA.pts}, nf);
+
+  const cnt=new Map();
+  for(const w of wholes) cnt.set(w.face,(cnt.get(w.face)||0)+1);
+  for(const [f,c] of cnt){ f.coastCount-=c; if(f.coastCount===0) sealFace(f); }
+
+  let S=ptsOf(sp.gB);
+  for(const w of wholes) S=S.concat(ptsOf(w).slice(1));
+  S=S.concat(ptsOf(sq.gA).slice(1));
+  const O=shellBorder(p,q,S);
+  inkLines.push([p,...O,q]);
+  faces.push(nf);
+
+  const keep=[]; let m=(j+1)%C;
+  for(let s=0;s<C-(k+2);s++){ keep.push(coast[m]); m=(m+1)%C; }
+  coast=[ {a:eP.a,b:p,pts:sp.gA.pts,face:fP},
+          {a:p,b:q,pts:O,face:nf},
+          {a:q,b:eQ.b,pts:sq.gB.pts,face:fQ}, ...keep ];
+  moves++; check();
+}
+
+function doMove(){
+  const C=coast.length, k0=sampleK();
+
+  if(k0===-1){                                   /* F2: same edge */
+    const i=pickIndex(), e=coast[i], f=e.face;
+    if(edgeLen(e)<24) return false;
+    const s1=splitEdge(e,spreadT(edgeLen(e)));
+    const s2=splitEdge(s1.gB,spreadT(edgeLen(s1.gB)));
+    const p=s1.p, q=s2.p;
+    // v7: on a radial stretch of coast p and q share their angle, so the shell border would
+    // degenerate into two nearly coincident rays — skip, the draw simply falls elsewhere
+    if(Math.abs(sweepOf(ptsOf(s2.gA)))<0.05) return false;
+    f.n+=2; sumLand-=2;
+    const nf={n:2,coastCount:1,sealed:false,interior:[],color:null,vertices:[p,q]}; sumLand+=4;
+    const O=shellBorder(p,q,ptsOf(s2.gA));
+    inkLines.push([p,...O,q]);
+    faces.push(nf); f.coastCount+=1;
+    insertVertices(f.vertices, e.a, e.b, [p,q]);   // v10: p,q now sit between e's old endpoints
+    pairInterior(f, {a:p,b:q,pts:s2.gA.pts}, nf);   // v9: the buried middle arc walls f off from nf
+    coast.splice(i,1,
+      {a:e.a,b:p,pts:s1.gA.pts,face:f},
+      {a:p,b:q,pts:O,face:nf},
+      {a:q,b:e.b,pts:s2.gB.pts,face:f});
+    moves++; check(); return true;
+  }
+
+  const k=k0;                                    /* standard: n = k+3 */
+  if(k+2>C || C+1-k<2) return false;
+  const i=pickIndex();
+  if(!canSealWholes(wholesOf(i,k))) return false;
+  // v7: same degenerate-ray guard as the F2 above — if the stretch this move would bury is
+  // radial (near-zero angular sweep), the new border would double it; retry elsewhere
+  const eP=coast[i], eQ=coast[(i+k+1)%C];
+  const sp=splitEdge(eP,spreadT(edgeLen(eP))), sq=splitEdge(eQ,spreadT(edgeLen(eQ)));
+  let S=ptsOf(sp.gB);
+  for(const w of wholesOf(i,k)) S=S.concat(ptsOf(w).slice(1));
+  S=S.concat(ptsOf(sq.gA).slice(1));
+  if(Math.abs(sweepOf(S))<0.05) return false;
+  execStandardMove(i,k,sp,sq);
+  return true;
+}
+
+/* ---------- v6: "Close map" — promote every small face; the ocean is never buried ---------- */
+function pickInsertionIndex(){   /* k=0 endpoints are coast[i] and coast[i+1]: aim both at deficient faces */
+  const C=coast.length; let best=0, bs=-1;
+  for(let x=0;x<C;x++){
+    const d=(coast[x].face.n<5?1:0)+(coast[(x+1)%C].face.n<5?1:0);
+    if(d>bs){ bs=d; best=x; }
+  }
+  return best;
+}
+function tryPromotionMove(){
+  const C=coast.length;
+  const deficient=[], defFaces=new Set();
+  for(let x=0;x<C;x++) if(coast[x].face.n<5){ deficient.push(x); defFaces.add(coast[x].face); }
+  let points=0; for(const f of defFaces) points+=5-f.n;   // promotions still owed to coast faces
+  const shores=new Set(); for(const e of coast) shores.add(e.face);
+  if(points===0 && C>=5 && shores.size>=2) return true;   // coast faces F5+, ocean F5+ (degree C) — complete
+
+  /* headroom rule: a k-move shrinks the coast to C+1-k, and each of the points still owed will
+     need one shrinking move of its own before the end — so never shrink past C' = 4+points, or
+     the final promotions would have to mint new small faces and the endgame would cycle forever */
+  const maxK=Math.min(8, C-3-points);
+
+  /* preferred: a standard k>=2 move with a deficient face as an endpoint — its new face is born
+     safe (n=k+3>=5), the endpoint gains +1. Swept deterministically so no legal move is missed,
+     but starting from a random deficient edge to keep the closing visually organic */
+  if(deficient.length && maxK>=2){
+    const start=(Math.random()*deficient.length)|0;
+    for(let s=0;s<deficient.length;s++){
+      const d=deficient[(start+s)%deficient.length];
+      for(let k=2;k<=maxK;k++){
+        for(const i of [d, (d-k-1+C)%C]){          // deficient face as either endpoint
+          if(canSealWholes(wholesOf(i,k))){ execStandardMove(i,k); return false; }
+        }
+      }
+    }
+  }
+
+  /* next: k=1 across one safe buried edge, with BOTH endpoints deficient (+1 each) — two points
+     gained for the one owed by the new F4, at constant C. This unlocks coasts where safe faces
+     never sit side by side, so no k>=2 wholes run is ever fully safe */
+  if(deficient.length && C>=3){
+    for(const i of deficient){
+      if(coast[(i+2)%C].face.n<5 && canSealWholes(wholesOf(i,1))){ execStandardMove(i,1); return false; }
+    }
+  }
+
+  /* last resort (not enough headroom, or every buriable stretch still deficient): insert an F3 —
+     always legal, +1 to both endpoint faces, C grows by one. Aimed at two deficient neighbors it
+     keeps the owed points constant while buying the headroom the shrinking moves need */
+  execStandardMove(pickInsertionIndex(),0);
+  return false;
+}
+function finishClose(){          /* nothing is buried: the ocean and its coast faces stay open forever */
+  closing=false; closeDone=true; running=false;
+  btnRun.disabled=true; btnRun.textContent='Closed'; btnRun.classList.remove('primary');
+  btnClose.disabled=true; btnClose.textContent='Map closed';
+  closeToast.classList.add('show');
+}
+function closeStep(){
+  if(closeDone) return;
+  if(tryPromotionMove()) finishClose();
+}
+
+function attemptMove(){
+  if(maxR>=RMAX){ setFull(); return; }
+  if(moves===0){ firstMove(); return; }   // the bare loop has no second coast edge to fall back onto
+  for(let t=0;t<40;t++) if(doMove()) return;
+  fallbackCount++;
+  const C=coast.length, i=pickIndex(), j=(i+1)%C;   /* F3 fallback, always legal */
+  const eP=coast[i], eQ=coast[j], fP=eP.face, fQ=eQ.face;
+  const sp=splitEdge(eP,.5), sq=splitEdge(eQ,.5), p=sp.p, q=sq.p;
+  fP.n++; fQ.n++; sumLand-=2;
+  const nf={n:3,coastCount:1,sealed:false,interior:[],color:null}; sumLand+=3;
+  nf.vertices=[p, q, eQ.a];   // v10: same k=0 shape as execStandardMove's nf.vertices (reversed side)
+  insertVertices(fP.vertices, eP.a, eP.b, [p]);
+  insertVertices(fQ.vertices, eQ.a, eQ.b, [q]);
+  pairInterior(fP, {a:p,b:eP.b,pts:sp.gB.pts}, nf);   // v9: same inner-wall bookkeeping as execStandardMove
+  pairInterior(fQ, {a:eQ.a,b:q,pts:sq.gA.pts}, nf);
+  const S=ptsOf(sp.gB).concat(ptsOf(sq.gA).slice(1));
+  const O=shellBorder(p,q,S);
+  inkLines.push([p,...O,q]);
+  faces.push(nf);
+  const keep=[]; let m=(j+1)%C;
+  for(let s=0;s<C-2;s++){ keep.push(coast[m]); m=(m+1)%C; }
+  coast=[ {a:eP.a,b:p,pts:sp.gA.pts,face:fP},
+          {a:p,b:q,pts:O,face:nf},
+          {a:q,b:eQ.b,pts:sq.gB.pts,face:fQ}, ...keep ];
+  moves++; check();
+}
+function check(){   /* the ocean counts as one face of degree C, so Σ(6−n)Fn − C = 6 ⇔ Σ = 12 over all faces */
+  invOK = (sumLand - coast.length === 6);
+}
+function setFull(){
+  if(full) return;
+  full=true; running=false;
+  btnRun.disabled=true; btnRun.textContent='Full';
+  btnRun.classList.remove('primary');
+  fullToast.classList.add('show');
+}
+
+/* ---------- projection onto the fixed sphere ---------- */
+function projTo(p, out){
+  if(p._r===undefined){ p._r=Math.hypot(p.x,p.y);
+    const a=Math.atan2(p.y,p.x); p._c=Math.cos(a); p._s=Math.sin(a); }
+  const phi=Math.min(3.12, p._r/Rs), sp=Math.sin(phi), cp=Math.cos(phi);
+  const ca=p._c*CY - p._s*SY, sa=p._s*CY + p._c*SY;    // yaw: spin around the pole axis
+  const x3=sp*ca, y3=sp*sa;
+  out.x=x3*Rs; out.y=(y3*CT - cp*ST)*Rs; out.v=(y3*ST + cp*CT)>=0;
+}
+const _a={}, _b={};
+function addLines(lists, F, B){
+  for(const P of lists){
+    projTo(P[0],_a);
+    for(let i=1;i<P.length;i++){
+      projTo(P[i],_b);
+      const T=(_a.v&&_b.v)?F:B;
+      T.moveTo(_a.x,_a.y); T.lineTo(_b.x,_b.y);
+      _a.x=_b.x; _a.y=_b.y; _a.v=_b.v;
+    }
+  }
+}
+
+/* ---------- v10: zoom-adaptive border smoothing ----------
+   Every border polyline (shellBorder's rays+arc) is sampled once, at creation time, at a fixed
+   world-space resolution — fine enough for the old zoom range, but at deep zoom each stored
+   segment can span thousands of screen pixels and shows up as a faceted, stair-stepped edge
+   instead of a smooth curve. Rather than resample the stored geometry (which face bookkeeping,
+   hit-testing and export all depend on), densify() inserts extra points purely for the current
+   frame's strokes, spaced by on-screen pixel distance so it costs almost nothing at low zoom and
+   sharpens automatically as zoom increases. The extra points are placed by slerping the segment's
+   endpoints on the underlying unit sphere (independent of camera yaw/tilt), which reproduces the
+   true sphere-hugging curve rather than a flat chord. */
+const DENSIFY_PX = 6, DENSIFY_MAX = 256;
+function toUnitVec3(p, out){
+  const r=Math.hypot(p.x,p.y), a=Math.atan2(p.y,p.x);
+  const phi=Math.min(3.12, r/Rs), sp=Math.sin(phi);
+  out[0]=sp*Math.cos(a); out[1]=sp*Math.sin(a); out[2]=Math.cos(phi);
+}
+function vec3ToPlanar(v){
+  const phi=Math.acos(clamp(v[2],-1,1)), theta=Math.atan2(v[1],v[0]), r=phi*Rs;
+  return {x:r*Math.cos(theta), y:r*Math.sin(theta)};
+}
+function slerp3(v1,v2,t,out){
+  const dot=clamp(v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2], -1, 1);
+  const theta=Math.acos(dot);
+  if(theta<1e-6){ out[0]=v1[0]; out[1]=v1[1]; out[2]=v1[2]; return; }
+  const s=Math.sin(theta), w1=Math.sin((1-t)*theta)/s, w2=Math.sin(t*theta)/s;
+  out[0]=w1*v1[0]+w2*v2[0]; out[1]=w1*v1[1]+w2*v2[1]; out[2]=w1*v1[2]+w2*v2[2];
+}
+const _dA={}, _dB={}, _dv1=[0,0,0], _dv2=[0,0,0], _dvt=[0,0,0];
+function densify(P){
+  if(P.length<2) return P;
+  const out=[P[0]];
+  const halfW=W/(2*scale)*1.3, halfH=H/(2*scale)*1.3;
+  for(let i=1;i<P.length;i++){
+    const A=P[i-1], B=P[i];
+    projTo(A,_dA); projTo(B,_dB);
+    // both ends off-screen on the same side: this chord is invisible, skip the (possibly
+    // very fine) subdivision work entirely — matters at deep zoom, where most of the map's
+    // borders sit outside the tiny visible patch but would otherwise still measure huge on-screen
+    const offscreen=(Math.abs(_dA.x)>halfW && Math.abs(_dB.x)>halfW && Math.sign(_dA.x)===Math.sign(_dB.x))
+                  || (Math.abs(_dA.y)>halfH && Math.abs(_dB.y)>halfH && Math.sign(_dA.y)===Math.sign(_dB.y));
+    if(!offscreen){
+      const dpx=Math.hypot((_dB.x-_dA.x)*scale, (_dB.y-_dA.y)*scale);
+      const n=Math.min(DENSIFY_MAX, Math.max(1, Math.ceil(dpx/DENSIFY_PX)));
+      if(n>1){
+        toUnitVec3(A,_dv1); toUnitVec3(B,_dv2);
+        for(let k=1;k<n;k++){ slerp3(_dv1,_dv2,k/n,_dvt); out.push(vec3ToPlanar(_dvt)); }
+      }
+    }
+    out.push(B);
+  }
+  return out;
+}
+/* graticule on the unit sphere (independent of the map) */
+const grat=[];
+(function(){
+  for(const phi of [.5,1.0,1.5708,2.14,2.64]){
+    const P=[], sp=Math.sin(phi), cp=Math.cos(phi);
+    for(let i=0;i<=72;i++){ const t=2*Math.PI*i/72;
+      P.push([sp*Math.cos(t), sp*Math.sin(t), cp]); }
+    grat.push(P);
+  }
+  for(let m=0;m<12;m++){
+    const t=Math.PI*m/6, ct=Math.cos(t), st=Math.sin(t), P=[];
+    for(let i=0;i<=60;i++){ const phi=Math.PI*i/60;
+      P.push([Math.sin(phi)*ct, Math.sin(phi)*st, Math.cos(phi)]); }
+    grat.push(P);
+  }
+})();
+function addGrat(F){
+  for(const P of grat){
+    let ax,ay,av,first=true;
+    for(const g of P){
+      const gx=g[0]*CY - g[1]*SY, gy=g[0]*SY + g[1]*CY;  // yaw: spin around the pole axis
+      const y=(gy*CT - g[2]*ST)*Rs, x=gx*Rs, v=(gy*ST + g[2]*CT)>=0;
+      if(!first && av && v){ F.moveTo(ax,ay); F.lineTo(x,y); }
+      ax=x; ay=y; av=v; first=false;
+    }
+  }
+}
+
+/* ---------- v9: fill closed regions ---------- */
+function pointInPoly(pt, poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+    if(((yi>pt.y)!==(yj>pt.y)) && (pt.x < (xj-xi)*(pt.y-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+/* invert projTo's camera math: screen click -> unit sphere point -> planar (r,angle) */
+function unprojectClick(clientX, clientY){
+  const X=(clientX-W/2)/scale/Rs, Yp=(clientY-H/2)/scale/Rs, rr=X*X+Yp*Yp;
+  if(rr>1) return null;                                   // outside the globe's silhouette
+  const Zp=Math.sqrt(1-rr);
+  const Y=Yp*CT+Zp*ST, Z=-Yp*ST+Zp*CT;                     // undo the tilt rotation
+  const phi=Math.acos(clamp(Z,-1,1)), theta=Math.atan2(Y,X)-yaw, r=phi*Rs;
+  return {x:r*Math.cos(theta), y:r*Math.sin(theta)};
+}
+function faceAt(clientX, clientY){
+  const pt=unprojectClick(clientX,clientY);
+  if(!pt) return null;
+  for(const f of faces) if(f.sealed && f.poly && pointInPoly(pt,f.poly)) return f;
+  return null;
+}
+
+/* ---------- stars ---------- */
+let stars=[]; (function(){ for(let s=0;s<130;s++)
+  stars.push({x:Math.random(),y:Math.random(),r:Math.random()*1.1+.3,a:Math.random()*.5+.15}); })();
+
+/* ---------- render ---------- */
+function draw(){
+  CT=Math.cos(tilt); ST=Math.sin(tilt);
+  CY=Math.cos(yaw);  SY=Math.sin(yaw);
+  computeScale();
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#080d18'; ctx.fillRect(0,0,W,H);
+  for(const s of stars){ ctx.globalAlpha=s.a;
+    ctx.fillStyle='#cfe4ee'; ctx.beginPath(); ctx.arc(s.x*W,s.y*H,s.r,0,7); ctx.fill(); }
+  ctx.globalAlpha=1;
+
+  ctx.setTransform(DPR*scale,0,0,DPR*scale,DPR*W/2,DPR*H/2);
+
+  // the globe (fixed radius Rs, never rescaled)
+  const g=ctx.createRadialGradient(-Rs*.30,-Rs*.36,Rs*.1, 0,0,Rs);
+  g.addColorStop(0,'#17314F'); g.addColorStop(.55,'#102440'); g.addColorStop(1,'#0A1729');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,Rs,0,7); ctx.fill();
+
+  const GF=new Path2D(); addGrat(GF);
+  ctx.strokeStyle='rgba(199,229,240,.09)'; ctx.lineWidth=1/scale; ctx.stroke(GF);
+  ctx.strokeStyle='rgba(199,229,240,.30)'; ctx.lineWidth=1.6/scale;
+  ctx.beginPath(); ctx.arc(0,0,Rs,0,7); ctx.stroke();
+
+  // v9: closed regions, filled underneath the border strokes — skipped for a frame if any of
+  // a face's boundary points currently fall on the far side of the sphere
+  for(const f of faces){
+    if(!f.sealed || !f.poly) continue;
+    const scr=[]; let allVisible=true;
+    for(const pt of f.poly){
+      const o={}; projTo(pt,o);
+      if(!o.v){ allVisible=false; break; }
+      scr.push(o);
+    }
+    if(!allVisible) continue;
+    const path=new Path2D();
+    path.moveTo(scr[0].x, scr[0].y);
+    for(let i=1;i<scr.length;i++) path.lineTo(scr[i].x, scr[i].y);
+    path.closePath();
+    ctx.fillStyle=f.color||defaultColor;
+    ctx.fill(path);
+  }
+
+  // borders: far side first (faint), then near side
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  const IF=new Path2D(), IB=new Path2D();
+  addLines(inkLines.map(densify), IF, IB);
+  ctx.strokeStyle='rgba(215,238,244,.10)'; ctx.lineWidth=1/scale;   ctx.stroke(IB);
+  ctx.strokeStyle='rgba(215,238,244,.45)'; ctx.lineWidth=1.1/scale; ctx.stroke(IF);
+
+  // the luminous coastline
+  const coastLines=coast.map(ptsOf).map(densify);
+  const CF=new Path2D(), CB=new Path2D();
+  addLines(coastLines, CF, CB);
+  ctx.strokeStyle='rgba(180,230,255,.14)'; ctx.lineWidth=2/scale;   ctx.stroke(CB);
+  ctx.strokeStyle='rgba(150,220,255,.20)'; ctx.lineWidth=6/scale;   ctx.stroke(CF);
+  ctx.strokeStyle='rgba(222,244,252,.95)'; ctx.lineWidth=1.9/scale; ctx.stroke(CF);
+}
+
+/* ---------- v10: export every face's vertex list ----------
+   Faces are numbered in `faces` array order, which is creation order — face 0 is the seed at the
+   center, and every later face was carved out of the coast at some greater radius, so that order
+   already runs from the center out to the last face made. Vertices are deduplicated by object
+   identity (shared points keep the same index everywhere they appear) and given their (x,y) in
+   the planar construction, before the sphere projection. The ocean isn't a `faces` entry — its
+   boundary is instead the current `coast` ring, each edge's `a` chaining into the next edge's `b`
+   (verified at every coast rebuild elsewhere in this file) — so it's appended last, matching the
+   4ct.py convention that the ocean is always the final face. */
+function exportVerticesFile(){
+  const idOf=new Map();
+  let nextId=0;
+  function idFor(v){
+    let id=idOf.get(v);
+    if(id===undefined){ id=nextId++; idOf.set(v,id); }
+    return id;
+  }
+  const data=faces.map(f=>{
+    const ids=f.vertices.map(idFor);
+    const n=ids.length;
+    return ids.map((id,i)=>[id, ids[(i+1)%n]]);
+  });
+  const oceanIds=coast.map(e=>idFor(e.a)).reverse();
+  const oceanN=oceanIds.length;
+  data.push(oceanIds.map((id,i)=>[id, oceanIds[(i+1)%oceanN]]));
+  const blob=new Blob([JSON.stringify(data)], {type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='waterworld-vertices.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- loop, controls, stats ---------- */
+const btnRun=document.getElementById('btnRun');
+const btnReset=document.getElementById('btnReset');
+const btnClose=document.getElementById('btnClose');
+const btnExport=document.getElementById('btnExport');
+const speedEl=document.getElementById('speed');
+const fullToast=document.getElementById('fullToast');
+const closeToast=document.getElementById('closeToast');
+const fillColorEl=document.getElementById('fillColor');
+const regionColorPicker=document.getElementById('regionColorPicker');
+let pendingColorFace=null;
+fillColorEl.value=defaultColor;
+fillColorEl.oninput=()=>{ defaultColor=fillColorEl.value; };
+regionColorPicker.oninput=()=>{ if(pendingColorFace) pendingColorFace.color=regionColorPicker.value; };
+function openColorPicker(f){
+  pendingColorFace=f;
+  regionColorPicker.value=f.color||defaultColor;
+  regionColorPicker.click();
+}
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+  running=false; speedEl.value=3; }
+btnRun.onclick=()=>{ if(full||closeDone) return; running=!running; btnRun.textContent=running?'Stop':'Start'; };
+btnReset.onclick=()=>{ reset(); updateStats(); };
+document.getElementById('closeToastX').onclick=()=>closeToast.classList.remove('show');
+btnClose.onclick=()=>{
+  if(closing || closeDone || moves===0) return;
+  closing=true; running=true; btnRun.textContent='Stop';
+  fullToast.classList.remove('show');
+  btnClose.disabled=true; btnClose.textContent='Closing…';
+};
+btnExport.onclick=()=>exportVerticesFile();
+
+/* ---------- camera interaction: drag to orbit, scroll/pinch to zoom ---------- */
+const ROT_SPEED = 0.008;           // rad per pixel dragged, at zoom=1 — scaled by 1/zoom so a
+                                    // dragged pixel always spans the same visible angle on screen
+const CLICK_SLOP = 4, CLICK_MS = 500;   // v9: how still/fast a press must be to count as a click, not a drag
+let dragging=false, lastX=0, lastY=0, downX=0, downY=0, downTime=0, moved=false;
+canvas.addEventListener('pointerdown', e=>{
+  dragging=true; lastX=e.clientX; lastY=e.clientY;
+  downX=e.clientX; downY=e.clientY; downTime=performance.now(); moved=false;
+  canvas.setPointerCapture(e.pointerId); canvas.classList.add('grabbing');
+});
+canvas.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  if(!moved && Math.hypot(e.clientX-downX, e.clientY-downY)>CLICK_SLOP) moved=true;
+  const rot=ROT_SPEED/zoom;
+  yaw += (e.clientX-lastX)*rot;
+  tilt -= (e.clientY-lastY)*rot;
+  lastX=e.clientX; lastY=e.clientY;
+});
+addEventListener('pointerup', e=>{
+  dragging=false; canvas.classList.remove('grabbing');
+  if(!moved && performance.now()-downTime<CLICK_MS){
+    const f=faceAt(e.clientX, e.clientY);
+    if(f) openColorPicker(f);
+  }
+});
+canvas.addEventListener('pointercancel', ()=>{ dragging=false; canvas.classList.remove('grabbing'); });
+
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  zoom = clamp(zoom*Math.exp(-e.deltaY*0.0012), 0.4, 1120);
+}, {passive:false});
+
+const DBLCLICK_ZOOM = 2.4;
+function angDiff(a,b){ let d=(a-b)%(2*Math.PI); if(d>Math.PI) d-=2*Math.PI; if(d<-Math.PI) d+=2*Math.PI; return Math.abs(d); }
+canvas.addEventListener('dblclick', e=>{
+  const pt=unprojectClick(e.clientX, e.clientY);
+  if(!pt) return;                                        // double-click missed the globe
+  const a=Math.atan2(pt.y,pt.x), phi=Math.hypot(pt.x,pt.y)/Rs;
+  // two camera states center this point (a yaw/tilt +pi/-flip pair) — keep the one nearer the current view
+  const cands=[{yaw:Math.PI/2-a, tilt:phi}, {yaw:-Math.PI/2-a, tilt:-phi}];
+  let best=cands[0], bestDist=Infinity;
+  for(const c of cands){
+    const d=angDiff(c.yaw,yaw)+angDiff(c.tilt,tilt);
+    if(d<bestDist){ bestDist=d; best=c; }
+  }
+  yaw=best.yaw; tilt=best.tilt;
+  zoom=clamp(zoom*DBLCLICK_ZOOM, 0.4, 1120);
+});
+
+let pinchDist=null;
+canvas.addEventListener('touchmove', e=>{
+  if(e.touches.length!==2) return;
+  e.preventDefault();
+  const [t0,t1]=e.touches, d=Math.hypot(t0.clientX-t1.clientX, t0.clientY-t1.clientY);
+  if(pinchDist!==null) zoom = clamp(zoom*(d/pinchDist), 0.4, 1120);
+  pinchDist=d;
+}, {passive:false});
+canvas.addEventListener('touchend', e=>{ if(e.touches.length<2) pinchDist=null; });
+
+reset();
+
+let last=performance.now(), acc=0, statT=0;
+function updateStats(){
+  let f5=0,w=0; for(const f of faces){ if(f.n===5)f5++; else if(f.n>6)w++; }
+  document.getElementById('sF').textContent=faces.length;
+  document.getElementById('sO').textContent=1;   // the ocean is a face of the map and is never buried
+  document.getElementById('sC').textContent=coast.length;
+  document.getElementById('s5').textContent=f5;
+  document.getElementById('sW').textContent=w;
+  document.getElementById('sM').textContent=moves;
+  document.getElementById('sFB').textContent=fallbackCount;
+  const el=document.getElementById('sInv');
+  if(moves===0){ el.textContent='— only 1 land face'; el.className='warn'; }
+  else{ el.textContent=invOK?'6 ✓':(sumLand-coast.length)+' ✗'; el.className=invOK?'ok':'bad'; }
+}
+const FRAME_BUDGET_MS = 14;   // max pace: no acc/dt throttling, just spend the frame stepping
+function frame(now){
+  const dt=Math.min(.1,(now-last)/1000); last=now;
+  if(running && (closing || !full)){
+    if(+speedEl.value >= +speedEl.max){
+      const deadline=performance.now()+FRAME_BUDGET_MS;
+      while((closing || !full) && performance.now()<deadline){
+        closing ? closeStep() : attemptMove();
+      }
+      acc=0;
+    } else {
+      acc+=dt*(+speedEl.value);
+      let n=0; while(acc>=1 && n<12 && (closing || !full)){
+        acc-=1; closing ? closeStep() : attemptMove(); n++;
+      }
+    }
+  }
+  draw();
+  statT+=dt; if(statT>.35){ statT=0; updateStats(); }
+  requestAnimationFrame(frame);
+}
+updateStats();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

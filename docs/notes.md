@@ -1,121 +1,128 @@
-25/Apr/2026
+# Project Notes
 
-• Ho fatto review statica e verifiche locali. Nessuna modifica al codice. Verifiche: pytest tests -q passa con 26 passed; smoke python 4ct.py -s4 -r1 10 da ct/ passa, ma non esercita
-  davvero la fase F5.
+## Contents
 
-  Performance
+- [25 April 2026 — Static review](#25-april-2026--static-review)
+- [16 April 2026 — Selection strategy 4 specification](#16-april-2026--selection-strategy-4-specification)
+- [14 April 2026 — Selection strategy 4 implementation notes](#14-april-2026--selection-strategy-4-implementation-notes)
+- [20 May 2017 — Edge diagnostics](#20-may-2017--edge-diagnostics)
+- [6 July 2016 — Reconstruction checks](#6-july-2016--reconstruction-checks)
+- [7 July 2016 — Kempe chain color switching](#7-july-2016--kempe-chain-color-switching)
+- [Performance profile](#performance-profile)
 
-  - La selezione è circa O(F^2) per iterazione e può diventare O(F^3) sull’intera riduzione: ogni edge candidata cerca la faccia adiacente con scan lineare su g_faces, ad esempio in
-    ct/4ct.py:1163, ct/4ct.py:949, ct/4ct.py:1005.
-  - join_faces() viene calcolata per molti candidati solo per scartarli dopo is_the_graph_one_edge_connected; corretto, ma costoso perché copia liste e fa altre scansioni.
-  - La locality riduce solo la fase F5; F2/F3/F4 restano sempre globali anche durante una wave.
-  - reduce_faces() scrive JSON a ogni iterazione su debug.f_distribution in ct/4ct.py:1768, quindi su mappe grandi l’I/O diventa rumore prestazionale.
-  - Il cProfile è sempre attivo nel main in ct/4ct.py:2186, utile per debug ma penalizzante come default.
+## 25 April 2026 — Static review
 
-  Errori Logici / Rischi
+Ho fatto review statica e verifiche locali. Nessuna modifica al codice.
 
-  - Probabile bug nella wave: dopo un fallback globale attivo, reduce_faces() prima aggiorna la frontier e poi la azzera in ct/4ct.py:1598. Questo interrompe la propagazione invece di
-    ripartire dal punto trovato globalmente. È in tensione con la strategia “fallback globale, poi restart local expansion”.
-  - La fallback F5 non è una vera fallback generica: prova solo F5-F5 e F5-F6, poi termina con exit(-1) in ct/4ct.py:1212. Esiste _select_max_neighbor_from_candidates() in ct/4ct.py:1033,
-    ma non viene usata. Se non vuoi dipendere strettamente dal teorema “esiste sempre una coppia F5-F5/F5-F6 valida”, questo è fragile.
-  - La fase F2 con wave attiva termina il processo con exit(-1) in ct/4ct.py:1148. Anche se l’evento è considerato impossibile, sarebbe più sicuro gestirlo come normale F2 o fallire con
-    eccezione testabile.
-  - La fase F2 sceglie casualmente e non verifica is_the_graph_one_edge_connected() in ct/4ct.py:1137. Se l’invariante “le F2 sono sempre valide” è essenziale, va documentato e coperto da
-    test.
-  - g_faces.remove(f1) e g_faces.remove(f2) rimuovono per uguaglianza, non per identità, in ct/4ct.py:1625 e ct/4ct.py:1684. Con facce duplicate per valore può essere rimossa la faccia
-    sbagliata.
-  - Le specifiche locali sono incoerenti: alcune note dicono F5-F6 prima di F5-F5, altre il contrario; alcune dicono F2 max-neighbor, il codice fa random. Questo non è necessariamente un
-    bug, ma rende difficile validare l’algoritmo.
+### Verification
 
-  Miglioramenti Proposti
+`pytest tests -q` passa con 26 passed; smoke `python 4ct.py -s4 -r1 10` da `ct/` passa, ma non esercita davvero la fase F5.
 
-  1. Introdurre indici incrementali: edge_to_face, faces_by_len, e opzionalmente vertex_to_faces. Questo elimina quasi tutti gli scan lineari per trovare adiacenze.
-  2. Decidere formalmente la semantica del fallback S4: secondo me dovrebbe avviare una nuova frontier dal f1_plus_f2_temp scelto globalmente, non azzerarla.
-  3. Aggiungere una fallback finale su tutte le F5 con _select_max_neighbor_from_candidates() prima di exit(-1), oppure aggiungere un assert/test che dimostri che F5-F5/F5-F6 è sempre
-     sufficiente.
-  4. Sostituire exit(-1) con eccezioni specifiche, così i casi impossibili diventano testabili.
-  5. Rimuovere facce per identità o per indice, non con list.remove().
-  6. Aggiungere test su reduce_faces(), soprattutto: fallback con wave attiva, F2 con wave attiva, facce duplicate, e caso in cui non ci siano coppie F5-F5/F5-F6 valide.
+### Performance
 
-16/Apr/2026
+- La selezione è circa `O(F^2)` per iterazione e può diventare `O(F^3)` sull’intera riduzione: ogni edge candidate cerca la faccia adiacente con scan lineare su `g_faces`, ad esempio in `ct/4ct.py:1163`, `ct/4ct.py:949`, `ct/4ct.py:1005`.
+- `join_faces()` viene calcolata per molti candidati solo per scartarli dopo `is_the_graph_one_edge_connected`; corretto, ma costoso perché copia liste e fa altre scansioni.
+- La locality riduce solo la fase `F5`; `F2`/`F3`/`F4` restano sempre globali anche durante una wave.
+- `reduce_faces()` scrive JSON a ogni iterazione su `debug.f_distribution` in `ct/4ct.py:1768`, quindi su mappe grandi l’I/O diventa rumore prestazionale.
+- Il `cProfile` è sempre attivo nel `main` in `ct/4ct.py:2186`, utile per debug ma penalizzante come default.
+
+### Logical errors and risks
+
+- Probabile bug nella wave: dopo un fallback globale attivo, `reduce_faces()` prima aggiorna la frontier e poi la azzera in `ct/4ct.py:1598`. Questo interrompe la propagazione invece di ripartire dal punto trovato globalmente. È in tensione con la strategia “fallback globale, poi restart local expansion”.
+- Il fallback `F5` non è un vero fallback generico: prova solo `F5-F5` e `F5-F6`, poi termina con `exit(-1)` in `ct/4ct.py:1212`. Esiste `_select_max_neighbor_from_candidates()` in `ct/4ct.py:1033`, ma non viene usata. Se non vuoi dipendere strettamente dal teorema “esiste sempre una coppia `F5-F5`/`F5-F6` valida”, questo è fragile.
+- La fase `F2` con wave attiva termina il processo con `exit(-1)` in `ct/4ct.py:1148`. Anche se l’evento è considerato impossibile, sarebbe più sicuro gestirlo come normale `F2` o fallire con eccezione testabile.
+- La fase `F2` sceglie casualmente e non verifica `is_the_graph_one_edge_connected()` in `ct/4ct.py:1137`. Se l’invariante “le `F2` sono sempre valide” è essenziale, va documentato e coperto da test.
+- `g_faces.remove(f1)` e `g_faces.remove(f2)` rimuovono per uguaglianza, non per identità, in `ct/4ct.py:1625` e `ct/4ct.py:1684`. Con facce duplicate per valore può essere rimossa la faccia sbagliata.
+- Le specifiche locali sono incoerenti: alcune note dicono `F5-F6` prima di `F5-F5`, altre il contrario; alcune dicono `F2` max-neighbor, il codice fa random. Questo non è necessariamente un bug, ma rende difficile validare l’algoritmo.
+
+### Proposed improvements
+
+1. Introdurre indici incrementali: `edge_to_face`, `faces_by_len`, e opzionalmente `vertex_to_faces`. Questo elimina quasi tutti gli scan lineari per trovare adiacenze.
+2. Decidere formalmente la semantica del fallback `S4`: secondo me dovrebbe avviare una nuova frontier dal `f1_plus_f2_temp` scelto globalmente, non azzerarla.
+3. Aggiungere un fallback finale su tutte le `F5` con `_select_max_neighbor_from_candidates()` prima di `exit(-1)`, oppure aggiungere un assert/test che dimostri che `F5-F5`/`F5-F6` è sempre sufficiente.
+4. Sostituire `exit(-1)` con eccezioni specifiche, così i casi impossibili diventano testabili.
+5. Rimuovere facce per identità o per indice, non con `list.remove()`.
+6. Aggiungere test su `reduce_faces()`, soprattutto: fallback con wave attiva, `F2` con wave attiva, facce duplicate, e caso in cui non ci siano coppie `F5-F5`/`F5-F6` valide.
+
+## 16 April 2026 — Selection strategy 4 specification
 
 You are an expert algorithm designer and graph theorist.
 
-## Task
+### Task
 
 Read the ct/4ct.py and the ct/ct_graph_utils.py files to understand what is implemented.
 
-Modify the --selection4 algorithm that performs **iterative edge-removal reduction** on a **planar 3-regular graph (cubic planar graph)** based on face configurations.
+Modify the `--selection4` algorithm that performs **iterative edge-removal reduction** on a **planar 3-regular graph (cubic planar graph)** based on face configurations.
 
 ---
 
-## Definitions
+### Definitions
 
-* The graph is planar and embedded (faces are explicitly available).
-* Each face has a size equal to the number of edges (F2, F3, F4, F5, F6, etc.).
-* Two faces are *adjacent* if they share an edge.
-* Configurations:
-  * **F2**: face with 2 edges
-  * **F3**: face with 3 edges
-  * **F4**: face with 4 edges
-  * **F5-F5**: two adjacent faces both of size 5
-  * **F5-F6**: two adjacent faces of size 5 and 6
+- The graph is planar and embedded (faces are explicitly available).
+- Each face has a size equal to the number of edges (F2, F3, F4, F5, F6, etc.).
+- Two faces are *adjacent* if they share an edge.
+- Configurations:
+  - **F2**: face with 2 edges
+  - **F3**: face with 3 edges
+  - **F4**: face with 4 edges
+  - **F5-F5**: two adjacent faces both of size 5
+  - **F5-F6**: two adjacent faces of size 5 and 6
 
 ---
 
-## High-Level Strategy
+### High-Level Strategy
 
 The algorithm proceeds in **two phases**:
 
-### Phase 1 — Eliminate small faces (F2, F3, F4)
+#### Phase 1 — Eliminate small faces (F2, F3, F4)
 
 Repeat until no F2, F3, or F4 faces remain:
 
-1. Select **any face randomly** among all faces of type F2, F3, or F4, in the order specified by the parameter --choices.
+1. Select **any face randomly** among all faces of type `F2`, `F3`, or `F4`, in the order specified by the parameter `--choices`.
 
 2. Apply the following rules:
 
-   * **F2**:
+   - **F2**:
 
-     * Remove **one of its two edges randomly**.
-     * No additional constraints.
+     - Remove **one of its two edges randomly**.
+     - No additional constraints.
 
-   * **F3 or F4**:
+   - **F3 or F4**:
 
-     * Select an edge of the face such that the adjacent face sharing that edge has the **largest size** among candidates.
-     * Remove that edge.
+     - Select an edge of the face such that the adjacent face sharing that edge has the **largest size** among candidates.
+     - Remove that edge.
 
 3. After each removal:
 
-   * Update the planar embedding and face structure.
-   * Continue until no F2, F3, F4 remain anywhere in the graph.
+   - Update the planar embedding and face structure.
+   - Continue until no F2, F3, F4 remain anywhere in the graph.
 
 ---
 
-### Phase 2 — Handle unavoidable configurations (F5-F6, F5-F5)
+#### Phase 2 — Handle unavoidable configurations (F5-F6, F5-F5)
 
 At this point, the graph contains only configurations involving F5 and F6.
 
-#### Priority Order:
+##### Priority Order:
 
 1. **F5-F6 (highest priority)**
 2. **F5-F5**
 
 ---
 
-## Local expansion strategy ("wave-like propagation")
+### Local expansion strategy ("wave-like propagation")
 
 The reduction should proceed **locally** whenever possible:
 
-* Maintain a set of **recently modified faces**. Optimize saving the vertices if necessary.
-* Prefer selecting configurations **adjacent to already processed areas**.
-* This creates a wave-like propagation over the graph.
+- Maintain a set of **recently modified faces**. Optimize saving the vertices if necessary.
+- Prefer selecting configurations **adjacent to already processed areas**.
+- This creates a wave-like propagation over the graph.
 
 ---
 
-## Selection Rules
+### Selection Rules
 
-### Step 1 — Try local selection
+#### Step 1 — Try local selection
 
 From the neighborhood of recently modified faces:
 
@@ -126,118 +133,121 @@ From the neighborhood of recently modified faces:
 
 ---
 
-### Step 2 — Edge removal rules
+#### Step 2 — Edge removal rules
 
-* **F5-F5**:
+- **F5-F5**:
 
-  * Apply the corresponding rule already defined in the program.
-  * This should transform the othe F5 into an F4.
+  - Apply the corresponding rule already defined in the program.
+  - This should transform the other F5 into an F4.
 
-* **F5-F6**:
+- **F5-F6**:
 
-  * Select one of the two edges belonging to the **F5 face** that shares a **vertex with the F6 face**.
-  * Remove that edge.
-  * This should transform the F6 into an F5.
+  - Select one of the two edges belonging to the **F5 face** that shares a **vertex with the F6 face**.
+  - Remove that edge.
+  - This should transform the F6 into an F5.
 
 ---
 
-### Step 3 — Dynamic reappearance of small faces
+#### Step 3 — Dynamic reappearance of small faces
 
 After any edge removal:
 
-* If a new **F4** face appears:
+- If a new **F4** face appears:
 
-  * **Immediately process it** using the F4 rule (from Phase 1).
-  * This has priority over continuing with F5-based reductions.
-  * Consider this removal as part of the local selection and add this face to the **recently modified faces** 
+  - **Immediately process it** using the F4 rule (from Phase 1).
+  - This has priority over continuing with F5-based reductions.
+  - Consider this removal as part of the local selection and add this face to the **recently modified faces**
 
 ---
 
-### Step 4 — Fallback Strategy
+#### Step 4 — Fallback Strategy
 
 If no valid configuration (F5-F6 or F5-F5) exists in the local neighborhood:
 
-* Select **globally at random**:
-  * Any available F5-F5, otherwise F5-F6.
-* Restart local expansion from that point.
+- Select **globally at random**:
+  - Any available F5-F5, otherwise F5-F6.
+- Restart local expansion from that point.
 
 ---
 
-## Important Constraints
+### Important Constraints
 
-* Always update:
+- Always update:
 
-  * Face structure
-  * Adjacency relations
-  * Planar embedding consistency
+  - Face structure
+  - Adjacency relations
+  - Planar embedding consistency
 
-* The algorithm must be:
+- The algorithm must be:
 
-  * Deterministic except where randomness is explicitly required
-  * Modular (clear functions for face detection, adjacency, edge removal)
-
----
-
-## Suggested Implementation Structure
-
-* `find_faces_by_size(graph)`
-* `find_adjacent_faces(face)`
-* `select_edge_F3_F4(face)`
-* `select_edge_F5-F6(face_pair)`
-* `remove_edge(graph, edge)`
-* `update_faces(graph)`
-* `get_local_candidates(graph, region)`
-* `fallback_selection(graph)`
+  - Deterministic except where randomness is explicitly required
+  - Modular (clear functions for face detection, adjacency, edge removal)
 
 ---
 
-## Output
+### Suggested Implementation Structure
 
-* Return the sequence of edge removals.
-* Optionally store intermediate graph states for reconstruction.
+- `find_faces_by_size(graph)`
+- `find_adjacent_faces(face)`
+- `select_edge_F3_F4(face)`
+- `select_edge_F5-F6(face_pair)`
+- `remove_edge(graph, edge)`
+- `update_faces(graph)`
+- `get_local_candidates(graph, region)`
+- `fallback_selection(graph)`
 
 ---
 
-## Notes
+### Output
 
-* Do NOT implement coloring.
-* Focus only on the reduction process.
-* Ensure correctness of face updates after each modification.
-* The algorithm must terminate.
+- Return the sequence of edge removals.
+- Optionally store intermediate graph states for reconstruction.
+
+---
+
+### Notes
+
+- Do NOT implement coloring.
+- Focus only on the reduction process.
+- Ensure correctness of face updates after each modification.
+- The algorithm must terminate.
 
 ---
 
 Implement clean, well-documented, and testable code.
 
-14/Apr/2026
+## 14 April 2026 — Selection strategy 4 implementation notes
 
-Algoritmo da implementare
-- Regola base per le facce F2, F3, F4: tra tutte le facce di quella specifica dimensione (esempio F2), scegli l'edge il cui la faccia dall'altra parte (non quella scelta) ha il numero di edge massimo. Prima esaurisci tutte le F2, poi le F3, poi le F4.
+### Algoritmo da implementare
+
+- Regola base per le facce `F2`, `F3`, `F4`: tra tutte le facce di quella specifica dimensione (esempio `F2`), scegli l'edge la cui faccia dall'altra parte (non quella scelta) ha il numero massimo di edge. Prima esaurisci tutte le `F2`, poi le `F3`, poi le `F4`.
 - Regola per F5 (solo quando non ci sono più F2, F3, F4):
-  - Coppia F5-F5: per ogni coppia di F5 adiacenti, considera le 4 edge incidenti ai due vertici dell'edge condivisa, escludendo quindi l'edge condivisa stessa. Scegli quella in cui la faccia adiacente alle 2 F5 ha il numero di edge massimo.
-  - Coppia F5-F6: stessa identica logica ma con una F5 adiacente a una F6.
-  - Fallback: se né F5-F5 né F5-F6 producono candidati validi, applica la regola "max neighbor" sulle F5.
+  - Coppia `F5-F5`: per ogni coppia di `F5` adiacenti, considera le 4 edge incidenti ai due vertici dell'edge condivisa, escludendo quindi l'edge condivisa stessa. Scegli quella in cui la faccia adiacente alle 2 `F5` ha il numero massimo di edge.
+  - Coppia `F5-F6`: stessa identica logica ma con una `F5` adiacente a una `F6`.
+  - Fallback: se né `F5-F5` né `F5-F6` producono candidati validi, applica la regola "max neighbor" sulle `F5`.
 
-Vincolo di località:
-- Dopo la prima selezione, le selezioni successive devono essere ristrette alle facce adiacenti alla faccia merged prodotta dall'iterazione precedente (cioè al f1_plus_f2_temp restituito). Se in quel vicinato non si trova nessun candidato valido, rilascia il vincolo e cerca globalmente.
+### Vincolo di località
+- Dopo la prima selezione, le selezioni successive devono essere ristrette alle facce adiacenti alla faccia risultante dal merge prodotta dall'iterazione precedente (cioè al `f1_plus_f2_temp` restituito). Se in quel vicinato non si trova nessun candidato valido, rilascia il vincolo e cerca globalmente.
 
-Implementazione dello stato:
-- Lo stato prev_face deve vivere nel chiamante come variabile locale del ciclo for i_execution, e deve essere passato come parametro alla strategia e riaggiornato col valore di ritorno. Non usare classi, non usare attributi di funzione, non usare variabili globali. Il programma non contiene classi e voglio mantenere lo stile a funzioni. Cambia la firma delle 3 strategie esistenti e passa prev_face = None. La strategia nuova invece accetta e restituisce davvero prev_face.
+### Implementazione dello stato
+- Lo stato `prev_face` deve vivere nel chiamante come variabile locale del ciclo `for i_execution`, e deve essere passato come parametro alla strategia e riaggiornato col valore di ritorno. Non usare classi, non usare attributi di funzione, non usare variabili globali. Il programma non contiene classi e voglio mantenere lo stile a funzioni. Cambia la firma delle 3 strategie esistenti e passa `prev_face = None`. La strategia nuova invece accetta e restituisce davvero `prev_face`.
 
-Interfaccia CLI
-- Aggiungi un nuovo argomento -s4 / --selection4 al group_selection (mutuamente esclusivo con gli altri, come -s1/-s2/-s3) e aggiungi il relativo ramo nel dispatch della selection_strategy.
+### Interfaccia CLI
+- Aggiungi un nuovo argomento `-s4` / `--selection4` al `group_selection` (mutuamente esclusivo con gli altri, come `-s1`/`-s2`/`-s3`) e aggiungi il relativo ramo nel dispatch della `selection_strategy`.
 
-Identificazione del prev_face tra un'iterazione e l'altra
-- Il f1_plus_f2_temp restituito viene inserito in g_faces dal chiamante come stesso oggetto-lista (identity preserved). Alla chiamata successiva, per ritrovarlo in g_faces, usa il confronto per identità face is prev_face, non per uguaglianza. Se non lo trovi (perché è stato assorbito da un ulteriore merge in qualche caso limite), considera prev_face = None e cerca globalmente.
+### Identificazione di `prev_face` tra un'iterazione e l'altra
+- Il `f1_plus_f2_temp` restituito viene inserito in `g_faces` dal chiamante come stesso oggetto-lista (identity preserved). Alla chiamata successiva, per ritrovarlo in `g_faces`, usa il confronto per identità `face is prev_face`, non per uguaglianza. Se non lo trovi (perché è stato assorbito da un ulteriore merge in qualche caso limite), considera `prev_face = None` e cerca globalmente.
 
-Cosa ti chiedo
+### Cosa ti chiedo
 - Leggi 4ct.py e ct_graph_utils.py per verificare strutture dati, nomi e righe esatte, poi applica queste modifiche:
   - Aggiungi la funzione select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, prev_face=None) che implementa l'algoritmo descritto e ritorna (edge, f1, f2, f1_plus_f2_temp, new_prev_face).
   - Aggiungi l'argomento CLI -s4 / --selection4.
   - Nel ciclo for i_execution, inizializza prev_face = None subito dopo initialize_statistics().
   - Modifica la chiamata selection_strategy(g_faces, choices, i_global_counter) per passare prev_face e riassegnarlo col valore di ritorno: edge_to_remove, f1, f2, f1_plus_f2_temp, prev_face = selection_strategy(g_faces, choices, i_global_counter, prev_face).
 
-20/May/2017
+## 20 May 2017 — Edge diagnostics
+
+```text
 
 edge: (179, 168), down: 4, up: 10, left: 7, right: 8, (L==R) = False
 edge: (286, 321), down: 4, up: 5, left: 15, right: 3, (L==R) = False
@@ -559,9 +569,13 @@ edge: (384, 126), down: 4, up: 6, left: 15, right: 4, (L==R) = False
 edge: (354, 145), down: 4, up: 11, left: 11, right: 5, (L==R) = False
 edge: (160, 151), down: 4, up: 9, left: 11, right: 11, (L==R) = False
 edge: (325, 291), down: 4, up: 4, left: 11, right: 15, (L==R) = False
+```
 
-06/Lug/2016
-    Grafo a fine riduzione:
+## 6 July 2016 — Reconstruction checks
+
+### Grafo a fine riduzione
+
+```text
         2016-07-06 07:25:42,872 - DEBUG --- Face: [(35, 20), (20, 24), (24, 35)]
         2016-07-06 07:25:42,872 - DEBUG --- Face: [(8, 24), (24, 20), (20, 8)]
         2016-07-06 07:25:42,872 - DEBUG --- Face: [(35, 8), (8, 20), (20, 35)]
@@ -572,11 +586,17 @@ edge: (325, 291), down: 4, up: 4, left: 11, right: 15, (L==R) = False
         2016-07-06 07:25:42,896 - DEBUG --- Face: [(35, 8), (8, 24), (24, 35)]
         2016-07-06 07:25:42,896 - DEBUG --- Face: [(20, 24), (24, 8), (8, 20)]
 
-    Domanda: Lo ricostruisco con la stessa rappresentazione di faces()?
-    Risposta: Per ora lascio tutto così. E' infatti lo stesso grafo
+```
 
-06/Lug/2016 - Perfect at first shoot??????????
-    Original graph:
+Domanda: Lo ricostruisco con la stessa rappresentazione di `faces()`?
+
+Risposta: Per ora lascio tutto così. È infatti lo stesso grafo
+
+### Perfect at first shot?
+
+Original graph:
+
+```text
         2016-07-06 09:34:07,717 - DEBUG --- Face: [(30, 28), (28, 29), (29, 30)]
         2016-07-06 09:34:07,718 - DEBUG --- Face: [(44, 43), (43, 47), (47, 44)]
         2016-07-06 09:34:07,718 - DEBUG --- Face: [(2, 8), (8, 4), (4, 2)]
@@ -608,7 +628,11 @@ edge: (325, 291), down: 4, up: 4, left: 11, right: 15, (L==R) = False
         2016-07-06 09:34:07,722 - DEBUG --- Face: [(31, 30), (30, 29), (29, 26), (26, 22), (22, 35), (35, 36), (36, 55), (55, 53), (53, 54), (54, 19), (19, 14), (14, 31)]
         2016-07-06 09:34:07,722 - DEBUG --- Face: [(50, 49), (49, 48), (48, 42), (42, 44), (44, 47), (47, 46), (46, 16), (16, 10), (10, 3), (3, 1), (1, 6), (6, 7), (7, 50)]
 
-    Recreated graph:
+```
+
+Recreated graph:
+
+```text
         2016-07-06 09:34:08,359 - DEBUG --- Face: [(30, 28), (28, 29), (29, 30)]
         2016-07-06 09:34:08,359 - DEBUG --- Face: [(44, 43), (43, 47), (47, 44)]
         2016-07-06 09:34:08,359 - DEBUG --- Face: [(2, 8), (8, 4), (4, 2)]
@@ -639,48 +663,52 @@ edge: (325, 291), down: 4, up: 4, left: 11, right: 15, (L==R) = False
         2016-07-06 09:34:08,365 - DEBUG --- Face: [(14, 19), (19, 9), (9, 10), (10, 16), (16, 18), (18, 17), (17, 15), (15, 11), (11, 12), (12, 13), (13, 14)]
         2016-07-06 09:34:08,365 - DEBUG --- Face: [(31, 30), (30, 29), (29, 26), (26, 22), (22, 35), (35, 36), (36, 55), (55, 53), (53, 54), (54, 19), (19, 14), (14, 31)]
         2016-07-06 09:34:08,365 - DEBUG --- Face: [(50, 49), (49, 48), (48, 42), (42, 44), (44, 47), (47, 46), (46, 16), (16, 10), (10, 3), (3, 1), (1, 6), (6, 7), (7, 50)]
+```
 
-07/Lug/2016 - Kempe chain color switching
+## 7 July 2016 — Kempe chain color switching
 
-    # PSEUDOCODE:
-    # Handle the different cases
-    #
-    # if previous_edge_color_at_v1 == previous_edge_color_at_v2:
-    #
-    #     # CASE-001: Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
-    #     #
-    #     delete edge at v1 + edge at v2
-    #     insert edge (vertex_to_join_near_v1_on_the_face, v1, previous_edge_color_at_v1)
-    #     insert edge (vertex_to_join_near_v2_on_the_face, v2, previous_edge_color_at_v2)
-    #     kempe_chain_color_swapping(edge (vertex_to_join_near_v1_on_the_face, v1), swap previous_edge_color_at_v1 with edge_color_of_top_edge)
-    #     insert edge (v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-    #     insert edge (v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-    #     insert edge (v1, v2, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
-    #
-    # else:
-    #
-    #     # In this case I have to check if the edges at v1 and v2 are on the same Kempe cycle
-    #     #
-    #     if are_edges_to_join_on_the_same_cycle(previous_edge_color_at_v1, previous_edge_color_at_v2) is True:
-    #
-    #         # CASE-002: Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
-    #         #
-    #         delete edge at v1 + edge at v2
-    #         insert edge (vertex_to_join_near_v1_on_the_face, v1, previous_edge_color_at_v1)
-    #         insert edge (vertex_to_join_near_v2_on_the_face, v2, previous_edge_color_at_v2)
-    #         kempe_chain_color_swapping(edge (vertex_to_join_near_v1_on_the_face, v1), swap previous_edge_color_at_v1 with previous_edge_color_at_v2)
-    #         insert edge (v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
-    #         insert edge (v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
-    #         insert edge (v1, v2, get_the_other_colors([previous_edge_color_at_v1, previous_edge_color_at_v2])[0])
-    #     else:
-    #
-    #         # CASE-003: Worst case: the two edges at v1 and v2 are on different Kempe cycles
-    #         #
-    #         kempe_chain_color_swapping(edge at v1, swap previous_edge_color_at_v1 with get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
-    #         At this point ... Since previous_edge_color_at_v1 == previous_edge_color_at_v2, apply CASE-001
-    #
+```text
+PSEUDOCODE:
+Handle the different cases
 
-Performance
+if previous_edge_color_at_v1 == previous_edge_color_at_v2:
+
+    CASE-001: Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
+
+    delete edge at v1 + edge at v2
+    insert edge (vertex_to_join_near_v1_on_the_face, v1, previous_edge_color_at_v1)
+    insert edge (vertex_to_join_near_v2_on_the_face, v2, previous_edge_color_at_v2)
+    kempe_chain_color_swapping(edge (vertex_to_join_near_v1_on_the_face, v1), swap previous_edge_color_at_v1 with edge_color_of_top_edge)
+    insert edge (v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+    insert edge (v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+    insert edge (v1, v2, get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
+
+else:
+
+    In this case I have to check if the edges at v1 and v2 are on the same Kempe cycle
+
+    if are_edges_to_join_on_the_same_cycle(previous_edge_color_at_v1, previous_edge_color_at_v2) is True:
+
+        CASE-002: Since edges at v1 and v2 are on the same Kempe cycle, apply half Kempe cycle color swapping
+
+        delete edge at v1 + edge at v2
+        insert edge (vertex_to_join_near_v1_on_the_face, v1, previous_edge_color_at_v1)
+        insert edge (vertex_to_join_near_v2_on_the_face, v2, previous_edge_color_at_v2)
+        kempe_chain_color_swapping(edge (vertex_to_join_near_v1_on_the_face, v1), swap previous_edge_color_at_v1 with previous_edge_color_at_v2)
+        insert edge (v1, vertex_to_join_near_v1_not_on_the_face, previous_edge_color_at_v1)
+        insert edge (v2, vertex_to_join_near_v2_not_on_the_face, previous_edge_color_at_v2)
+        insert edge (v1, v2, get_the_other_colors([previous_edge_color_at_v1, previous_edge_color_at_v2])[0])
+    else:
+
+        CASE-003: Worst case: the two edges at v1 and v2 are on different Kempe cycles
+
+        kempe_chain_color_swapping(edge at v1, swap previous_edge_color_at_v1 with get_the_other_colors([previous_edge_color_at_v1, edge_color_of_top_edge])[0])
+        At this point ... Since previous_edge_color_at_v1 == previous_edge_color_at_v2, apply CASE-001
+```
+
+## Performance profile
+
+```text
 
 2026-02-24 09:31:32,970 - root - INFO - ------------------------------------------
 2026-02-24 09:31:32,970 - root - INFO - BEGIN: Show the restored and 4 colored map
@@ -718,6 +746,9 @@ Performance
 2026-02-24 09:31:33,194 - root - INFO - ----------------
 2026-02-24 09:31:33,194 - root - INFO - END: Print stats
 2026-02-24 09:31:33,194 - root - INFO - ----------------
+```
+
+```text
          1236211882 function calls (1224943724 primitive calls) in 478.448 seconds
 
    Ordered by: cumulative time
@@ -753,4 +784,5 @@ Performance
         1    0.111    0.111    9.158    9.158 /Users/mario.stefanutti/mario/programming/4ct/maps-coloring-python/ct/4ct.py:1221(reduce_faces)
  68970346    9.150    0.000    9.150    0.000 /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/networkx/classes/coreviews.py:44(__init__)
 42482524/36870945    6.261    0.000    7.641    0.000 {built-in method builtins.len}
- 22335232    5.434    0.000    7.411    0.000 /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/networkx/classes/reportviews.py:599(<genexpr>)
+22335232    5.434    0.000    7.411    0.000 /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/networkx/classes/reportviews.py:599(<genexpr>)
+```

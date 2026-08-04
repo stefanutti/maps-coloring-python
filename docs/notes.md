@@ -16,7 +16,7 @@ Ho fatto review statica e verifiche locali. Nessuna modifica al codice.
 
 ### Verification
 
-`pytest tests -q` passa con 26 passed; smoke `python 4ct.py -s4 -r1 10` da `ct/` passa, ma non esercita davvero la fase F5.
+`pytest tests -q` passa con 26 passed; smoke `python 4ct.py -s4 -r1 10` da `ct/` passa, ma non esercita davvero la fase `F5`.
 
 ### Performance
 
@@ -155,7 +155,7 @@ After any edge removal:
 - If a new **`F4`** face appears:
 
   - **Immediately process it** using the `F4` rule (from Phase 1).
-  - This has priority over continuing with F5-based reductions.
+  - This has priority over continuing with `F5`-based reductions.
   - Consider this removal as part of the local selection and add this face to the **recently modified faces**
 
 ---
@@ -227,18 +227,23 @@ Implement clean, well-documented, and testable code.
   - Fallback: se né `F5-F5` né `F5-F6` producono candidati validi, applica la regola "max neighbor" sulle `F5`.
 
 ### Vincolo di località
+
 - Dopo la prima selezione, le selezioni successive devono essere ristrette alle facce adiacenti alla faccia risultante dal merge prodotta dall'iterazione precedente (cioè al `f1_plus_f2_temp` restituito). Se in quel vicinato non si trova nessun candidato valido, rilascia il vincolo e cerca globalmente.
 
 ### Implementazione dello stato
+
 - Lo stato `prev_face` deve vivere nel chiamante come variabile locale del ciclo `for i_execution`, e deve essere passato come parametro alla strategia e riaggiornato col valore di ritorno. Non usare classi, non usare attributi di funzione, non usare variabili globali. Il programma non contiene classi e voglio mantenere lo stile a funzioni. Cambia la firma delle 3 strategie esistenti e passa `prev_face = None`. La strategia nuova invece accetta e restituisce davvero `prev_face`.
 
 ### Interfaccia CLI
+
 - Aggiungi un nuovo argomento `-s4` / `--selection4` al `group_selection` (mutuamente esclusivo con gli altri, come `-s1`/`-s2`/`-s3`) e aggiungi il relativo ramo nel dispatch della `selection_strategy`.
 
 ### Identificazione di `prev_face` tra un'iterazione e l'altra
+
 - Il `f1_plus_f2_temp` restituito viene inserito in `g_faces` dal chiamante come stesso oggetto-lista (identity preserved). Alla chiamata successiva, per ritrovarlo in `g_faces`, usa il confronto per identità `face is prev_face`, non per uguaglianza. Se non lo trovi (perché è stato assorbito da un ulteriore merge in qualche caso limite), considera `prev_face = None` e cerca globalmente.
 
 ### Cosa ti chiedo
+
 - Leggi `4ct.py` e `ct_graph_utils.py` per verificare strutture dati, nomi e righe esatte, poi applica queste modifiche:
   - Aggiungi la funzione `select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, prev_face=None)` che implementa l'algoritmo descritto e ritorna `(edge, f1, f2, f1_plus_f2_temp, new_prev_face)`.
   - Aggiungi l'argomento CLI `-s4` / `--selection4`.
@@ -784,5 +789,5 @@ else:
         1    0.111    0.111    9.158    9.158 /Users/mario.stefanutti/mario/programming/4ct/maps-coloring-python/ct/4ct.py:1221(reduce_faces)
  68970346    9.150    0.000    9.150    0.000 /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/networkx/classes/coreviews.py:44(__init__)
 42482524/36870945    6.261    0.000    7.641    0.000 {built-in method builtins.len}
-22335232    5.434    0.000    7.411    0.000 /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/networkx/classes/reportviews.py:599(<genexpr>)
+ 22335232    5.434    0.000    7.411    0.000 /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/networkx/classes/reportviews.py:599(<genexpr>)
 ```

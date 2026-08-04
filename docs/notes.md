@@ -50,7 +50,7 @@ You are an expert algorithm designer and graph theorist.
 
 ### Task
 
-Read the ct/4ct.py and the ct/ct_graph_utils.py files to understand what is implemented.
+Read the `ct/4ct.py` and the `ct/ct_graph_utils.py` files to understand what is implemented.
 
 Modify the `--selection4` algorithm that performs **iterative edge-removal reduction** on a **planar 3-regular graph (cubic planar graph)** based on face configurations.
 
@@ -59,14 +59,14 @@ Modify the `--selection4` algorithm that performs **iterative edge-removal reduc
 ### Definitions
 
 - The graph is planar and embedded (faces are explicitly available).
-- Each face has a size equal to the number of edges (F2, F3, F4, F5, F6, etc.).
+- Each face has a size equal to the number of edges (`F2`, `F3`, `F4`, `F5`, `F6`, etc.).
 - Two faces are *adjacent* if they share an edge.
 - Configurations:
-  - **F2**: face with 2 edges
-  - **F3**: face with 3 edges
-  - **F4**: face with 4 edges
-  - **F5-F5**: two adjacent faces both of size 5
-  - **F5-F6**: two adjacent faces of size 5 and 6
+  - **`F2`**: face with 2 edges
+  - **`F3`**: face with 3 edges
+  - **`F4`**: face with 4 edges
+  - **`F5-F5`**: two adjacent faces both of size 5
+  - **`F5-F6`**: two adjacent faces of size 5 and 6
 
 ---
 
@@ -74,20 +74,20 @@ Modify the `--selection4` algorithm that performs **iterative edge-removal reduc
 
 The algorithm proceeds in **two phases**:
 
-#### Phase 1 — Eliminate small faces (F2, F3, F4)
+#### Phase 1 — Eliminate small faces (`F2`, `F3`, `F4`)
 
-Repeat until no F2, F3, or F4 faces remain:
+Repeat until no `F2`, `F3`, or `F4` faces remain:
 
 1. Select **any face randomly** among all faces of type `F2`, `F3`, or `F4`, in the order specified by the parameter `--choices`.
 
 2. Apply the following rules:
 
-   - **F2**:
+   - **`F2`**:
 
      - Remove **one of its two edges randomly**.
      - No additional constraints.
 
-   - **F3 or F4**:
+   - **`F3` or `F4`**:
 
      - Select an edge of the face such that the adjacent face sharing that edge has the **largest size** among candidates.
      - Remove that edge.
@@ -95,18 +95,18 @@ Repeat until no F2, F3, or F4 faces remain:
 3. After each removal:
 
    - Update the planar embedding and face structure.
-   - Continue until no F2, F3, F4 remain anywhere in the graph.
+   - Continue until no `F2`, `F3`, `F4` remain anywhere in the graph.
 
 ---
 
-#### Phase 2 — Handle unavoidable configurations (F5-F6, F5-F5)
+#### Phase 2 — Handle unavoidable configurations (`F5-F6`, `F5-F5`)
 
-At this point, the graph contains only configurations involving F5 and F6.
+At this point, the graph contains only configurations involving `F5` and `F6`.
 
 ##### Priority Order:
 
-1. **F5-F6 (highest priority)**
-2. **F5-F5**
+1. **`F5-F6` (highest priority)**
+2. **`F5-F5`**
 
 ---
 
@@ -127,24 +127,24 @@ The reduction should proceed **locally** whenever possible:
 From the neighborhood of recently modified faces:
 
 0. After the Phase 1, the **recently modified faces** is not set
-1. If there exists an **F5-F5 configuration**, select it.
-2. Else if there exists an **F5-F6 configuration**, select it.
+1. If there exists an **`F5-F5` configuration**, select it.
+2. Else if there exists an **`F5-F6` configuration**, select it.
 3. Else fallback (see below).
 
 ---
 
 #### Step 2 — Edge removal rules
 
-- **F5-F5**:
+- **`F5-F5`**:
 
   - Apply the corresponding rule already defined in the program.
-  - This should transform the other F5 into an F4.
+  - This should transform the other `F5` into an `F4`.
 
-- **F5-F6**:
+- **`F5-F6`**:
 
-  - Select one of the two edges belonging to the **F5 face** that shares a **vertex with the F6 face**.
+  - Select one of the two edges belonging to the **`F5` face** that shares a **vertex with the `F6` face**.
   - Remove that edge.
-  - This should transform the F6 into an F5.
+  - This should transform the `F6` into an `F5`.
 
 ---
 
@@ -152,9 +152,9 @@ From the neighborhood of recently modified faces:
 
 After any edge removal:
 
-- If a new **F4** face appears:
+- If a new **`F4`** face appears:
 
-  - **Immediately process it** using the F4 rule (from Phase 1).
+  - **Immediately process it** using the `F4` rule (from Phase 1).
   - This has priority over continuing with F5-based reductions.
   - Consider this removal as part of the local selection and add this face to the **recently modified faces**
 
@@ -162,10 +162,10 @@ After any edge removal:
 
 #### Step 4 — Fallback Strategy
 
-If no valid configuration (F5-F6 or F5-F5) exists in the local neighborhood:
+If no valid configuration (`F5-F6` or `F5-F5`) exists in the local neighborhood:
 
 - Select **globally at random**:
-  - Any available F5-F5, otherwise F5-F6.
+  - Any available `F5-F5`, otherwise `F5-F6`.
 - Restart local expansion from that point.
 
 ---
@@ -221,7 +221,7 @@ Implement clean, well-documented, and testable code.
 ### Algoritmo da implementare
 
 - Regola base per le facce `F2`, `F3`, `F4`: tra tutte le facce di quella specifica dimensione (esempio `F2`), scegli l'edge la cui faccia dall'altra parte (non quella scelta) ha il numero massimo di edge. Prima esaurisci tutte le `F2`, poi le `F3`, poi le `F4`.
-- Regola per F5 (solo quando non ci sono più F2, F3, F4):
+- Regola per `F5` (solo quando non ci sono più `F2`, `F3`, `F4`):
   - Coppia `F5-F5`: per ogni coppia di `F5` adiacenti, considera le 4 edge incidenti ai due vertici dell'edge condivisa, escludendo quindi l'edge condivisa stessa. Scegli quella in cui la faccia adiacente alle 2 `F5` ha il numero massimo di edge.
   - Coppia `F5-F6`: stessa identica logica ma con una `F5` adiacente a una `F6`.
   - Fallback: se né `F5-F5` né `F5-F6` producono candidati validi, applica la regola "max neighbor" sulle `F5`.
@@ -239,11 +239,11 @@ Implement clean, well-documented, and testable code.
 - Il `f1_plus_f2_temp` restituito viene inserito in `g_faces` dal chiamante come stesso oggetto-lista (identity preserved). Alla chiamata successiva, per ritrovarlo in `g_faces`, usa il confronto per identità `face is prev_face`, non per uguaglianza. Se non lo trovi (perché è stato assorbito da un ulteriore merge in qualche caso limite), considera `prev_face = None` e cerca globalmente.
 
 ### Cosa ti chiedo
-- Leggi 4ct.py e ct_graph_utils.py per verificare strutture dati, nomi e righe esatte, poi applica queste modifiche:
-  - Aggiungi la funzione select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, prev_face=None) che implementa l'algoritmo descritto e ritorna (edge, f1, f2, f1_plus_f2_temp, new_prev_face).
-  - Aggiungi l'argomento CLI -s4 / --selection4.
-  - Nel ciclo for i_execution, inizializza prev_face = None subito dopo initialize_statistics().
-  - Modifica la chiamata selection_strategy(g_faces, choices, i_global_counter) per passare prev_face e riassegnarlo col valore di ritorno: edge_to_remove, f1, f2, f1_plus_f2_temp, prev_face = selection_strategy(g_faces, choices, i_global_counter, prev_face).
+- Leggi `4ct.py` e `ct_graph_utils.py` per verificare strutture dati, nomi e righe esatte, poi applica queste modifiche:
+  - Aggiungi la funzione `select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, prev_face=None)` che implementa l'algoritmo descritto e ritorna `(edge, f1, f2, f1_plus_f2_temp, new_prev_face)`.
+  - Aggiungi l'argomento CLI `-s4` / `--selection4`.
+  - Nel ciclo `for i_execution`, inizializza `prev_face = None` subito dopo `initialize_statistics()`.
+  - Modifica la chiamata `selection_strategy(g_faces, choices, i_global_counter)` per passare `prev_face` e riassegnarlo col valore di ritorno: `edge_to_remove, f1, f2, f1_plus_f2_temp, prev_face = selection_strategy(g_faces, choices, i_global_counter, prev_face)`.
 
 ## 20 May 2017 — Edge diagnostics
 

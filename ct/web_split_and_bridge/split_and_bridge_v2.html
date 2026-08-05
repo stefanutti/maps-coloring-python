@@ -488,6 +488,8 @@
           <div class="config-grid">
             <div class="field"><label class="field-label" for="cfgEdgeWidth">Spessore archi</label><div class="control-row"><input id="cfgEdgeWidth" type="number" min="1" step="1" value="1" /><button type="button" class="reset-btn" data-reset-target="cfgEdgeWidth" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
             <div class="field"><label class="field-label" for="cfgNodeWidth">Dimensione nodi</label><div class="control-row"><input id="cfgNodeWidth" type="number" min="2" step="1" value="5" /><button type="button" class="reset-btn" data-reset-target="cfgNodeWidth" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgNodeLabelFontSize">Dimensione caratteri nodi</label><div class="control-row"><input id="cfgNodeLabelFontSize" type="number" min="8" step="1" value="11" /><button type="button" class="reset-btn" data-reset-target="cfgNodeLabelFontSize" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgEdgeLabelFontSize">Dimensione caratteri archi</label><div class="control-row"><input id="cfgEdgeLabelFontSize" type="number" min="7" step="1" value="9" /><button type="button" class="reset-btn" data-reset-target="cfgEdgeLabelFontSize" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
             <div class="field"><label class="field-label" for="cfgNodeColor">Colore nodi</label><div class="control-row"><input id="cfgNodeColor" type="color" value="#33cc66" /><button type="button" class="reset-btn" data-reset-target="cfgNodeColor" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
             <div class="field"><label class="field-label" for="cfgEdgeColor">Colore archi</label><div class="control-row"><input id="cfgEdgeColor" type="color" value="#999999" /><button type="button" class="reset-btn" data-reset-target="cfgEdgeColor" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
           </div>
@@ -713,6 +715,8 @@
       positionScale: 300,
       nodeBaseSize: 5,
       nodeColor: '#33cc66',
+      nodeLabelFontSize: 11,
+      edgeLabelFontSize: 9,
       physics: {
         repulsion: 0,        // arrotondato da 0.002
         springStrength: 2,   // da 2.08
@@ -730,6 +734,8 @@
       positionScale: DEFAULT_CONFIG.positionScale,
       nodeBaseSize: DEFAULT_CONFIG.nodeBaseSize,
       nodeColor: DEFAULT_CONFIG.nodeColor,
+      nodeLabelFontSize: DEFAULT_CONFIG.nodeLabelFontSize,
+      edgeLabelFontSize: DEFAULT_CONFIG.edgeLabelFontSize,
       physics: { ...DEFAULT_CONFIG.physics }
     };
 
@@ -1634,6 +1640,8 @@
       ensurePhysicsVelocities();
       applyNodeBaseSize(config.nodeBaseSize);
       applyEdgeBaseWidth(config.edgeBaseWidth);
+      applyNodeLabelFontSize(config.nodeLabelFontSize);
+      applyEdgeLabelFontSize(config.edgeLabelFontSize);
       syncSplitEdgeSelectionToCy();
       debug('cy.sync.end', `nodes=${state.cy.nodes().length} edges=${state.cy.edges().length}`);
       updateGraphStats();
@@ -1660,7 +1668,7 @@
               height: config.nodeBaseSize,
               label: 'data(label)',
               color: '#f3f1eb',
-              'font-size': 11,
+              'font-size': config.nodeLabelFontSize,
               'font-weight': 600,
               'text-margin-y': -12,
               'text-background-color': '#171d23',
@@ -1684,7 +1692,7 @@
               'edge-distances': 'node-position',
               label: 'data(label)',
               color: '#f3f1eb',
-              'font-size': 9,
+              'font-size': config.edgeLabelFontSize,
               'font-weight': 600,
               'text-rotation': 'autorotate',
               'text-outline-color': '#11161b',
@@ -1713,6 +1721,8 @@
       applyLabelVisibility();
       applyNodeBaseSize(config.nodeBaseSize);
       applyEdgeBaseWidth(config.edgeBaseWidth);
+      applyNodeLabelFontSize(config.nodeLabelFontSize);
+      applyEdgeLabelFontSize(config.edgeLabelFontSize);
       syncSplitEdgeSelectionToCy();
       debug('cy.init.end', `nodes=${state.cy.nodes().length} edges=${state.cy.edges().length}`);
     }
@@ -1994,6 +2004,20 @@
       }
     }
 
+    function applyNodeLabelFontSize(size) {
+      const resolved = Number.isFinite(size) ? size : config.nodeLabelFontSize;
+      const fontSize = Math.max(8, resolved);
+      if (!state.cy) return;
+      state.cy.style().selector('node').style('font-size', fontSize).update();
+    }
+
+    function applyEdgeLabelFontSize(size) {
+      const resolved = Number.isFinite(size) ? size : config.edgeLabelFontSize;
+      const fontSize = Math.max(7, resolved);
+      if (!state.cy) return;
+      state.cy.style().selector('edge').style('font-size', fontSize).update();
+    }
+
     const CONFIG_CONTROL_DEFS = [
       {
         id: 'cfgEdgeWidth', path: ['edgeBaseWidth'], type: 'number', min: 1, step: 1,
@@ -2002,6 +2026,14 @@
       {
         id: 'cfgNodeWidth', path: ['nodeBaseSize'], type: 'number', min: 2, step: 1,
         onUpdate: v => { applyNodeBaseSize(v); }
+      },
+      {
+        id: 'cfgNodeLabelFontSize', path: ['nodeLabelFontSize'], type: 'number', min: 8, step: 1,
+        onUpdate: value => { applyNodeLabelFontSize(value); }
+      },
+      {
+        id: 'cfgEdgeLabelFontSize', path: ['edgeLabelFontSize'], type: 'number', min: 7, step: 1,
+        onUpdate: value => { applyEdgeLabelFontSize(value); }
       },
       {
         id: 'cfgPhysicsSpringLength', path: ['physics', 'springLength'], type: 'number', min: 0, step: 1,

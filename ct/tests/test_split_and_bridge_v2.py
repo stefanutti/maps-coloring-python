@@ -11,7 +11,8 @@ V2 = CT_ROOT / "web_split_and_bridge/split_and_bridge_v2.html"
 REQUIRED_IDS = {
     "graph-container", "edgeSplitInput", "btnSplitEdges", "btnExportDot",
     "toggleNodeLabels", "toggleEdgeLabels", "toggleDebug", "cfgEdgeWidth",
-    "cfgNodeWidth", "cfgPhysicsSpringLength", "cfgPhysicsRepulsion",
+    "cfgNodeWidth", "cfgNodeLabelFontSize", "cfgEdgeLabelFontSize",
+    "cfgPhysicsSpringLength", "cfgPhysicsRepulsion",
     "cfgPhysicsSpringStrength", "cfgPhysicsDamping",
     "cfgPhysicsMaxVelocity", "cfgNodeColor", "cfgEdgeColor",
 }
@@ -220,7 +221,10 @@ def test_graph_labels_have_readable_contrast_and_size(tmp_path):
     harness = """
 let capturedOptions = null;
 const state = { cy: null };
-const config = { nodeBaseSize: 5, edgeBaseWidth: 1 };
+const config = {
+  nodeBaseSize: 5, edgeBaseWidth: 1,
+  nodeLabelFontSize: 11, edgeLabelFontSize: 9
+};
 const container = {};
 function debug() {}
 function buildCytoscapeElements() { return []; }
@@ -228,6 +232,8 @@ function setupCytoscapeInteractions() {}
 function applyLabelVisibility() {}
 function applyNodeBaseSize() {}
 function applyEdgeBaseWidth() {}
+function applyNodeLabelFontSize() {}
+function applyEdgeLabelFontSize() {}
 function syncSplitEdgeSelectionToCy() {}
 function cytoscape(options) {
   capturedOptions = options;
@@ -424,7 +430,8 @@ def test_v2_places_secondary_controls_in_dock_and_groups_parameters():
     assert "group-transform" in parser.ancestor_ids_by_id["btnSplitEdges"]
     assert "group-transform" not in parser.ancestor_ids_by_id["btnExportDot"]
     appearance_controls = {
-        "cfgEdgeWidth", "cfgNodeWidth", "cfgNodeColor", "cfgEdgeColor",
+        "cfgEdgeWidth", "cfgNodeWidth", "cfgNodeLabelFontSize",
+        "cfgEdgeLabelFontSize", "cfgNodeColor", "cfgEdgeColor",
     }
     physics_controls = {
         "cfgPhysicsSpringLength", "cfgPhysicsRepulsion",
@@ -435,9 +442,85 @@ def test_v2_places_secondary_controls_in_dock_and_groups_parameters():
                for control in appearance_controls)
     assert all("group-physics" in parser.ancestor_ids_by_id[control]
                for control in physics_controls)
+    assert parser.attributes_by_id["cfgNodeLabelFontSize"]["value"] == "11"
+    assert parser.attributes_by_id["cfgNodeLabelFontSize"]["min"] == "8"
+    assert parser.attributes_by_id["cfgEdgeLabelFontSize"]["value"] == "9"
+    assert parser.attributes_by_id["cfgEdgeLabelFontSize"]["min"] == "7"
     assert parser.text("appearanceTitle") == "Aspetto"
     assert parser.text("physicsTitle") == "Fisica"
     assert parser.text("appTitle") == "4CT Split & Bridge"
+
+
+def test_label_font_size_controls_update_and_reset_config_and_renderer(tmp_path):
+    source = V2.read_text(encoding="utf-8")
+    config_state = source[
+        source.index("    const DEFAULT_CONFIG"):
+        source.index("    function createApplicationState")
+    ]
+    node_label_size = javascript_function(
+        source, "applyNodeLabelFontSize", "applyEdgeLabelFontSize"
+    )
+    edge_label_start = source.index("    function applyEdgeLabelFontSize(")
+    edge_label_end = source.index("\n    const CONFIG_CONTROL_DEFS", edge_label_start)
+    edge_label_size = source[edge_label_start:edge_label_end]
+    config_controls_start = source.index("    const CONFIG_CONTROL_DEFS")
+    config_controls_end = source.index("\n    function setupConfigControls", config_controls_start)
+    config_controls = source[config_controls_start:config_controls_end]
+    harness = """
+const elements = new Map([
+  ['cfgNodeLabelFontSize', { value: '' }],
+  ['cfgEdgeLabelFontSize', { value: '' }]
+]);
+global.document = { getElementById: id => elements.get(id) || null };
+const styleValues = {};
+const styleApi = {
+  selector(name) { this.selectorName = name; return this; },
+  style(name, value) { styleValues[this.selectorName] = value; return this; },
+  update() { return this; }
+};
+const state = { cy: { style() { return styleApi; } } };
+""" + config_state + node_label_size + edge_label_size + config_controls + """
+const nodeDef = CONFIG_CONTROL_DEFS.find(def => def.id === 'cfgNodeLabelFontSize');
+const edgeDef = CONFIG_CONTROL_DEFS.find(def => def.id === 'cfgEdgeLabelFontSize');
+applyConfigChange(nodeDef, '14');
+applyConfigChange(edgeDef, '12');
+const updated = {
+  nodeConfig: config.nodeLabelFontSize,
+  edgeConfig: config.edgeLabelFontSize,
+  nodeStyle: styleValues.node,
+  edgeStyle: styleValues.edge
+};
+resetConfigControl(nodeDef);
+resetConfigControl(edgeDef);
+console.log(JSON.stringify({
+  updated,
+  reset: {
+    nodeConfig: config.nodeLabelFontSize,
+    edgeConfig: config.edgeLabelFontSize,
+    nodeInput: elements.get('cfgNodeLabelFontSize').value,
+    edgeInput: elements.get('cfgEdgeLabelFontSize').value,
+    nodeStyle: styleValues.node,
+    edgeStyle: styleValues.edge
+  }
+}));
+"""
+    result = run_node_harness(tmp_path, "label-font-size-controls.js", harness)
+    assert result == {
+        "updated": {
+            "nodeConfig": 14,
+            "edgeConfig": 12,
+            "nodeStyle": 14,
+            "edgeStyle": 12,
+        },
+        "reset": {
+            "nodeConfig": 11,
+            "edgeConfig": 9,
+            "nodeInput": "11",
+            "edgeInput": "9",
+            "nodeStyle": 11,
+            "edgeStyle": 9,
+        },
+    }
 
 
 def test_v2_successful_command_clears_selection_input_and_prevents_reuse(tmp_path):

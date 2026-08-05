@@ -102,6 +102,22 @@ def css_declarations(source, selector):
     return declarations
 
 
+def css_declarations_in_media(source, media_query, selector):
+    match = re.search(
+        rf"@media\s*\({re.escape(media_query)}\)\s*\{{.*?"
+        rf"{re.escape(selector)}\s*\{{([^{{}}]*)\}}",
+        source,
+        re.S,
+    )
+    assert match, f"{selector} must be defined inside @media ({media_query})"
+    declarations = {}
+    for declaration in match.group(1).split(";"):
+        if ":" in declaration:
+            property_name, value = declaration.split(":", 1)
+            declarations[property_name.strip()] = value.strip()
+    return declarations
+
+
 def resolve_css_color(source, value):
     variable_match = re.fullmatch(r"var\((--[\w-]+)\)", value)
     if not variable_match:
@@ -556,5 +572,11 @@ def test_v2_visual_contract_has_contrast_texture_and_responsive_dock():
     assert command_card["top"] == "1rem"
     assert command_card["left"] == "1rem"
     assert command_card["right"] == "auto"
+    responsive_command_card = css_declarations_in_media(
+        source, "max-width: 760px", ".command-card"
+    )
+    assert responsive_command_card["top"] == "1rem"
+    assert responsive_command_card["left"] == "1rem"
+    assert responsive_command_card["right"] == "auto"
     tool_dock = css_declarations(source, ".tool-dock")
     assert tool_dock["flex-wrap"] == "wrap"

@@ -472,12 +472,14 @@ const elements = new Map([
   ['cfgEdgeLabelFontSize', { value: '' }]
 ]);
 global.document = { getElementById: id => elements.get(id) || null };
-const styleValues = {};
-const styleUpdates = [];
+const styleCalls = [];
 const styleApi = {
-  selector(name) { this.selectorName = name; return this; },
-  style(name, value) { styleValues[this.selectorName] = value; return this; },
-  update() { styleUpdates.push(this.selectorName); return this; }
+  selector(selector) { this.selectorName = selector; return this; },
+  style(property, value) {
+    styleCalls.push([this.selectorName, property, value]);
+    return this;
+  },
+  update() { styleCalls.push([this.selectorName, 'update']); return this; }
 };
 const state = { cy: { style() { return styleApi; } } };
 """ + config_state + node_label_size + edge_label_size + config_controls + """
@@ -488,8 +490,7 @@ applyConfigChange(edgeDef, '12');
 const updated = {
   nodeConfig: config.nodeLabelFontSize,
   edgeConfig: config.edgeLabelFontSize,
-  nodeStyle: styleValues.node,
-  edgeStyle: styleValues.edge
+  styleCalls: [...styleCalls]
 };
 resetConfigControl(nodeDef);
 resetConfigControl(edgeDef);
@@ -500,10 +501,8 @@ console.log(JSON.stringify({
     edgeConfig: config.edgeLabelFontSize,
     nodeInput: elements.get('cfgNodeLabelFontSize').value,
     edgeInput: elements.get('cfgEdgeLabelFontSize').value,
-    nodeStyle: styleValues.node,
-    edgeStyle: styleValues.edge
-  },
-  styleUpdates: styleUpdates
+    styleCalls: styleCalls.slice(updated.styleCalls.length)
+  }
 }));
 """
     result = run_node_harness(tmp_path, "label-font-size-controls.js", harness)
@@ -511,18 +510,83 @@ console.log(JSON.stringify({
         "updated": {
             "nodeConfig": 14,
             "edgeConfig": 12,
-            "nodeStyle": 14,
-            "edgeStyle": 12,
+            "styleCalls": [
+                ["node", "font-size", 14], ["node", "update"],
+                ["edge", "font-size", 12], ["edge", "update"],
+            ],
         },
         "reset": {
             "nodeConfig": 11,
             "edgeConfig": 9,
             "nodeInput": "11",
             "edgeInput": "9",
-            "nodeStyle": 11,
-            "edgeStyle": 9,
+            "styleCalls": [
+                ["node", "font-size", 11], ["node", "update"],
+                ["edge", "font-size", 9], ["edge", "update"],
+            ],
         },
-        "styleUpdates": ["node", "edge", "node", "edge"],
+    }
+
+
+def test_label_font_sizes_are_reapplied_after_sync_replaces_elements(tmp_path):
+    source = V2.read_text(encoding="utf-8")
+    sync = javascript_function(source, "syncGraphToCytoscape", "initializeCytoscapeRenderer")
+    node_label_size = javascript_function(
+        source, "applyNodeLabelFontSize", "applyEdgeLabelFontSize"
+    )
+    edge_label_start = source.index("    function applyEdgeLabelFontSize(")
+    edge_label_end = source.index("\n    const CONFIG_CONTROL_DEFS", edge_label_start)
+    edge_label_size = source[edge_label_start:edge_label_end]
+    harness = """
+const replacements = [];
+const styleCalls = [];
+const config = {
+  nodeBaseSize: 5,
+  edgeBaseWidth: 1,
+  nodeLabelFontSize: 17,
+  edgeLabelFontSize: 13
+};
+function debug() {}
+function buildCytoscapeElements() { return [{ data: { id: 'replacement' } }]; }
+function ensurePhysicsVelocities() {}
+function applyNodeBaseSize() {}
+function applyEdgeBaseWidth() {}
+function syncSplitEdgeSelectionToCy() {}
+function updateGraphStats() {}
+function styleSession() {
+  const call = { selector: null, styles: [], updated: false };
+  styleCalls.push(call);
+  return {
+    selector(selector) { call.selector = selector; return this; },
+    style(property, value) { call.styles.push([property, value]); return this; },
+    update() { call.updated = true; return this; }
+  };
+}
+const cy = {
+  pan(value) { if (value) { this.lastPan = value; return this; } return { x: 4, y: 8 }; },
+  zoom(value) { if (value !== undefined) { this.lastZoom = value; return this; } return 1.5; },
+  batch(callback) { callback(); },
+  elements() { return { remove() { replacements.push('remove'); } }; },
+  add(elements) { replacements.push(['add', elements.map(element => element.data.id)]); },
+  style() { return styleSession(); },
+  nodes() { return { length: 1 }; },
+  edges() { return { length: 0 }; }
+};
+const state = { cy, graph: null };
+""" + node_label_size + edge_label_size + sync + """
+syncGraphToCytoscape();
+const labelCalls = styleCalls.flatMap(call => call.styles
+  .filter(([property]) => property === 'font-size')
+  .map(([property, value]) => [call.selector, property, value, call.updated]));
+console.log(JSON.stringify({ replacements, labelCalls }));
+"""
+    result = run_node_harness(tmp_path, "label-font-size-sync.js", harness)
+    assert result == {
+        "replacements": ["remove", ["add", ["replacement"]]],
+        "labelCalls": [
+            ["node", "font-size", 17, True],
+            ["edge", "font-size", 13, True],
+        ],
     }
 
 

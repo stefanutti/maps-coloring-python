@@ -32,6 +32,8 @@
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       margin: 0;
+      height: 100vh;
+      height: 100dvh;
       min-height: 100vh;
       display: grid;
       grid-template-rows: 52px minmax(0, 1fr);
@@ -93,7 +95,12 @@
     #graph-container {
       position: absolute;
       inset: 0;
-      background: var(--graphite-950);
+      background-color: var(--graphite-950);
+      background-image:
+        radial-gradient(circle at 50% 42%, rgba(88, 214, 155, .045), transparent 48%),
+        radial-gradient(circle, rgba(243, 241, 235, .075) 1px, transparent 1px);
+      background-position: 0 0, 0 0;
+      background-size: 100% 100%, 22px 22px;
     }
 
     .command-card,
@@ -110,7 +117,9 @@
     .command-card {
       position: absolute;
       top: 1rem;
-      left: 1rem;
+      right: 1rem;
+      left: auto;
+      z-index: 12;
       width: min(22rem, calc(100% - 2rem));
       padding: 1rem;
       border-radius: var(--radius);
@@ -145,21 +154,55 @@
       font-size: .78rem;
     }
 
+    .action-status[data-tone="success"] {
+      color: var(--green);
+    }
+
+    .action-status[data-tone="error"] {
+      color: var(--danger);
+    }
+
+    .selection-status,
+    .interaction-hint {
+      margin: .5rem 0 0;
+      color: var(--muted);
+      font-size: .72rem;
+    }
+
+    .selection-status {
+      color: var(--ink);
+    }
+
     .tool-dock {
       position: absolute;
       bottom: 1rem;
       left: 50%;
+      z-index: 12;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: max-content;
       max-width: calc(100% - 2rem);
       padding: .55rem;
-      border-radius: 999px;
+      border-radius: var(--radius);
       transform: translateX(-50%);
     }
 
-    .tool-dock__hint {
-      padding: .15rem .35rem;
-      color: var(--muted);
+    .dock-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      min-height: 2rem;
+      padding: .35rem .5rem;
+      color: var(--ink);
       font-size: .72rem;
       white-space: nowrap;
+    }
+
+    .dock-toggle input {
+      width: 1rem;
+      height: 1rem;
+      margin: 0;
+      accent-color: var(--green);
     }
 
     .settings-backdrop {
@@ -182,11 +225,13 @@
       background: var(--panel-fallback);
       background: var(--panel-strong);
       transform: translateX(calc(100% + 1rem));
+      pointer-events: none;
       transition: transform var(--transition);
     }
 
     .settings-drawer[aria-hidden="false"] {
       transform: translateX(0);
+      pointer-events: auto;
     }
 
     .drawer-header {
@@ -363,14 +408,21 @@
 
       .command-card {
         top: .7rem;
+        right: .7rem;
         left: .7rem;
-        width: calc(100% - 1.4rem);
+        width: auto;
       }
 
       .tool-dock {
         bottom: .7rem;
         gap: .4rem;
+        width: calc(100% - 1.4rem);
         padding: .4rem;
+      }
+
+      .tool-dock button,
+      .dock-toggle {
+        flex: 0 1 auto;
       }
 
       .config-grid {
@@ -397,11 +449,8 @@
 <body>
   <header class="app-header">
     <div class="app-header__meta">
-      <h1><span class="brand">4CT</span> Grafo planare incrementale</h1>
+      <h1 id="appTitle"><span class="brand">4CT</span> Split &amp; Bridge</h1>
       <span id="graphStats" class="graph-stats">In attesa del grafo</span>
-    </div>
-    <div class="app-header__actions">
-      <button id="btnOpenSettings" type="button" class="quiet" aria-controls="settingsDrawer" aria-expanded="false">Impostazioni</button>
     </div>
   </header>
   <main class="workspace">
@@ -411,44 +460,46 @@
       <h2 id="commandTitle">Split &amp; Bridge</h2>
       <div class="field">
         <label class="field-label" for="edgeSplitInput">ID degli archi (n, m)</label>
-        <input id="edgeSplitInput" type="text" value="0, 1" />
+        <input id="edgeSplitInput" type="text" placeholder="0, 1" autocomplete="off" />
       </div>
+      <p id="selectionStatus" class="selection-status" aria-live="polite">0 di 2 archi selezionati</p>
       <div class="command-actions">
-        <button id="btnSplitEdges" type="button">Applica trasformazione</button>
-        <button id="btnExportDot" type="button" class="secondary">Esporta .dot</button>
+        <button id="btnSplitEdges" type="button">Split &amp; Bridge</button>
       </div>
       <p id="actionStatus" class="action-status" aria-live="polite">Pronto per una trasformazione.</p>
+      <p class="interaction-hint">Seleziona due archi con il clic destro oppure inserisci gli ID.</p>
     </section>
-    <nav class="tool-dock" aria-label="Strumenti del grafo">
-      <span class="tool-dock__hint">Usa le impostazioni per personalizzare il grafo.</span>
+    <nav id="toolDock" class="tool-dock" aria-label="Strumenti del grafo">
+      <label class="dock-toggle">Nodi<input type="checkbox" id="toggleNodeLabels" /></label>
+      <label class="dock-toggle">Archi<input type="checkbox" id="toggleEdgeLabels" /></label>
+      <label class="dock-toggle">Debug<input type="checkbox" id="toggleDebug" /></label>
+      <button id="btnExportDot" type="button" class="secondary compact">Esporta DOT</button>
+      <button id="btnOpenSettings" type="button" class="quiet" aria-controls="settingsDrawer" aria-expanded="false">Parametri</button>
     </nav>
     <div id="settingsBackdrop" class="settings-backdrop" hidden></div>
-    <aside id="settingsDrawer" class="settings-drawer" aria-hidden="true" aria-labelledby="settingsTitle">
+    <aside id="settingsDrawer" class="settings-drawer" aria-hidden="true" aria-labelledby="settingsTitle" inert>
       <div class="drawer-header">
         <h2 id="settingsTitle">Impostazioni</h2>
         <button id="btnCloseSettings" type="button" class="quiet" aria-label="Chiudi impostazioni">Chiudi</button>
       </div>
       <div id="controls">
-        <section class="drawer-section" id="group-labels" aria-labelledby="labelsTitle">
-          <h3 id="labelsTitle" class="drawer-section-title">Etichette</h3>
-          <div class="toggle-list">
-            <label class="switch">Etichette nodi<input type="checkbox" id="toggleNodeLabels" /></label>
-            <label class="switch">Etichette archi<input type="checkbox" id="toggleEdgeLabels" /></label>
-            <label class="switch">Debug<input type="checkbox" id="toggleDebug" /></label>
-          </div>
-        </section>
-        <section class="drawer-section" id="group-config" aria-labelledby="parametersTitle">
-          <h3 id="parametersTitle" class="drawer-section-title">Parametri</h3>
+        <section class="drawer-section" id="group-appearance" aria-labelledby="appearanceTitle">
+          <h3 id="appearanceTitle" class="drawer-section-title">Aspetto</h3>
           <div class="config-grid">
             <div class="field"><label class="field-label" for="cfgEdgeWidth">Spessore archi</label><div class="control-row"><input id="cfgEdgeWidth" type="number" min="1" step="1" value="1" /><button type="button" class="reset-btn" data-reset-target="cfgEdgeWidth" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
             <div class="field"><label class="field-label" for="cfgNodeWidth">Dimensione nodi</label><div class="control-row"><input id="cfgNodeWidth" type="number" min="2" step="1" value="5" /><button type="button" class="reset-btn" data-reset-target="cfgNodeWidth" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgNodeColor">Colore nodi</label><div class="control-row"><input id="cfgNodeColor" type="color" value="#33cc66" /><button type="button" class="reset-btn" data-reset-target="cfgNodeColor" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgEdgeColor">Colore archi</label><div class="control-row"><input id="cfgEdgeColor" type="color" value="#999999" /><button type="button" class="reset-btn" data-reset-target="cfgEdgeColor" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+          </div>
+        </section>
+        <section class="drawer-section" id="group-physics" aria-labelledby="physicsTitle">
+          <h3 id="physicsTitle" class="drawer-section-title">Fisica</h3>
+          <div class="config-grid">
             <div class="field"><label class="field-label" for="cfgPhysicsSpringLength">Lunghezza molle</label><div class="control-row"><input id="cfgPhysicsSpringLength" type="number" min="0" step="1" value="1" /><button type="button" class="reset-btn" data-reset-target="cfgPhysicsSpringLength" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
             <div class="field"><label class="field-label" for="cfgPhysicsRepulsion">Repulsione</label><div class="control-row"><input id="cfgPhysicsRepulsion" type="number" min="0" step="1" value="0" /><button type="button" class="reset-btn" data-reset-target="cfgPhysicsRepulsion" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
             <div class="field"><label class="field-label" for="cfgPhysicsSpringStrength">Forza molle</label><div class="control-row"><input id="cfgPhysicsSpringStrength" type="number" min="0" step="1" value="2" /><button type="button" class="reset-btn" data-reset-target="cfgPhysicsSpringStrength" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
             <div class="field"><label class="field-label" for="cfgPhysicsDamping">Smorzamento</label><div class="control-row"><input id="cfgPhysicsDamping" type="number" min="0" max="1" step="0.01" value="0" /><button type="button" class="reset-btn" data-reset-target="cfgPhysicsDamping" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
             <div class="field"><label class="field-label" for="cfgPhysicsMaxVelocity">Velocità massima</label><div class="control-row"><input id="cfgPhysicsMaxVelocity" type="number" min="1" step="1" value="5" /><button type="button" class="reset-btn" data-reset-target="cfgPhysicsMaxVelocity" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
-            <div class="field"><label class="field-label" for="cfgNodeColor">Colore nodi</label><div class="control-row"><input id="cfgNodeColor" type="color" value="#33cc66" /><button type="button" class="reset-btn" data-reset-target="cfgNodeColor" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
-            <div class="field"><label class="field-label" for="cfgEdgeColor">Colore archi</label><div class="control-row"><input id="cfgEdgeColor" type="color" value="#999999" /><button type="button" class="reset-btn" data-reset-target="cfgEdgeColor" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
           </div>
         </section>
       </div>
@@ -456,15 +507,85 @@
   </main>
 
   <script id="ui-layer">
+    let settingsOpen = false;
+
+    function settingsFocusableElements(drawer) {
+      if (!drawer || typeof drawer.querySelectorAll !== 'function') return [];
+      const selector = 'button, input, select, textarea, [href], [tabindex]:not([tabindex="-1"])';
+      return Array.from(drawer.querySelectorAll(selector)).filter(element => (
+        !element.disabled && !element.hidden && element.tabIndex !== -1
+      ));
+    }
+
     function setSettingsOpen(open) {
       const drawer = document.getElementById('settingsDrawer');
       const backdrop = document.getElementById('settingsBackdrop');
       const trigger = document.getElementById('btnOpenSettings');
       if (!drawer || !backdrop || !trigger) return;
-      drawer.classList.toggle('is-open', open);
-      drawer.setAttribute('aria-hidden', String(!open));
-      trigger.setAttribute('aria-expanded', String(open));
-      backdrop.hidden = !open;
+      const nextOpen = !!open;
+      const wasOpen = settingsOpen;
+      settingsOpen = nextOpen;
+      drawer.classList.toggle('is-open', nextOpen);
+      drawer.setAttribute('aria-hidden', String(!nextOpen));
+      drawer.inert = !nextOpen;
+      if (typeof drawer.toggleAttribute === 'function') {
+        drawer.toggleAttribute('inert', !nextOpen);
+      }
+      trigger.setAttribute('aria-expanded', String(nextOpen));
+      backdrop.hidden = !nextOpen;
+
+      if (nextOpen) {
+        const focusDrawer = () => {
+          if (!settingsOpen) return;
+          const closeButton = document.getElementById('btnCloseSettings');
+          const focusTarget = closeButton || settingsFocusableElements(drawer)[0];
+          if (focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus();
+        };
+        if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+          window.requestAnimationFrame(focusDrawer);
+        } else {
+          focusDrawer();
+        }
+      } else if (wasOpen && typeof trigger.focus === 'function') {
+        trigger.focus();
+      }
+    }
+
+    function handleSettingsKeydown(event) {
+      if (!settingsOpen) return;
+      const drawer = document.getElementById('settingsDrawer');
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setSettingsOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab' || !drawer) return;
+      const focusable = settingsFocusableElements(drawer);
+      if (!focusable.length) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !drawer.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || !drawer.contains(active))) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    function initializeSettingsDrawer() {
+      const trigger = document.getElementById('btnOpenSettings');
+      const closeButton = document.getElementById('btnCloseSettings');
+      const backdrop = document.getElementById('settingsBackdrop');
+      if (trigger) trigger.onclick = () => setSettingsOpen(true);
+      if (closeButton) closeButton.onclick = () => setSettingsOpen(false);
+      if (backdrop) backdrop.onclick = () => setSettingsOpen(false);
+      window.addEventListener('keydown', handleSettingsKeydown);
+      setSettingsOpen(false);
     }
 
     function updateGraphStats() {
@@ -479,30 +600,112 @@
       element.textContent = message;
       element.dataset.tone = tone;
     }
+
+    function updateSplitSelectionUi(tokens = []) {
+      const input = document.getElementById('edgeSplitInput');
+      const status = document.getElementById('selectionStatus');
+      const normalizedTokens = Array.isArray(tokens) ? tokens : [];
+      if (input) input.value = normalizedTokens.join(', ');
+      if (status) status.textContent = `${normalizedTokens.length} di 2 archi selezionati`;
+    }
+
+    function clearSplitEdgeSelection() {
+      state.selectedSplitEdges = [];
+      if (typeof syncSplitEdgeSelectionToCy === 'function') syncSplitEdgeSelectionToCy();
+      updateSplitSelectionUi([]);
+    }
+
+    function handleSplitAndBridgeCommand() {
+      const input = document.getElementById('edgeSplitInput');
+      const raw = input ? input.value : '';
+      const parts = raw.split(',').map(token => token.trim()).filter(Boolean);
+      if (parts.length !== 2) {
+        const message = 'Inserisci esattamente due ID separati da una virgola.';
+        debug('info', 'Inserire due edge (anche uguali) separate da virgola. Es: "0, 0"');
+        setActionStatus(message, 'error');
+        return { ok: false, message };
+      }
+      const result = splitAndBridgeEdges(parts[0], parts[1]);
+      setActionStatus(result.message, result.ok ? 'success' : 'error');
+      return result;
+    }
   </script>
 
-  <script>
+  <script id="bootstrap-layer">
+    function setGraphActionsEnabled(enabled) {
+      document.querySelectorAll('button, input').forEach(control => {
+        control.disabled = !enabled;
+      });
+    }
+
+    function showGraphStartupFailure(message) {
+      if (typeof setSettingsOpen === 'function') setSettingsOpen(false);
+      const status = document.getElementById('actionStatus');
+      if (status) {
+        status.textContent = message;
+        status.dataset.tone = 'error';
+      }
+      setGraphActionsEnabled(false);
+    }
+
+    function missingGraphDependencies(globalObject = window) {
+      const missing = [];
+      if (!globalObject.graphology ||
+          typeof globalObject.graphology.MultiUndirectedGraph !== 'function') {
+        missing.push('Graphology');
+      }
+      if (typeof globalObject.cytoscape !== 'function') missing.push('Cytoscape');
+      return missing;
+    }
+
+    function startGraphApplication(initialize, globalObject = window) {
+      const missing = missingGraphDependencies(globalObject);
+      if (missing.length) {
+        showGraphStartupFailure(
+          `Impossibile inizializzare il grafo: dipendenze non disponibili (${missing.join(', ')}). ` +
+          'Controlla la connessione e ricarica la pagina.'
+        );
+        return false;
+      }
+      try {
+        initialize();
+        setGraphActionsEnabled(true);
+        return true;
+      } catch (error) {
+        const detail = error && error.message ? error.message : 'errore sconosciuto';
+        showGraphStartupFailure(`Impossibile inizializzare il grafo: ${detail}`);
+        if (typeof console !== 'undefined') console.error(error);
+        return false;
+      }
+    }
+
+    let graphDiagnosticsInstalled = false;
+    function installGraphDiagnostics(globalObject = window) {
+      if (graphDiagnosticsInstalled) return;
+      graphDiagnosticsInstalled = true;
+      globalObject.addEventListener('error', event => {
+        const detail = event && event.message ? event.message : 'errore JavaScript';
+        showGraphStartupFailure(`Errore imprevisto: ${detail}`);
+      });
+      globalObject.addEventListener('unhandledrejection', event => {
+        const reason = event && event.reason;
+        const detail = reason && reason.message ? reason.message : String(reason || 'promessa rifiutata');
+        showGraphStartupFailure(`Errore imprevisto: ${detail}`);
+      });
+    }
+
+    installGraphDiagnostics(window);
+  </script>
+
+  <script id="application-layer">
     // Incremental planar graph generator with multi-edge visualization.
     // Uses Cytoscape.js + Graphology and a simple geometric intersection heuristic for planarity.
 
     // Configurazione e stato globale
     const container = document.getElementById('graph-container');
 
-    // Stato applicazione
-    const state = {
-      graph: new window.graphology.MultiUndirectedGraph(),
-      cy: null,
-      nextNodeId: 0,
-      nextEdgeId: 0,
-      showNodeLabels: false,
-      showEdgeLabels: true,
-      initialized: false,
-      currentLayout: 'preset',
-      edgeBendDrag: null,
-      edgeBendWindowListenerInstalled: false,
-      edgeContextMenuListenerInstalled: false,
-      selectedSplitEdges: []
-    };
+    // Stato applicazione: costruito solo dopo la validazione delle dipendenze.
+    let state = null;
 
     const DEFAULT_CONFIG = {
       edgeBaseWidth: 1,
@@ -530,7 +733,23 @@
       physics: { ...DEFAULT_CONFIG.physics }
     };
 
-    state.config = config;
+    function createApplicationState() {
+      return {
+        graph: new window.graphology.MultiUndirectedGraph(),
+        cy: null,
+        nextNodeId: 0,
+        nextEdgeId: 0,
+        showNodeLabels: false,
+        showEdgeLabels: true,
+        initialized: false,
+        currentLayout: 'preset',
+        edgeBendDrag: null,
+        edgeBendWindowListenerInstalled: false,
+        edgeContextMenuListenerInstalled: false,
+        selectedSplitEdges: [],
+        config
+      };
+    }
 
     const physics = {
       velocities: new Map(),
@@ -1086,20 +1305,34 @@
       debug('splitAndBridge.begin', `${tokA},${tokB}`);
       const { graph } = state;
       const keyA = findEdgeKeyFromUserToken(tokA);
-      if (!keyA) return { ok: false, message: `Arco "${tokA}" non trovato.` };
+      if (!keyA) {
+        const message = `Arco "${tokA}" non trovato.`;
+        debug('info', message);
+        return { ok: false, message };
+      }
       const keyB = findEdgeKeyFromUserToken(tokB);
-      if (!keyB) return { ok: false, message: `Arco "${tokB}" non trovato.` };
+      if (!keyB) {
+        const message = `Arco "${tokB}" non trovato.`;
+        debug('info', message);
+        return { ok: false, message };
+      }
       const sameEdge = keyA === keyB;
 
       if (sameEdge) {
         debug('info', `Modalità edge singola: trasformo due volte la stessa edge (chiave ${keyA}).`);
         const firstSplit = splitEdge(keyA);
-        if (!firstSplit) return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
+        if (!firstSplit) {
+          debug('info', `Split fallito per l’arco ${keyA}.`);
+          return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
+        }
         const s = firstSplit.midNode;
 
         const edgeToSplitAgain = firstSplit.newEdges[0];
         const secondSplit = splitEdge(edgeToSplitAgain);
-        if (!secondSplit) return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
+        if (!secondSplit) {
+          debug('info', `Secondo split fallito per l’arco ${edgeToSplitAgain}.`);
+          return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
+        }
         const t = secondSplit.midNode;
 
         const existing = countEdgesBetween(s, t);
@@ -1117,10 +1350,16 @@
       } else {
         debug('info', `Trasformo edge ${keyA} e ${keyB}.`);
         const resA = splitEdge(keyA);
-        if (!resA) return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
+        if (!resA) {
+          debug('info', `Split della prima edge ${keyA} fallito.`);
+          return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
+        }
         const s = resA.midNode;
         const resB = splitEdge(keyB);
-        if (!resB) return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
+        if (!resB) {
+          debug('info', `Split della seconda edge ${keyB} fallito.`);
+          return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
+        }
         const t = resB.midNode;
 
         addEdgeAuto(s, t);
@@ -1132,6 +1371,7 @@
       // updateAllParallelEdgeGeometry();
 
       // Ensure the edges are rendered with the updated geometry
+      clearSplitEdgeSelection();
       syncGraphToCytoscape();
       ensurePhysicsVelocities();
       startPhysics();
@@ -1419,12 +1659,17 @@
               width: config.nodeBaseSize,
               height: config.nodeBaseSize,
               label: 'data(label)',
-              color: '#111',
-              'font-size': 9,
-              'text-margin-y': -10,
-              'text-background-color': '#fff',
-              'text-background-opacity': 0.5,
-              'text-background-padding': 1,
+              color: '#f3f1eb',
+              'font-size': 11,
+              'font-weight': 600,
+              'text-margin-y': -12,
+              'text-background-color': '#171d23',
+              'text-background-opacity': 0.94,
+              'text-background-padding': 3,
+              'text-background-shape': 'roundrectangle',
+              'text-border-color': '#34414c',
+              'text-border-width': 1,
+              'text-border-opacity': 1,
               'text-outline-width': 0
             }
           },
@@ -1438,8 +1683,13 @@
               'control-point-weights': 'data(controlPointWeights)',
               'edge-distances': 'node-position',
               label: 'data(label)',
-              'font-size': 7,
+              color: '#f3f1eb',
+              'font-size': 9,
+              'font-weight': 600,
               'text-rotation': 'autorotate',
+              'text-outline-color': '#11161b',
+              'text-outline-width': 2,
+              'text-outline-opacity': 1,
               opacity: 0.9
             }
           },
@@ -1514,10 +1764,8 @@
     }
 
     function updateEdgeSplitInputFromSelection() {
-      const input = document.getElementById('edgeSplitInput');
-      if (!input) return;
-      if (!state.selectedSplitEdges.length) return;
-      input.value = state.selectedSplitEdges.map(getEdgeInputToken).join(', ');
+      const tokens = state.selectedSplitEdges.map(getEdgeInputToken);
+      updateSplitSelectionUi(tokens);
     }
 
     function syncSplitEdgeSelectionToCy() {
@@ -1922,18 +2170,7 @@
       const chkEdgeLabels = document.getElementById('toggleEdgeLabels');
       const btnSplitEdges = document.getElementById('btnSplitEdges');
       const chkDebug = document.getElementById('toggleDebug');
-      const btnOpenSettings = document.getElementById('btnOpenSettings');
-      const btnCloseSettings = document.getElementById('btnCloseSettings');
-      const settingsBackdrop = document.getElementById('settingsBackdrop');
-      if (btnOpenSettings) {
-        btnOpenSettings.onclick = () => setSettingsOpen(true);
-      }
-      if (btnCloseSettings) {
-        btnCloseSettings.onclick = () => setSettingsOpen(false);
-      }
-      if (settingsBackdrop) {
-        settingsBackdrop.onclick = () => setSettingsOpen(false);
-      }
+      initializeSettingsDrawer();
       if (chkNodeLabels) {
         chkNodeLabels.checked = state.showNodeLabels;
         chkNodeLabels.onchange = e => { state.showNodeLabels = e.target.checked; applyLabelVisibility(); };
@@ -1943,17 +2180,7 @@
         chkEdgeLabels.onchange = e => { state.showEdgeLabels = e.target.checked; applyLabelVisibility(); };
       }
       if (btnSplitEdges) {
-        btnSplitEdges.onclick = () => {
-          const raw = document.getElementById('edgeSplitInput').value || '';
-          const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
-          if (parts.length !== 2) {
-            debug('info', 'Inserire due edge (anche uguali) separate da virgola. Es: "0, 0"');
-            setActionStatus('Inserisci esattamente due ID separati da una virgola.', 'error');
-            return;
-          }
-          const result = splitAndBridgeEdges(parts[0], parts[1]);
-          setActionStatus(result.message, result.ok ? 'success' : 'error');
-        };
+        btnSplitEdges.onclick = handleSplitAndBridgeCommand;
       }
       const btnExportDot = document.getElementById('btnExportDot');
       if (btnExportDot) {
@@ -1965,10 +2192,6 @@
       }
       setupConfigControls();
     }
-
-    window.addEventListener('keydown', event => {
-      if (event.key === 'Escape') setSettingsOpen(false);
-    });
 
     // Optional: keyboard shortcut Shift+D toggle (filtered to avoid inputs)
     window.addEventListener('keydown', e => {
@@ -2037,6 +2260,7 @@
     // Inizializza l'applicazione
     function initializeApplication() {
       debug('app.init.begin');
+      state = createApplicationState();
       initializeUI();
       createSeedGraph(2);
       initializeCytoscapeRenderer();
@@ -2049,35 +2273,15 @@
       debug('app.init.end');
     }
 
-    // Avvio automatico dell'applicazione
-    initializeApplication();
+    // Avvio automatico, dopo la validazione delle dipendenze.
+    const applicationStarted = startGraphApplication(initializeApplication, window);
 
     // (Opzionale) Esposizione per console manuale
     window.__APP_DIAG = { state, runInitializationDiagnostics };
 
     // Forza un primo sync esplicito in caso di caricamento lento
-    if (state.cy) {
+    if (applicationStarted && state.cy) {
       syncGraphToCytoscape();
-    }
-
-    // DIAGNOSTICA: cattura errori JS globali
-    window.addEventListener('error', e => {
-      debug('window.error', e.message);
-    });
-    window.addEventListener('unhandledrejection', e => {
-      debug('window.unhandledrejection', (e.reason && e.reason.message) || e.reason);
-    });
-
-    // Verifica di sicurezza: se l’inizializzazione non è avvenuta (ad es. eccezione)
-    if (!state.cy) {
-      try {
-        debug('info', 'Re-init fallback avviato.');
-        initializeCytoscapeRenderer();
-        syncGraphToCytoscape();
-      } catch (err) {
-        debug('info', 'Fallback init error: ' + err.message);
-        console.error(err);
-      }
     }
   </script>
 </body>

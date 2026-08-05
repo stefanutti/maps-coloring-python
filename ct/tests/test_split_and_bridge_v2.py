@@ -553,7 +553,8 @@ def test_v2_visual_contract_has_contrast_texture_and_responsive_dock():
     graph_container = css_declarations(source, "#graph-container")
     assert "radial-gradient" in graph_container["background-image"]
     command_card = css_declarations(source, ".command-card")
-    assert command_card["right"] == "1rem"
-    assert command_card["left"] == "auto"
+    assert command_card["top"] == "1rem"
+    assert command_card["left"] == "1rem"
+    assert command_card["right"] == "auto"
     tool_dock = css_declarations(source, ".tool-dock")
     assert tool_dock["flex-wrap"] == "wrap"

@@ -473,10 +473,11 @@ const elements = new Map([
 ]);
 global.document = { getElementById: id => elements.get(id) || null };
 const styleValues = {};
+const styleUpdates = [];
 const styleApi = {
   selector(name) { this.selectorName = name; return this; },
   style(name, value) { styleValues[this.selectorName] = value; return this; },
-  update() { return this; }
+  update() { styleUpdates.push(this.selectorName); return this; }
 };
 const state = { cy: { style() { return styleApi; } } };
 """ + config_state + node_label_size + edge_label_size + config_controls + """
@@ -501,7 +502,8 @@ console.log(JSON.stringify({
     edgeInput: elements.get('cfgEdgeLabelFontSize').value,
     nodeStyle: styleValues.node,
     edgeStyle: styleValues.edge
-  }
+  },
+  styleUpdates: styleUpdates
 }));
 """
     result = run_node_harness(tmp_path, "label-font-size-controls.js", harness)
@@ -520,6 +522,7 @@ console.log(JSON.stringify({
             "nodeStyle": 11,
             "edgeStyle": 9,
         },
+        "styleUpdates": ["node", "edge", "node", "edge"],
     }
 
 

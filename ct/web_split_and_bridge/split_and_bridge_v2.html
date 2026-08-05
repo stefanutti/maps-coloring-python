@@ -455,6 +455,32 @@
     </aside>
   </main>
 
+  <script id="ui-layer">
+    function setSettingsOpen(open) {
+      const drawer = document.getElementById('settingsDrawer');
+      const backdrop = document.getElementById('settingsBackdrop');
+      const trigger = document.getElementById('btnOpenSettings');
+      if (!drawer || !backdrop || !trigger) return;
+      drawer.classList.toggle('is-open', open);
+      drawer.setAttribute('aria-hidden', String(!open));
+      trigger.setAttribute('aria-expanded', String(open));
+      backdrop.hidden = !open;
+    }
+
+    function updateGraphStats() {
+      const element = document.getElementById('graphStats');
+      if (!element || !state.graph) return;
+      element.textContent = `${state.graph.order} nodi · ${state.graph.size} archi`;
+    }
+
+    function setActionStatus(message, tone = 'neutral') {
+      const element = document.getElementById('actionStatus');
+      if (!element) return;
+      element.textContent = message;
+      element.dataset.tone = tone;
+    }
+  </script>
+
   <script>
     // Incremental planar graph generator with multi-edge visualization.
     // Uses Cytoscape.js + Graphology and a simple geometric intersection heuristic for planarity.
@@ -1060,20 +1086,20 @@
       debug('splitAndBridge.begin', `${tokA},${tokB}`);
       const { graph } = state;
       const keyA = findEdgeKeyFromUserToken(tokA);
-      if (!keyA) { debug('info', `Edge "${tokA}" non trovata.`); return; }
+      if (!keyA) return { ok: false, message: `Arco "${tokA}" non trovato.` };
       const keyB = findEdgeKeyFromUserToken(tokB);
-      if (!keyB) { debug('info', `Edge "${tokB}" non trovata.`); return; }
+      if (!keyB) return { ok: false, message: `Arco "${tokB}" non trovato.` };
       const sameEdge = keyA === keyB;
 
       if (sameEdge) {
         debug('info', `Modalità edge singola: trasformo due volte la stessa edge (chiave ${keyA}).`);
         const firstSplit = splitEdge(keyA);
-        if (!firstSplit) { debug('info', 'Split fallito.'); return; }
+        if (!firstSplit) return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
         const s = firstSplit.midNode;
 
         const edgeToSplitAgain = firstSplit.newEdges[0];
         const secondSplit = splitEdge(edgeToSplitAgain);
-        if (!secondSplit) { debug('info', 'Secondo split fallito.'); return; }
+        if (!secondSplit) return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
         const t = secondSplit.midNode;
 
         const existing = countEdgesBetween(s, t);
@@ -1091,10 +1117,10 @@
       } else {
         debug('info', `Trasformo edge ${keyA} e ${keyB}.`);
         const resA = splitEdge(keyA);
-        if (!resA) { debug('info', 'Split prima edge fallito.'); return; }
+        if (!resA) return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
         const s = resA.midNode;
         const resB = splitEdge(keyB);
-        if (!resB) { debug('info', 'Split seconda edge fallito.'); return; }
+        if (!resB) return { ok: false, message: 'Impossibile dividere l’arco selezionato.' };
         const t = resB.midNode;
 
         addEdgeAuto(s, t);
@@ -1110,6 +1136,7 @@
       ensurePhysicsVelocities();
       startPhysics();
       debug('splitAndBridge.end');
+      return { ok: true, message: 'Trasformazione completata.' };
     }
 
     function exportToDot() {
@@ -1369,6 +1396,7 @@
       applyEdgeBaseWidth(config.edgeBaseWidth);
       syncSplitEdgeSelectionToCy();
       debug('cy.sync.end', `nodes=${state.cy.nodes().length} edges=${state.cy.edges().length}`);
+      updateGraphStats();
     }
 
     // Inizializza renderer Cytoscape
@@ -1894,6 +1922,18 @@
       const chkEdgeLabels = document.getElementById('toggleEdgeLabels');
       const btnSplitEdges = document.getElementById('btnSplitEdges');
       const chkDebug = document.getElementById('toggleDebug');
+      const btnOpenSettings = document.getElementById('btnOpenSettings');
+      const btnCloseSettings = document.getElementById('btnCloseSettings');
+      const settingsBackdrop = document.getElementById('settingsBackdrop');
+      if (btnOpenSettings) {
+        btnOpenSettings.onclick = () => setSettingsOpen(true);
+      }
+      if (btnCloseSettings) {
+        btnCloseSettings.onclick = () => setSettingsOpen(false);
+      }
+      if (settingsBackdrop) {
+        settingsBackdrop.onclick = () => setSettingsOpen(false);
+      }
       if (chkNodeLabels) {
         chkNodeLabels.checked = state.showNodeLabels;
         chkNodeLabels.onchange = e => { state.showNodeLabels = e.target.checked; applyLabelVisibility(); };
@@ -1908,9 +1948,11 @@
           const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
           if (parts.length !== 2) {
             debug('info', 'Inserire due edge (anche uguali) separate da virgola. Es: "0, 0"');
+            setActionStatus('Inserisci esattamente due ID separati da una virgola.', 'error');
             return;
           }
-          splitAndBridgeEdges(parts[0], parts[1]);
+          const result = splitAndBridgeEdges(parts[0], parts[1]);
+          setActionStatus(result.message, result.ok ? 'success' : 'error');
         };
       }
       const btnExportDot = document.getElementById('btnExportDot');
@@ -1923,6 +1965,10 @@
       }
       setupConfigControls();
     }
+
+    window.addEventListener('keydown', event => {
+      if (event.key === 'Escape') setSettingsOpen(false);
+    });
 
     // Optional: keyboard shortcut Shift+D toggle (filtered to avoid inputs)
     window.addEventListener('keydown', e => {
@@ -1997,6 +2043,7 @@
       ensurePhysicsVelocities();
       startPhysics();
       runInitializationDiagnostics('afterInit');
+      updateGraphStats();
       // Verifica post-render (un frame dopo)
       requestAnimationFrame(() => runInitializationDiagnostics('postRAF'));
       debug('app.init.end');

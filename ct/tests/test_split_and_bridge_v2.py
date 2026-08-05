@@ -65,3 +65,39 @@ def test_v2_exposes_accessible_shell_controls():
     assert v2_ids <= set(parser.ids)
     assert parser.attributes_by_id["btnOpenSettings"]["aria-controls"] == "settingsDrawer"
     assert parser.attributes_by_id["actionStatus"]["aria-live"] == "polite"
+
+
+def test_v2_ui_helpers_change_observable_dom_state(tmp_path):
+    source = V2.read_text(encoding="utf-8")
+    match = re.search(r'<script id="ui-layer">(.*?)</script>', source, re.S)
+    assert match, "ui-layer script must be executable in isolation"
+    harness = """
+const elements = new Map();
+function element() {
+  return { hidden: true, textContent: '', dataset: {}, attrs: {},
+    classList: { values: new Set(), toggle(name, on) { on ? this.values.add(name) : this.values.delete(name); } },
+    setAttribute(name, value) { this.attrs[name] = value; } };
+}
+['settingsDrawer','settingsBackdrop','btnOpenSettings','graphStats','actionStatus'].forEach(id => elements.set(id, element()));
+global.document = { getElementById: id => elements.get(id) || null };
+global.state = { graph: { order: 4, size: 6 } };
+""" + match.group(1) + """
+setSettingsOpen(true);
+updateGraphStats();
+setActionStatus('Completata', 'success');
+console.log(JSON.stringify({
+  open: elements.get('settingsDrawer').classList.values.has('is-open'),
+  expanded: elements.get('btnOpenSettings').attrs['aria-expanded'],
+  backdropHidden: elements.get('settingsBackdrop').hidden,
+  stats: elements.get('graphStats').textContent,
+  status: elements.get('actionStatus').textContent,
+  tone: elements.get('actionStatus').dataset.tone
+}));
+"""
+    script = tmp_path / "ui-layer-test.js"
+    script.write_text(harness, encoding="utf-8")
+    completed = subprocess.run(["node", script], text=True, capture_output=True, check=True)
+    assert json.loads(completed.stdout) == {
+        "open": True, "expanded": "true", "backdropHidden": False,
+        "stats": "4 nodi · 6 archi", "status": "Completata", "tone": "success",
+    }

@@ -52,3 +52,16 @@ def test_v2_preserves_runtime_dependencies():
 def test_original_page_remains_tracked_as_a_separate_file():
     assert ORIGINAL.exists()
     assert V2.resolve() != ORIGINAL.resolve()
+
+
+def test_v2_exposes_accessible_shell_controls():
+    source = V2.read_text(encoding="utf-8")
+    parser = IdParser()
+    parser.feed(source)
+    v2_ids = {
+        "btnOpenSettings", "btnCloseSettings", "settingsDrawer",
+        "settingsBackdrop", "graphStats", "actionStatus",
+    }
+    assert v2_ids <= set(parser.ids)
+    assert parser.attributes_by_id["btnOpenSettings"]["aria-controls"] == "settingsDrawer"
+    assert parser.attributes_by_id["actionStatus"]["aria-live"] == "polite"

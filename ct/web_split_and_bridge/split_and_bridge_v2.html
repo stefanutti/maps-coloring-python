@@ -7,19 +7,22 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
-      --bg-header: #1e1f22;
-      --bg-panel: #26272b;
-      --bg-panel-alt: #2e3034;
-      --border: #3a3c41;
-      --border-accent: #4d7cff;
-      --text: #e7e9ed;
-      --text-dim: #9aa0ab;
-      --accent: #4d7cff;
-      --accent-hover: #6a94ff;
-      --danger: #d45555;
-      --radius: 10px;
-      --transition: 160ms cubic-bezier(.4, .2, .2, 1);
-      --focus-ring: 0 0 0 2px #121316, 0 0 0 4px var(--accent);
+      --graphite-950: #11161b;
+      --graphite-900: #171d23;
+      --graphite-850: #1d252d;
+      --graphite-700: #34414c;
+      --ink: #f3f1eb;
+      --muted: #99a49f;
+      --orange: #ff8b4c;
+      --green: #58d69b;
+      --danger: #ff6b6b;
+      --panel-fallback: #1d252d;
+      --panel: rgba(29, 37, 45, .88);
+      --panel-strong: rgba(23, 29, 35, .94);
+      --border: rgba(153, 164, 159, .28);
+      --radius: 14px;
+      --transition: 180ms cubic-bezier(.2, .8, .2, 1);
+      --focus-ring: 0 0 0 3px rgba(255, 139, 76, .45);
     }
 
     * {
@@ -29,207 +32,250 @@
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       margin: 0;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      background: #111;
-      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 52px minmax(0, 1fr);
+      overflow: hidden;
+      background: var(--graphite-950);
+      color: var(--ink);
     }
 
     h1 {
-      font-size: 1rem;
-      font-weight: 600;
-      letter-spacing: .5px;
+      font-size: .95rem;
+      font-weight: 700;
+      letter-spacing: .02em;
       margin: 0;
       display: flex;
       align-items: center;
-      gap: .55rem;
+      gap: .5rem;
     }
 
     h1 span.brand {
-      background: linear-gradient(135deg, #ffd54f, #ff9800);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      color: var(--orange);
       font-weight: 700;
     }
 
-    header {
-      background: var(--bg-header);
+    .app-header {
+      min-width: 0;
+      background: var(--graphite-900);
       border-bottom: 1px solid var(--border);
-      padding: .65rem .9rem;
+      padding: 0 .9rem;
       display: flex;
-      align-items: stretch;
-      gap: .9rem;
-      box-shadow: 0 2px 4px -2px #000 inset, 0 1px 0 #2c2d30;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
       z-index: 10;
     }
 
-    .toolbar {
-      display: grid;
-      grid-auto-flow: column;
-      gap: .75rem;
-      align-items: stretch;
-      width: 100%;
-    }
-
-    .group {
-      position: relative;
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      padding: .55rem .75rem .6rem;
-      border-radius: var(--radius);
-      display: flex;
-      flex-direction: column;
-      gap: .55rem;
-      min-width: 150px;
-    }
-
-    .group {
-      height: 100%;
-    }
-
-    .group.compact {
-      min-width: 120px;
-    }
-
-    .group-title {
-      font-size: .6rem;
-      letter-spacing: .12em;
-      font-weight: 600;
-      color: var(--text-dim);
-      text-transform: uppercase;
+    .app-header__meta,
+    .app-header__actions,
+    .tool-dock,
+    .command-actions,
+    .drawer-header {
       display: flex;
       align-items: center;
-      gap: .4rem;
+      gap: .65rem;
     }
 
-    .inline-controls {
-      display: flex;
-      gap: .45rem;
-      flex-wrap: wrap;
+    .graph-stats {
+      color: var(--muted);
+      font-size: .75rem;
+      white-space: nowrap;
     }
 
-    .kv {
-      display: flex;
-      flex-direction: column;
-      gap: .35rem;
-      min-width: 110px;
+    .workspace {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--graphite-950);
     }
 
-    .kv label {
-      font-size: .6rem;
+    #graph-container {
+      position: absolute;
+      inset: 0;
+      background: var(--graphite-950);
+    }
+
+    .command-card,
+    .tool-dock,
+    .settings-drawer {
+      background: var(--panel-fallback);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, .32);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .command-card {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      width: min(22rem, calc(100% - 2rem));
+      padding: 1rem;
+      border-radius: var(--radius);
+    }
+
+    .eyebrow,
+    .field-label,
+    .drawer-section-title {
+      margin: 0;
+      color: var(--muted);
+      font-size: .66rem;
+      font-weight: 700;
       letter-spacing: .11em;
       text-transform: uppercase;
-      color: var(--text-dim);
-      font-weight: 600;
     }
 
-    input[type=number],
-    input[type=color] {
-      background: var(--bg-panel-alt);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: .4rem .55rem;
-      border-radius: 6px;
-      font-size: .75rem;
-      width: 100%;
-      transition: var(--transition);
-      min-height: 2.4rem;
+    .command-card h2,
+    .settings-drawer h2 {
+      margin: .25rem 0 .8rem;
+      font-size: 1.05rem;
     }
 
-    input[type=color] {
-      padding: .3rem;
-      cursor: pointer;
+    .field {
+      display: grid;
+      gap: .38rem;
     }
 
-    input[type=number]:focus,
-    input[type=color]:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: var(--focus-ring);
+    .action-status {
+      min-height: 1.25rem;
+      margin: .65rem 0 0;
+      color: var(--muted);
+      font-size: .78rem;
+    }
+
+    .tool-dock {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      max-width: calc(100% - 2rem);
+      padding: .55rem;
+      border-radius: 999px;
+      transform: translateX(-50%);
+    }
+
+    .tool-dock__hint {
+      padding: .15rem .35rem;
+      color: var(--muted);
+      font-size: .72rem;
+      white-space: nowrap;
+    }
+
+    .settings-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      background: rgba(0, 0, 0, .54);
+    }
+
+    .settings-drawer {
+      position: absolute;
+      z-index: 21;
+      top: .75rem;
+      right: .75rem;
+      bottom: .75rem;
+      width: min(26rem, calc(100% - 1.5rem));
+      padding: 1rem;
+      overflow-y: auto;
+      border-radius: var(--radius);
+      background: var(--panel-fallback);
+      background: var(--panel-strong);
+      transform: translateX(calc(100% + 1rem));
+      transition: transform var(--transition);
+    }
+
+    .settings-drawer[aria-hidden="false"] {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      justify-content: space-between;
+      padding-bottom: .85rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .drawer-header h2 {
+      margin: 0;
+    }
+
+    .drawer-section {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .drawer-section:last-child {
+      border-bottom: 0;
+    }
+
+    .toggle-list,
+    .config-grid {
+      display: grid;
+      gap: .7rem;
+      margin-top: .75rem;
     }
 
     .config-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(150px, 1fr));
-      gap: .6rem;
-    }
-
-    .config-column {
-      display: flex;
-      flex-direction: column;
-      gap: .55rem;
-    }
-
-    .config-group {
-      min-width: 560px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .control-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
-      gap: .3rem;
+      gap: .45rem;
     }
 
-    .control-row input[type=number],
-    .control-row input[type=color],
-    .control-row select {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .control-row input[type=color] {
-      padding: .3rem;
-      height: 100%;
-    }
-
-    select {
-      background: var(--bg-panel-alt);
+    input[type=text],
+    input[type=number],
+    input[type=color] {
+      width: 100%;
+      min-height: 2.35rem;
+      padding: .42rem .55rem;
+      background: var(--graphite-900);
       border: 1px solid var(--border);
-      color: var(--text);
-      padding: .4rem .55rem;
-      border-radius: 6px;
-      font-size: .72rem;
-      appearance: none;
+      border-radius: 8px;
+      color: var(--ink);
+      font: inherit;
     }
 
-    select:focus {
+    input[type=color] {
+      padding: .22rem;
+      cursor: pointer;
+    }
+
+    input:focus-visible,
+    button:focus-visible {
       outline: none;
-      border-color: var(--accent);
       box-shadow: var(--focus-ring);
     }
 
     button {
-      position: relative;
       cursor: pointer;
-      background: var(--accent);
-      color: #fff;
-      border: 1px solid var(--accent);
-      font-weight: 600;
-      font-size: .7rem;
-      padding: .5rem .95rem;
-      border-radius: 7px;
-      letter-spacing: .05em;
+      min-height: 2.35rem;
+      padding: .5rem .75rem;
+      background: var(--orange);
+      border: 1px solid var(--orange);
+      border-radius: 8px;
+      color: var(--graphite-950);
+      font: inherit;
+      font-size: .78rem;
+      font-weight: 750;
       display: inline-flex;
       align-items: center;
-      gap: .4rem;
-      line-height: 1;
       transition: var(--transition);
     }
 
-    button.secondary {
-      background: var(--bg-panel-alt);
-      color: var(--text);
+    button.secondary,
+    button.quiet,
+    .reset-btn {
+      background: var(--graphite-850);
+      color: var(--ink);
       border-color: var(--border);
     }
 
-    button.secondary:hover {
-      background: #35373c;
-    }
-
     button:hover:not(:disabled) {
-      background: var(--accent-hover);
+      filter: brightness(1.12);
     }
 
     button:disabled {
@@ -237,158 +283,109 @@
       cursor: not-allowed;
     }
 
-    button:focus-visible {
-      outline: none;
-      box-shadow: var(--focus-ring);
+    button.compact,
+    button.quiet,
+    .reset-btn {
+      min-height: 2rem;
+      padding: .35rem .55rem;
     }
 
-    button.reset-btn {
-      width: 22px;
-      height: 22px;
-      padding: 0;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
+    .reset-btn {
+      width: 2.35rem;
       justify-content: center;
-      background: var(--bg-panel-alt);
-      border: 1px solid var(--border);
-      color: var(--text);
     }
 
-    button.reset-btn:hover {
-      background: #35373c;
-    }
-
-    button.reset-btn svg {
-      width: 12px;
-      height: 12px;
+    .reset-btn svg {
+      width: 1rem;
+      height: 1rem;
       fill: currentColor;
     }
 
-    .control-row .reset-btn {
-      margin-left: auto;
-      flex: 0 0 auto;
-    }
-
-    button.compact {
-      padding: .32rem .6rem;
-      font-size: .6rem;
-      border-radius: 6px;
-    }
-
-    #graph-container {
-      flex: 1;
-      position: relative;
-      background: #fafafa;
-    }
-
-    .badge-stack {
-      display: flex;
-      gap: .4rem;
-      flex-wrap: wrap;
-    }
-
-    .badge {
-      background: linear-gradient(#303237, #26272b);
-      border: 1px solid var(--border);
-      padding: .35rem .55rem;
-      font-size: .65rem;
-      border-radius: 6px;
-      display: inline-flex;
-      gap: .35rem;
-      align-items: center;
-      letter-spacing: .04em;
-    }
-
-    .badge strong {
-      font-weight: 600;
-      color: #fff;
-    }
-
     .switch {
-      position: relative;
-      display: inline-flex;
+      display: flex;
       align-items: center;
-      gap: .45rem;
-      font-size: .63rem;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--text-dim);
+      justify-content: space-between;
+      gap: .75rem;
+      color: var(--ink);
+      font-size: .82rem;
     }
 
     .switch input {
       appearance: none;
-      width: 34px;
-      height: 18px;
-      background: #3a3c41;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      position: relative;
+      width: 2.45rem;
+      height: 1.45rem;
+      margin: 0;
+      border: 1px solid var(--graphite-700);
+      border-radius: 999px;
+      background: var(--graphite-700);
       cursor: pointer;
       transition: var(--transition);
     }
 
-    .switch input:after {
-      content: "";
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 12px;
-      height: 12px;
+    .switch input::after {
+      display: block;
+      width: .95rem;
+      height: .95rem;
+      margin: .16rem;
       border-radius: 50%;
-      background: #fff;
-      transition: var(--transition);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, .6);
+      background: var(--ink);
+      content: "";
+      transition: transform var(--transition);
     }
 
     .switch input:checked {
-      background: var(--accent);
-      border-color: var(--accent);
+      border-color: var(--green);
+      background: var(--green);
     }
 
-    .switch input:checked:after {
-      transform: translateX(16px);
+    .switch input:checked::after {
+      transform: translateX(1rem);
     }
 
-    .switch input:focus-visible {
-      outline: none;
-      box-shadow: var(--focus-ring);
-    }
-
-    .labels-column {
-      display: flex;
-      flex-direction: column;
-      gap: .55rem;
-    }
-
-    @media (max-width:1280px) {
-      .config-grid {
-        grid-template-columns: repeat(2, minmax(160px, 1fr));
+    @media (max-width: 760px) {
+      .app-header {
+        padding: 0 .7rem;
       }
 
-      .config-group {
-        min-width: 100%;
+      .app-header__meta {
+        min-width: 0;
       }
-    }
 
-    @media (max-width:720px) {
+      .app-header h1 {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .graph-stats {
+        display: none;
+      }
+
+      .command-card {
+        top: .7rem;
+        left: .7rem;
+        width: calc(100% - 1.4rem);
+      }
+
+      .tool-dock {
+        bottom: .7rem;
+        gap: .4rem;
+        padding: .4rem;
+      }
+
       .config-grid {
         grid-template-columns: 1fr;
       }
     }
 
-    @media (max-width:980px) {
-      .toolbar {
-        grid-auto-flow: row;
-      }
-
-      .group {
-        flex: 1;
-      }
-
-      header {
-        align-items: flex-start;
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
       }
     }
   </style>
@@ -398,158 +395,65 @@
 </head>
 
 <body>
-  <header>
-    <h1><span class="brand">4CT</span> Incremental Planar Graph</h1>
-    <div class="toolbar" id="controls">
-      <div class="group compact" id="group-labels">
-        <div class="group-title">Labels</div>
-        <div class="labels-column">
-          <label class="switch">Nodes<input type="checkbox" id="toggleNodeLabels" /></label>
-          <label class="switch">Edges<input type="checkbox" id="toggleEdgeLabels" /></label>
-          <label class="switch">Debug<input type="checkbox" id="toggleDebug" /></label>
-        </div>
-      </div>
-      <!-- Nuovo pannello trasformazione -->
-      <div class="group" id="group-transform">
-        <div class="group-title">Commands</div>
-        <div class="kv">
-          <label for="edgeSplitInput">Edge ids (n, m)</label>
-          <input id="edgeSplitInput" type="text" value="0, 1" />
-        </div>
-        <button id="btnSplitEdges" class="secondary">Split & Bridge</button>
-        <button id="btnExportDot" class="secondary">Save as .dot</button>
-      </div>
-      <div class="group config-group" id="group-config">
-        <div class="group-title">Parameters</div>
-        <div class="config-grid">
-          <div class="config-column">
-            <div class="kv">
-              <label for="cfgEdgeWidth">Edge width</label>
-              <div class="control-row">
-                <input id="cfgEdgeWidth" type="number" min="1" step="1" value="1" />
-                <button type="button" class="reset-btn" data-reset-target="cfgEdgeWidth" aria-label="Reset to default"
-                  title="Reset to default">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div class="kv">
-              <label for="cfgNodeWidth">Node width</label>
-              <div class="control-row">
-                <input id="cfgNodeWidth" type="number" min="2" step="1" value="5" />
-                <button type="button" class="reset-btn" data-reset-target="cfgNodeWidth" aria-label="Reset to default"
-                  title="Reset to default">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div class="kv">
-              <label for="cfgPhysicsSpringLength">Spring length</label>
-              <div class="control-row">
-                <input id="cfgPhysicsSpringLength" type="number" min="0" step="1" value="1" />
-                <button type="button" class="reset-btn" data-reset-target="cfgPhysicsSpringLength"
-                  aria-label="Reset to default" title="Reset to default">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="config-column">
-            <div class="kv">
-              <label for="cfgPhysicsRepulsion">Repulsion</label>
-              <div class="control-row">
-                <input id="cfgPhysicsRepulsion" type="number" min="0" step="1" value="0" />
-                <button type="button" class="reset-btn" data-reset-target="cfgPhysicsRepulsion"
-                  aria-label="Reset to default" title="Reset to default">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div class="kv">
-              <label for="cfgPhysicsSpringStrength">Spring strength</label>
-              <div class="control-row">
-                <input id="cfgPhysicsSpringStrength" type="number" min="0" step="1" value="2" />
-                <button type="button" class="reset-btn" data-reset-target="cfgPhysicsSpringStrength"
-                  aria-label="Reset to default" title="Reset to default">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div class="kv">
-              <label for="cfgPhysicsDamping">Damping</label>
-              <div class="control-row">
-                <input id="cfgPhysicsDamping" type="number" min="0" max="1" step="0.01" value="0" />
-                <button type="button" class="reset-btn" data-reset-target="cfgPhysicsDamping"
-                  aria-label="Reset to default" title="Reset to default">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="config-column">
-            <div class="kv">
-              <label for="cfgPhysicsMaxVelocity">Max velocity</label>
-              <div class="control-row">
-                <input id="cfgPhysicsMaxVelocity" type="number" min="1" step="1" value="5" />
-                <button type="button" class="reset-btn" data-reset-target="cfgPhysicsMaxVelocity"
-                  aria-label="Reset to default" title="Reset to default">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div class="kv">
-              <label for="cfgNodeColor">Node color</label>
-              <div class="control-row">
-                <input id="cfgNodeColor" type="color" value="#33cc66" />
-                <button type="button" class="reset-btn" data-reset-target="cfgNodeColor" aria-label="Reset to default"
-                  title="Reset to default">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div class="kv">
-              <label for="cfgEdgeColor">Edge color</label>
-              <div class="control-row">
-                <input id="cfgEdgeColor" type="color" value="#999999" />
-                <button type="button" class="reset-btn" data-reset-target="cfgEdgeColor" aria-label="Reset to default"
-                  title="Reset to default">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M17.65 6.35A7.95 7.95 0 0012 4a8 8 0 100 16 8 8 0 007.75-6h-2.1a5.99 5.99 0 01-5.65 4A6 6 0 1112 6c1.66 0 3.14.69 4.22 1.78L14 10h6V4l-2.35 2.35z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  <header class="app-header">
+    <div class="app-header__meta">
+      <h1><span class="brand">4CT</span> Grafo planare incrementale</h1>
+      <span id="graphStats" class="graph-stats">In attesa del grafo</span>
+    </div>
+    <div class="app-header__actions">
+      <button id="btnOpenSettings" type="button" class="quiet" aria-controls="settingsDrawer" aria-expanded="false">Impostazioni</button>
     </div>
   </header>
-  <div id="graph-container"></div>
+  <main class="workspace">
+    <div id="graph-container" aria-label="Grafo planare interattivo"></div>
+    <section class="command-card" id="group-transform" aria-labelledby="commandTitle">
+      <p class="eyebrow">Trasformazione</p>
+      <h2 id="commandTitle">Split &amp; Bridge</h2>
+      <div class="field">
+        <label class="field-label" for="edgeSplitInput">ID degli archi (n, m)</label>
+        <input id="edgeSplitInput" type="text" value="0, 1" />
+      </div>
+      <div class="command-actions">
+        <button id="btnSplitEdges" type="button">Applica trasformazione</button>
+        <button id="btnExportDot" type="button" class="secondary">Esporta .dot</button>
+      </div>
+      <p id="actionStatus" class="action-status" aria-live="polite">Pronto per una trasformazione.</p>
+    </section>
+    <nav class="tool-dock" aria-label="Strumenti del grafo">
+      <span class="tool-dock__hint">Usa le impostazioni per personalizzare il grafo.</span>
+    </nav>
+    <div id="settingsBackdrop" class="settings-backdrop" hidden></div>
+    <aside id="settingsDrawer" class="settings-drawer" aria-hidden="true" aria-labelledby="settingsTitle">
+      <div class="drawer-header">
+        <h2 id="settingsTitle">Impostazioni</h2>
+        <button id="btnCloseSettings" type="button" class="quiet" aria-label="Chiudi impostazioni">Chiudi</button>
+      </div>
+      <div id="controls">
+        <section class="drawer-section" id="group-labels" aria-labelledby="labelsTitle">
+          <h3 id="labelsTitle" class="drawer-section-title">Etichette</h3>
+          <div class="toggle-list">
+            <label class="switch">Etichette nodi<input type="checkbox" id="toggleNodeLabels" /></label>
+            <label class="switch">Etichette archi<input type="checkbox" id="toggleEdgeLabels" /></label>
+            <label class="switch">Debug<input type="checkbox" id="toggleDebug" /></label>
+          </div>
+        </section>
+        <section class="drawer-section" id="group-config" aria-labelledby="parametersTitle">
+          <h3 id="parametersTitle" class="drawer-section-title">Parametri</h3>
+          <div class="config-grid">
+            <div class="field"><label class="field-label" for="cfgEdgeWidth">Spessore archi</label><div class="control-row"><input id="cfgEdgeWidth" type="number" min="1" step="1" value="1" /><button type="button" class="reset-btn" data-reset-target="cfgEdgeWidth" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgNodeWidth">Dimensione nodi</label><div class="control-row"><input id="cfgNodeWidth" type="number" min="2" step="1" value="5" /><button type="button" class="reset-btn" data-reset-target="cfgNodeWidth" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgPhysicsSpringLength">Lunghezza molle</label><div class="control-row"><input id="cfgPhysicsSpringLength" type="number" min="0" step="1" value="1" /><button type="button" class="reset-btn" data-reset-target="cfgPhysicsSpringLength" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgPhysicsRepulsion">Repulsione</label><div class="control-row"><input id="cfgPhysicsRepulsion" type="number" min="0" step="1" value="0" /><button type="button" class="reset-btn" data-reset-target="cfgPhysicsRepulsion" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgPhysicsSpringStrength">Forza molle</label><div class="control-row"><input id="cfgPhysicsSpringStrength" type="number" min="0" step="1" value="2" /><button type="button" class="reset-btn" data-reset-target="cfgPhysicsSpringStrength" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgPhysicsDamping">Smorzamento</label><div class="control-row"><input id="cfgPhysicsDamping" type="number" min="0" max="1" step="0.01" value="0" /><button type="button" class="reset-btn" data-reset-target="cfgPhysicsDamping" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgPhysicsMaxVelocity">Velocità massima</label><div class="control-row"><input id="cfgPhysicsMaxVelocity" type="number" min="1" step="1" value="5" /><button type="button" class="reset-btn" data-reset-target="cfgPhysicsMaxVelocity" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgNodeColor">Colore nodi</label><div class="control-row"><input id="cfgNodeColor" type="color" value="#33cc66" /><button type="button" class="reset-btn" data-reset-target="cfgNodeColor" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+            <div class="field"><label class="field-label" for="cfgEdgeColor">Colore archi</label><div class="control-row"><input id="cfgEdgeColor" type="color" value="#999999" /><button type="button" class="reset-btn" data-reset-target="cfgEdgeColor" aria-label="Ripristina valore predefinito" title="Ripristina valore predefinito">↺</button></div></div>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </main>
 
   <script>
     // Incremental planar graph generator with multi-edge visualization.

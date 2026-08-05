@@ -154,12 +154,20 @@
       font-size: .78rem;
     }
 
+    .action-status:empty {
+      display: none;
+    }
+
     .action-status[data-tone="success"] {
       color: var(--green);
     }
 
     .action-status[data-tone="error"] {
       color: var(--danger);
+    }
+
+    .command-card .command-actions {
+      margin-top: .7rem;
     }
 
     .selection-status,
@@ -410,7 +418,7 @@
         top: 1rem;
         left: 1rem;
         right: auto;
-        width: auto;
+        width: 60%;
       }
 
       .tool-dock {
@@ -466,7 +474,7 @@
       <div class="command-actions">
         <button id="btnSplitEdges" type="button">Split &amp; Bridge</button>
       </div>
-      <p id="actionStatus" class="action-status" aria-live="polite">Pronto per una trasformazione.</p>
+      <p id="actionStatus" class="action-status" aria-live="polite"></p>
       <p class="interaction-hint">Seleziona due archi con il clic destro oppure inserisci gli ID.</p>
     </section>
     <nav id="toolDock" class="tool-dock" aria-label="Strumenti del grafo">

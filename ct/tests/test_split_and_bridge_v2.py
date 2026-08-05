@@ -176,6 +176,7 @@ def test_v2_exposes_accessible_shell_controls():
     assert v2_ids <= set(parser.ids)
     assert parser.attributes_by_id["btnOpenSettings"]["aria-controls"] == "settingsDrawer"
     assert parser.attributes_by_id["actionStatus"]["aria-live"] == "polite"
+    assert parser.text("actionStatus") == ""
     assert "inert" in parser.attributes_by_id["settingsDrawer"]
 
 
@@ -722,11 +723,17 @@ def test_v2_visual_contract_has_contrast_texture_and_responsive_dock():
     assert command_card["top"] == "1rem"
     assert command_card["left"] == "1rem"
     assert command_card["right"] == "auto"
+    assert command_card["width"] == "min(22rem, calc(100% - 2rem))"
     responsive_command_card = css_declarations_in_media(
         source, "max-width: 760px", ".command-card"
     )
     assert responsive_command_card["top"] == "1rem"
     assert responsive_command_card["left"] == "1rem"
     assert responsive_command_card["right"] == "auto"
+    assert responsive_command_card["width"] == "60%"
+    empty_status = css_declarations(source, ".action-status:empty")
+    assert empty_status["display"] == "none"
+    command_actions = css_declarations(source, ".command-card .command-actions")
+    assert command_actions["margin-top"] == ".7rem"
     tool_dock = css_declarations(source, ".tool-dock")
     assert tool_dock["flex-wrap"] == "wrap"

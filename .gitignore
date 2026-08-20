@@ -192,6 +192,7 @@ $RECYCLE.BIN/
 #############
 
 *.py[cod]
+.ipynb_checkpoints/
 
 # Packages
 *.egg

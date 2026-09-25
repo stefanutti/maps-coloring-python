@@ -20,6 +20,9 @@ __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_
 
 import logging
 import random
+import json
+from collections import defaultdict, deque
+from itertools import permutations
 
 import networkx as nx
 
@@ -654,7 +657,49 @@ def create_graph_from_planar_representation(faces):
     return new_graph
 
 
-def export_graph(graph_to_export, name_of_file_without_extension):
+def color_planar_representation(graph, faces):
+    """Annotate the original ordered face boundaries without mutating them.
+
+    The pair format has no keys for parallel edges. Assign their distinct
+    colors to both directions, keeping consecutive face edges distinct.
+    In a loop-free cubic graph there are at most three parallel edges, so
+    checking their reverse assignments takes at most six permutations.
+    """
+    if not is_well_colored(graph) or graph_has_loops(graph):
+        raise ValueError("Colored planar export requires a properly colored loop-free cubic graph")
+    colored_faces = [[[u, v, None] for u, v in face] for face in faces]
+    positions = defaultdict(list)
+    for face in colored_faces:
+        for i, (u, v, _) in enumerate(face):
+            positions[(u, v)].append((face, i))
+
+    for u, neighbors in graph.adjacency():
+        for v, edges in neighbors.items():
+            if u < v:
+                forward = positions.pop((u, v), [])
+                backward = positions.pop((v, u), [])
+                colors = [data['color'] for data in edges.values()]
+                if len(forward) != len(colors) or len(backward) != len(colors):
+                    raise ValueError(f"Graph and planar embedding disagree on edge {(u, v)}")
+                if any(color not in VALID_COLORS for color in colors):
+                    raise ValueError(f"Invalid colors on edge {(u, v)}: {colors}")
+                for (face, i), color in zip(forward, colors):
+                    face[i][2] = color
+                for reverse_colors in permutations(colors):
+                    for (face, i), color in zip(backward, reverse_colors):
+                        face[i][2] = color
+                    if all(face[i][2] != face[i - 1][2]
+                           and face[i][2] != face[(i + 1) % len(face)][2]
+                           for face, i in forward + backward):
+                        break
+                else:
+                    raise ValueError(f"Cannot match parallel edge colors to planar embedding at {(u, v)}")
+    if positions:
+        raise ValueError("Planar embedding contains edges missing from the colored graph")
+    return colored_faces
+
+
+def export_graph(graph_to_export, name_of_file_without_extension, *, planar_faces=None):
     """
     Export graph
 
@@ -662,7 +707,12 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     ----------
         graph_to_export: The graph to export
         name_of_file_without_extension: The name that will be used to export the graph
+        planar_faces: Optional original embedding; also export colored triples in its original order
     """
+
+    colored_faces = None
+    if planar_faces is not None:
+        colored_faces = color_planar_representation(graph_to_export, planar_faces)
 
     # Save: edgelist, dot
     #
@@ -700,11 +750,24 @@ def export_graph(graph_to_export, name_of_file_without_extension):
     with open(name_of_file_without_extension + ".dot", 'w') as file:
         file.write(filedata)
 
+    if colored_faces is not None:
+        with open(name_of_file_without_extension + ".colored.planar", 'w') as file:
+            json.dump(colored_faces, file)
+            file.write("\n")
+
     logger.info("---------------------------")
     logger.info("END: Save the 4 colored map")
     logger.info("---------------------------")
 
     return
+
+
+def append_colored_planar_representation(graph, output_filename, planar_faces):
+    """Append one colored planar embedding as a JSON Lines record."""
+    colored_faces = color_planar_representation(graph, planar_faces)
+    with open(output_filename, 'a') as file:
+        json.dump(colored_faces, file)
+        file.write("\n")
 
 
 def are_the_same_edge(e1, e2):
@@ -810,6 +873,127 @@ def are_edges_on_the_same_kempe_cycle(graph, e1, e2, c1, c2):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: are_edges_on_the_same_kempe_cycle_flag: %s", are_edges_on_the_same_kempe_cycle_flag)
 
     return are_edges_on_the_same_kempe_cycle_flag
+
+
+class KempeSearchExhausted(RuntimeError):
+    """Kempe repair exhausted its budget or class; this does not mean uncolorable."""
+
+
+def find_kempe_repair(graph, first_edge, second_edge, max_states):
+    """Search full labelled colorings for v17 section 8.2's CONDITION-1.
+
+    Return (switches, endpoint_colors, working_pair, states_examined).
+    Each switch is (color1, color2, keyed_cycle_edges), so parallel edges
+    remain distinct. Search interleaves endpoint-cycle and remote-cycle
+    expansions deterministically; it is not a shortest-path search and
+    never mutates graph. A boundary word alone is NOT a search state.
+    Exhausting the class and reaching the budget are distinct diagnostics;
+    neither proves that another reduction/coloring class cannot work.
+    """
+    if max_states < 1:
+        raise ValueError("Kempe search budget must be positive")
+    if not is_graph_regular(graph, 3) or not is_well_colored(graph):
+        raise ValueError("Kempe search requires a properly colored cubic graph")
+    edges = sorted((min(u, v), max(u, v), key) for u, v, key in graph.edges(keys=True))
+    incidence = {vertex: [] for vertex in graph}
+    for i, (u, v, _) in enumerate(edges):
+        incidence[u].append(i)
+        incidence[v].append(i)
+    first = {i for i, (u, v, _) in enumerate(edges) if (u, v) == tuple(sorted(first_edge))}
+    second = {i for i, (u, v, _) in enumerate(edges) if (u, v) == tuple(sorted(second_edge))}
+    if not first or not second or first & second:
+        raise ValueError("Kempe repair requires two distinct existing edge positions")
+    initial = bytes(VALID_COLORS.index(graph[u][v][key]['color']) for u, v, key in edges)
+    distance = dict.fromkeys(first_edge + second_edge, 0)
+    pending_vertices = deque(distance)
+    while pending_vertices:
+        vertex = pending_vertices.popleft()
+        for neighbor in graph[vertex]:
+            if neighbor not in distance:
+                distance[neighbor] = distance[vertex] + 1
+                pending_vertices.append(neighbor)
+    edge_distance = [min(distance.get(u, len(graph)), distance.get(v, len(graph)))
+                     for u, v, _ in edges]
+    # The parent map doubles as an exact visited set, retaining full colors.
+    parents = {initial: None}
+    queue = deque([initial])
+    remote_queue = deque()
+    examined = 0
+    budget_reached = False
+    local_expansions = 0
+    while queue or remote_queue:
+        # A bounded local burst prevents a large endpoint orbit from starving
+        # remote switches (v17 section 9.18). This is a scheduling heuristic.
+        expand_remote = bool(remote_queue) and (not queue or local_expansions >= 8)
+        if expand_remote:
+            state = remote_queue.popleft()
+            local_expansions = 0
+        else:
+            state = queue.popleft()
+            remote_queue.append(state)
+            examined += 1
+            local_expansions += 1
+        moves = []
+        for c1, c2 in ((0, 1), (0, 2), (1, 2)):
+            unseen = {i for i, color in enumerate(state) if color in (c1, c2)}
+            # Use increasing edge index, not set iteration, for stable ties.
+            for seed in range(len(edges)):
+                if seed in unseen:
+                    component = []
+                    pending = [seed]
+                    unseen.remove(seed)
+                    while pending:
+                        current = pending.pop()
+                        component.append(current)
+                        for vertex in edges[current][:2]:
+                            for neighbor in incidence[vertex]:
+                                if neighbor in unseen:
+                                    unseen.remove(neighbor)
+                                    pending.append(neighbor)
+                    component.sort()
+                    start = next((i for i in component if i in first), None)
+                    end = next((i for i in component if i in second), None)
+                    if start is not None and end is not None:
+                        switches = []
+                        cursor = state
+                        while parents[cursor] is not None:
+                            previous, a, b, cycle = parents[cursor]
+                            switches.append((VALID_COLORS[a], VALID_COLORS[b],
+                                             tuple(edges[i] for i in cycle)))
+                            cursor = previous
+                        switches.reverse()
+                        colors = (VALID_COLORS[state[start]], VALID_COLORS[state[end]])
+                        other = c2 if state[start] == c1 else c1
+                        return switches, colors, (colors[0], VALID_COLORS[other]), examined
+                    moves.append((not (start is not None or end is not None), c1, c2, component))
+        if expand_remote:
+            moves.sort(key=lambda move: (min(edge_distance[i] for i in move[3]), -len(move[3])))
+        discovered = []
+        for is_remote, c1, c2, component in moves:
+            if is_remote != expand_remote:
+                continue
+            successor = bytearray(state)
+            for i in component:
+                successor[i] = c2 if state[i] == c1 else c1
+            successor = bytes(successor)
+            if successor not in parents:
+                if len(parents) < max_states:
+                    parents[successor] = (state, c1, c2, tuple(component))
+                    discovered.append(successor)
+                else:
+                    budget_reached = True
+        if expand_remote:
+            queue.extendleft(reversed(discovered))
+        else:
+            queue.extend(discovered)
+    if budget_reached:
+        raise KempeSearchExhausted(
+            f"Kempe search budget reached ({max_states} states); "
+            f"split edges {first_edge}, {second_edge}. "
+            "Increase --kempe-search-limit or try a different reduction.")
+    raise KempeSearchExhausted(
+        f"Kempe class exhausted ({examined} states) for split edges "
+        f"{first_edge}, {second_edge}; a different reduction or coloring class is needed")
 
 
 def apply_half_kempe_loop_color_switching(graph, ariadne_step, color_at_v1, color_at_v2, swap_c1, swap_c2):
@@ -1028,18 +1212,14 @@ def is_the_graph_one_edge_connected(face):
     # NOTE: F2 faces have this representation: [(v1, v2), (v2, v1)] that is correct
     if len(face) != 2:
 
-        # Search the list [(),(),...,()]
-        i_edge = 0
-        while is_the_graph_one_edge_connected is False and i_edge < len(face):
-            reverse_edge = rotate(face[i_edge], 1)
-
-            # Start the search
-            if reverse_edge in face[i_edge + 1:]:
+        # Same reverse-edge test in O(boundary length), including repeated
+        # directed edges. Large Waterworld oceans made the list scan quadratic.
+        seen = set()
+        for u, v in face:
+            if (v, u) in seen:
                 is_the_graph_one_edge_connected = True
-            else:
-
-                # Move to the next edge
-                i_edge += 1
+                break
+            seen.add((u, v))
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: is_the_graph_one_edge_connected: %s", is_the_graph_one_edge_connected)
 

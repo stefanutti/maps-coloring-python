@@ -127,8 +127,10 @@ from ct_graph_utils import is_multiedge
 from ct_graph_utils import check_if_vertex_is_in_face
 from ct_graph_utils import create_graph_from_planar_representation
 from ct_graph_utils import export_graph
+from ct_graph_utils import append_colored_planar_representation
 from ct_graph_utils import are_edges_on_the_same_kempe_cycle
 from ct_graph_utils import apply_half_kempe_loop_color_switching
+from ct_graph_utils import find_kempe_repair, KempeSearchExhausted
 from ct_graph_utils import remove_vertex_from_face
 from ct_graph_utils import rotate
 from ct_graph_utils import join_faces
@@ -219,6 +221,16 @@ def initialize_statistics():
     stats['SELECT-S4-F5-F6'] = 0
     stats['SELECT-S4-F5-FALLBACK'] = 0
     stats['SELECT-S4-LESS-THAN-F5-INTERRUPT'] = 0
+
+    stats['SELECT-S5-SMALL'] = 0
+    stats['SELECT-S5-POSITIVE-CORNER'] = 0
+    stats['SELECT-S5-GENERAL-F5'] = 0
+    stats['SELECT-S5-FALLBACK'] = 0
+    stats['S5-F5-DIRECT'] = 0
+    stats['S5-F5-SEARCHED'] = 0
+    stats['S5-KEMPE-STATES'] = 0
+    stats['S5-MAX-KEMPE-STATES'] = 0
+    stats['S5-DETERMINISTIC-SWITCHES'] = 0
 
     stats['TOTAL_RANDOM_KEMPE_SWITCHES'] = 0
     stats['MAX_RANDOM_KEMPE_SWITCHES'] = 0
@@ -518,7 +530,7 @@ def ariadne_case_f4(the_colored_graph, ariadne_step):
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F4")
 
 
-def ariadne_case_f5(the_colored_graph, ariadne_step):
+def ariadne_case_f5(the_colored_graph, ariadne_step, kempe_search_limit=None):
     """
     Restore the edge of a F5 face.
 
@@ -646,6 +658,25 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
 
                 if logger.isEnabledFor(logging.DEBUG): logger.debug("END: CASE-F5-C1!=C2-SameKempeLoop-C1-C2")
 
+        if end_of_f5_restore is False and kempe_search_limit is not None:
+            first_edge = (vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v1_not_on_the_face)
+            second_edge = (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face)
+            switches, colors, pair, examined = find_kempe_repair(
+                the_colored_graph, first_edge, second_edge, kempe_search_limit)
+            for a, b, cycle in switches:
+                for u, v, key in cycle:
+                    old = the_colored_graph[u][v][key]['color']
+                    the_colored_graph[u][v][key]['color'] = b if old == a else a
+            apply_half_kempe_loop_color_switching(
+                the_colored_graph, ariadne_step, *colors, *pair)
+            stats['S5-F5-SEARCHED'] += 1
+            stats['S5-KEMPE-STATES'] += examined
+            stats['S5-MAX-KEMPE-STATES'] = max(stats['S5-MAX-KEMPE-STATES'], examined)
+            stats['S5-DETERMINISTIC-SWITCHES'] += len(switches)
+            end_of_f5_restore = True
+        elif end_of_f5_restore and kempe_search_limit is not None:
+            stats['S5-F5-DIRECT'] += 1
+
         # Try random switches around the graph for a random few times. It works almost all times
         # But it may get stuck in infinite loops:
         # - See: https://four-color-theorem.org/2016/11/05/four-color-theorem-infinite-switches-are-not-enough-rectangular-map/
@@ -684,7 +715,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step):
 
                 # This is used as a sentinel to use the runs.bash script
                 open("debug/error.txt", 'a').close()
-                exit(-1)
+                raise KempeSearchExhausted("F5 reconstruction exhausted 2000 random Kempe attempts")
 
             # TODO: if is_well_colored(the_colored_graph) is False:
             #     print_graph(the_colored_graph)
@@ -1360,6 +1391,97 @@ def select_edge_to_remove_unavoidable_set(g_faces, choices, i_global_counter, re
     exit(-1)
 
 
+# v17, section 6: the complete positive-curvature list when all faces >= 5.
+# Order is decreasing charge, using exact integer triples (no float tests).
+POSITIVE_CORNER_TYPES = (
+    (5, 5, 5), (5, 5, 6), (5, 5, 7), (5, 6, 6),
+    (5, 5, 8), (5, 5, 9), (5, 6, 7),
+)
+
+
+def positive_corners(face_index):
+    """Return vertex -> incident size triple for v17's seven corner types.
+
+    This certifies positive curvature, not reducibility of the configuration.
+    In particular no connectivity assumption about excavation intermediates
+    is inferred from connectivity of the input map.
+    """
+    result = {}
+    for vertex, faces in face_index.vertex_to_faces.items():
+        sizes = tuple(sorted(len(face) for face in faces))
+        if sizes in POSITIVE_CORNER_TYPES:
+            result[vertex] = sizes
+    return result
+
+
+def select_edge_to_remove_positive_corner(g_faces, choices, i_global_counter,
+                                         recently_modified_vertices=None, face_index=None):
+    """S5: deterministic small-face reductions, then positive-corner waves.
+
+    At F5, prefer pentagons belonging to a positive corner, locally first.
+    Rank their edges by the number of flanking pentagons demoted to F4,
+    then by the ocean/neighbor size and corner charge. Check bridges before
+    accepting. The general F5 pass handles inadmissible corner candidates
+    without assuming that an unavoidable configuration is reducible.
+
+    The fifth return value has the same wave-reset meaning as in S4.
+    """
+    face_index = _face_index_or_build(g_faces, face_index)
+    if choices != 2345 and i_global_counter == 0:
+        logger.warning("S5 ignores --choices; priority is fixed at 2345")
+
+    for size in (2, 3, 4):
+        candidates = []
+        for f1 in face_index.faces_of_size(size):
+            for edge in f1:
+                f2 = face_index.first_face_with_edge(rotate(edge, 1), exclude_face=f1)
+                if f2 is not None:
+                    candidates.append((edge, f1, f2))
+        # Stable ties follow face/edge order, including for parallel edges.
+        candidates.sort(key=lambda candidate: -len(candidate[2]))
+        for edge, f1, f2 in candidates:
+            merged = join_faces(f1, f2, edge)
+            if not is_the_graph_one_edge_connected(merged):
+                stats['SELECT-S5-SMALL'] += 1
+                return edge, f1, f2, merged, None
+
+    corners = positive_corners(face_index)
+    all_f5 = face_index.faces_of_size(5)
+    corner_rank = {}
+    for f1 in all_f5:
+        ranks = [POSITIVE_CORNER_TYPES.index(corners[v]) for v, _ in f1 if v in corners]
+        if ranks:
+            corner_rank[id(f1)] = min(ranks)
+    local_ids = {id(face) for face in face_index.faces_touching_vertices(
+        recently_modified_vertices or (), face_size=5)}
+    candidates = []
+    for f1 in all_f5:
+        for edge in f1:
+            f2 = face_index.first_face_with_edge(rotate(edge, 1), exclude_face=f1)
+            if f2 is not None:
+                flanking = [face for v in edge for face in face_index.vertex_to_faces[v]
+                            if face is not f1 and face is not f2]
+                demoted_pentagons = sum(len(face) == 5 for face in flanking)
+                has_corner = id(f1) in corner_rank
+                local = id(f1) in local_ids
+                score = (not has_corner, not local, -demoted_pentagons,
+                         -len(f2), corner_rank.get(id(f1), len(POSITIVE_CORNER_TYPES)))
+                candidates.append((score, edge, f1, f2))
+    candidates.sort(key=lambda candidate: candidate[0])
+    for _, edge, f1, f2 in candidates:
+        merged = join_faces(f1, f2, edge)
+        if not is_the_graph_one_edge_connected(merged):
+            has_corner = id(f1) in corner_rank
+            stat = 'SELECT-S5-POSITIVE-CORNER' if has_corner else 'SELECT-S5-GENERAL-F5'
+            stats[stat] += 1
+            fallback = recently_modified_vertices is not None and id(f1) not in local_ids
+            stats['SELECT-S5-FALLBACK'] += int(fallback)
+            logger.info("S5 step %s: edge %s, positive corner: %s, local: %s",
+                        i_global_counter, edge, has_corner, id(f1) in local_ids)
+            return edge, f1, f2, merged, ('fallback' if fallback else None)
+    raise RuntimeError("S5 found no bridge-free small-face reduction")
+
+
 def from_graph_to_planar(the_graph):
     """
     Convert a graph to the planar representation.
@@ -1555,7 +1677,7 @@ def create_from_edge_list(edgelist_filename, shuffle_the_planar_representation):
 
 def count_lines_in_file(filename):
     """
-    Count the number of non-empty lines in a file.
+    Count physical lines, matching create_from_planar's line_number.
 
     Parameters
     ----------
@@ -1563,13 +1685,12 @@ def count_lines_in_file(filename):
 
     Returns
     -------
-        count: The number of non-empty lines
+        count: The number of physical lines, including empty ones
     """
     count = 0
     with open(filename, 'r') as fp:
-        for line in fp:
-            if line.strip():
-                count += 1
+        for _ in fp:
+            count += 1
     return count
 
 
@@ -1603,11 +1724,12 @@ def create_from_planar(planar_filename, shuffle_the_planar_representation, line_
             exit(-1)
         g_faces = json.loads(line)
 
-    # Cast back to tuples. json.dump write the "list of list of tuples" as "list of list of list"
-    #
-    # Original: [[(3,2),(3,5)],[(2,4),(1,3),(1,3)], ... ,[(1,2),(3,4),(6,7)]]
-    # Saved as: [[[3,2],[3,5]],[[2,4],[1,3],[1,3]], ... ,[[1,2],[3,4],[6,7]]]
-    g_faces = [[tuple(l) for l in L] for L in g_faces]
+    # Colors in triples are intentionally ignored: reduction still uses pairs.
+    for face in g_faces:
+        for edge in face:
+            if not isinstance(edge, list) or len(edge) not in (2, 3):
+                raise ValueError("Each planar edge must be a pair or triple: [u, v] or [u, v, color]")
+    g_faces = [[tuple(edge[:2]) for edge in face] for face in g_faces]
 
     if shuffle_the_planar_representation:
         shuffle(g_faces)
@@ -1929,7 +2051,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
     return ariadne_s_thread
 
 
-def rebuild_faces(g_faces, ariadne_s_thread):
+def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None):
     """
     Restore the edges one at a time and apply the half Kempe-cycle color switching method.\n
     Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
@@ -1995,7 +2117,7 @@ def rebuild_faces(g_faces, ariadne_s_thread):
         elif ariadne_step[0] == 4:
             ariadne_case_f4(the_colored_graph, ariadne_step)
         elif ariadne_step[0] == 5:
-            ariadne_case_f5(the_colored_graph, ariadne_step)
+            ariadne_case_f5(the_colored_graph, ariadne_step, kempe_search_limit)
 
         # Separator
         if logger.isEnabledFor(logging.DEBUG): logger.debug("")
@@ -2093,18 +2215,35 @@ def main():
     group_input.add_argument("-r2", "--random2", help="Random graph: subdivision of faces (directly planar)", type=int)
     group_input.add_argument("-e", "--edgelist", help="Load a .edgelist file (networkx)")
     group_input.add_argument("-p", "--planar", help="Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
-    parser.add_argument("-o", "--output", help="Save a .edgelist file (networkx), plus a .dot file (networkx). Specify the file without extension", required=False)
+    parser.add_argument("-o", "--output", help="Output prefix: saves .edgelist, .orig.dot, .dot and .colored.planar; appends .N (execution number starting at 1) only for multiple executions", required=False)
+    parser.add_argument("-o2", "--output2", help="Append each colored planar embedding as one JSON line to this output filename (extension required)", required=False)
     parser.add_argument("-c", "--choices", help="Sequence of the Fs to choose (2345, 2354, 2435, 2453, 2534, 2543)", type=int, default=2345, choices=[2345, 2354, 2435, 2453, 2534, 2543], required=False)
     parser.add_argument("-s", "--shuffle", help="Shuffle the list at the beginning. Most of the times it solves the infinite loop condition", action='store_true')
     parser.add_argument("-n", "--num_executions", help="The entire process will be executed N times", type=int, default=1, required=False)
+    parser.add_argument("-skip", "--skip", type=int, default=0, metavar="N",
+                        help="Skip the first N physical lines of planar input (default: 0); retain original map numbers")
+    parser.add_argument("--continue-on-error", action='store_true',
+                        help="For multi-map planar input, continue after Kempe search exhaustion; unexpected errors remain fatal")
     group_selection = parser.add_mutually_exclusive_group(required=False)
     group_selection.add_argument("-s1", "--selection1", help="Edge selection strategy 1: first fit (first valid edge in the first face of the right priority) - default", action='store_true', default=False)
     group_selection.add_argument("-s2", "--selection2", help="Edge selection strategy 2: best adjacent face (maximizes f2 size across all candidates)", action='store_true', default=False)
     group_selection.add_argument("-s3", "--selection3", help="Edge selection strategy 3: for F5 faces, select edge with one shared vertex with adjacent F5/F6", action='store_true', default=False)
     group_selection.add_argument("-s4", "--selection4", help="Edge selection strategy 4: unavoidable set — max neighbor for F2/F3/F4, F5 pairs with locality", action='store_true', default=False)
+    group_selection.add_argument("-s5", "--selection5", help="Edge selection strategy 5: v17 positive corners with deterministic Kempe repair (no random switches)", action='store_true', default=False)
+    parser.add_argument("--kempe-search-limit", type=int, default=10000,
+                        help="S5: maximum distinct colorings per F5 repair (default: 10000); stops on exhaustion")
     args = parser.parse_args()
+    if args.kempe_search_limit < 1:
+        parser.error("--kempe-search-limit must be positive")
+    if args.skip < 0:
+        parser.error("--skip must be non-negative")
+    if args.skip and args.planar is None:
+        parser.error("--skip requires --planar (-p)")
+    output2_extension = os.path.splitext(args.output2)[1] if args.output2 is not None else None
+    if args.output2 is not None and (not output2_extension or output2_extension == '.'):
+        parser.error("-o2 requires a filename with an extension")
 
-    # Select edge selection strategy (-s1 = first fit (default), -s2 = best adjacent face, -s3 = f5 shared vertex, -s4 = unavoidable set)
+    # S1 is the default; S5 also selects deterministic reconstruction below.
     if args.selection1:
         selection_strategy = select_edge_to_remove_first_fit
     elif args.selection2:
@@ -2113,6 +2252,8 @@ def main():
         selection_strategy = select_edge_to_remove_f5_shared_vertex
     elif args.selection4:
         selection_strategy = select_edge_to_remove_unavoidable_set
+    elif args.selection5:
+        selection_strategy = select_edge_to_remove_positive_corner
     else:
         selection_strategy = select_edge_to_remove_first_fit
 
@@ -2122,8 +2263,19 @@ def main():
         total_lines = count_lines_in_file(args.planar)
         num_executions = total_lines
 
+    remaining_executions = max(0, num_executions - args.skip)
+    if args.skip:
+        logger.info("Skipping first %s lines of %s; %s maps remaining",
+                    args.skip, args.planar, remaining_executions)
+        if remaining_executions == 0:
+            logger.info("No maps to process after --skip %s", args.skip)
+            return
+
+    continue_on_error = args.continue_on_error and args.planar is not None and remaining_executions > 1
+    failed_maps = []
+
     # Execute n times the program to see if it is deterministic
-    for i_execution in range(num_executions):
+    for i_execution in range(args.skip, num_executions):
    
         # Initialize statistics (stats is global)
         initialize_statistics()
@@ -2141,7 +2293,12 @@ def main():
         elif args.edgelist is not None:  # edgelist - Load a graph stored in edgelist format
             the_graph, g_faces = create_from_edge_list(args.edgelist, args.shuffle)
         elif args.planar is not None:  # Planar - Load a planar embedding of the graph (one line per execution)
-            the_graph, g_faces = create_from_planar(args.planar, args.shuffle, line_number=i_execution)
+            # Preserve input order for export before applying --shuffle.
+            the_graph, g_faces = create_from_planar(args.planar, False, line_number=i_execution)
+
+        original_faces = [face[:] for face in g_faces] if args.output is not None or args.output2 is not None else None
+        if args.planar is not None and args.shuffle:
+            shuffle(g_faces)
 
         stats['time_GRAPH_CREATION_END'] = time.ctime()
         logger.info("------------------------------")
@@ -2209,7 +2366,17 @@ def main():
         logger.info("BEGIN: Rebuild faces" + " (execution " + str(i_execution + 1) + ")")
         logger.info("----------------------")
 
-        the_colored_graph = rebuild_faces(g_faces, ariadne_s_thread)
+        try:
+            the_colored_graph = rebuild_faces(
+                g_faces, ariadne_s_thread,
+                kempe_search_limit=args.kempe_search_limit if args.selection5 else None)
+        except KempeSearchExhausted as error:
+            logger.error("Map %s/%s: reconstruction stopped: %s", i_execution + 1, num_executions, error)
+            if not continue_on_error:
+                raise SystemExit(1 if args.selection5 else -1) from error
+            failed_maps.append(i_execution + 1)
+            # The next iteration starts with a new graph, reduction stack and statistics.
+            continue
 
         logger.debug("----------------------")
         logger.debug("END: Rebuild faces" + " (execution " + str(i_execution + 1) + ")")
@@ -2255,6 +2422,7 @@ def main():
             logger.info("Recreated graph is equal to the original")
         else:
             logger.error("Unexpected condition (recreated graph is different from the original). Mario you'd better go back to paper")
+            raise SystemExit(-1)
         logger.info("END: Check if isomorphic")
 
         logger.debug("BEGIN: print_graph (Original)")
@@ -2268,6 +2436,7 @@ def main():
         logger.debug("BEGIN: is well colored)")
         if is_well_colored(the_colored_graph) is False:
             logger.error("is_well_colored: False")
+            raise SystemExit(-1)
         else:
             logger.debug("is_well_colored: True")
         logger.debug("END: is well colored")
@@ -2279,10 +2448,20 @@ def main():
 
         # Save the output graph
         if args.output is not None:
-            export_graph(the_colored_graph, args.output)
+            output_prefix = f"{args.output}.{i_execution + 1}" if remaining_executions > 1 else args.output
+            export_graph(the_colored_graph, output_prefix, planar_faces=original_faces)
+        if args.output2 is not None:
+            append_colored_planar_representation(the_colored_graph, args.output2, original_faces)
 
         # Print statistics
         print_stats()
+
+    if continue_on_error:
+        logger.info("Batch summary: %s succeeded, %s failed (total: %s)",
+                    remaining_executions - len(failed_maps), len(failed_maps), remaining_executions)
+        if failed_maps:
+            logger.error("Failed map numbers: %s", failed_maps)
+            raise SystemExit(1)
 
 
 ######

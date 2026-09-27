@@ -75,7 +75,7 @@ uv run --python ../.venv/bin/python python 4ct.py \
 uv run --python ../.venv/bin/python python 4ct.py -e path/to/map.edgelist
 ```
 
-Le strategie si selezionano con `-s1`, `-s2`, `-s3` o `-s4`. S1 è il default:
+Le strategie si selezionano con `-s1`, `-s2`, `-s3`, `-s4` o `-s5`. S1 è il default:
 
 ```bash
 uv run --python ../.venv/bin/python python 4ct.py \
@@ -86,16 +86,103 @@ Opzioni utili:
 
 | Opzione | Effetto |
 | --- | --- |
-| `-o NAME` | Esporta `NAME.edgelist`, `NAME.orig.dot` e `NAME.dot`. |
+| `-o NAME` | Esporta `NAME.edgelist`, `NAME.orig.dot`, `NAME.dot` e `NAME.colored.planar`; con più esecuzioni aggiunge `.N` al prefisso, a partire da 1. |
+| `-o2 FILE` | Aggiunge la rappresentazione planare colorata di ogni mappa riuscita come nuova riga JSON in `FILE`; il nome deve includere un'estensione. |
 | `-c 2345` | Imposta la priorità delle facce per S1/S2/S3. |
 | `-s` | Mescola inizialmente la lista delle facce. |
 | `-n N` | Ripete N volte gli input casuali o edgelist. |
-| `-s1` ... `-s4` | Sceglie la strategia di selezione. |
+| `--skip N` / `-skip N` | Salta le prime N righe fisiche del file `.planar` (default 0). |
+| `-s1` ... `-s5` | Sceglie la strategia di selezione. |
+| `--kempe-search-limit N` | Limita a N colorazioni distinte ciascuna ricerca F5 di S5 (default 10000). |
+| `--continue-on-error` | Nei file `.planar` con più mappe, passa alla successiva se la ricerca Kempe fallisce; gli errori inattesi restano fatali. |
+
+Con `-o test` e una sola esecuzione vengono salvati `test.edgelist`,
+`test.orig.dot`, `test.dot` e `test.colored.planar`. Con più mappe nel `.planar` o più ripetizioni
+con `-n`, la prima esecuzione usa il prefisso `test.1`, la seconda `test.2`,
+e così via. Le mappe saltate
+con `--continue-on-error` non vengono esportate e lasciano un buco nella
+numerazione. Un nuovo avvio con lo stesso prefisso e senza `--skip` riparte da 1 e può
+sovrascrivere i file corrispondenti di un avvio precedente.
+
+Il file `.colored.planar` contiene una sola riga JSON con le facce originali
+e gli archi nella forma `[u, v, "red"]`, `[u, v, "green"]` o
+`[u, v, "blue"]`. Con input `-p` conserva ordine delle facce, ordine e verso
+degli archi e identificativi dei vertici del file sorgente, anche usando `-s`.
+Per gli altri input conserva l'embedding iniziale prima della riduzione.
+I colori sono quelli calcolati durante la ricostruzione, coerenti con gli
+altri file esportati. Anche gli archi paralleli ricevono colori distinti.
+
+`-o2` usa la stessa rappresentazione, ma non crea nomi derivati né sovrascrive
+il file: apre il nome indicato in append e aggiunge una riga per ogni elaborazione
+riuscita. Questo permette di raccogliere molte mappe in un solo file JSON Lines,
+anche eseguendo il programma più volte. Le mappe che falliscono con
+`--continue-on-error` non vengono scritte.
+
+Il caricamento con `-p` accetta sia coppie `[u, v]` sia triple `[u, v, colore]`,
+anche mescolate. Per ora ignora completamente il terzo valore: il grafo viene
+ricolorato con l'algoritmo normale. È quindi possibile rileggere direttamente
+un file `.colored.planar` senza attivare alcun uso dei colori come oracolo.
+
+S5 usa i sette tipi a curvatura positiva di v17 e ricostruisce senza scambi
+casuali. Per esempio:
+
+```bash
+uv run --python ../.venv/bin/python python 4ct.py \
+  -s5 -p examples/planar/waterworld-1.planar
+```
+
+Le statistiche distinguono gli F5 risolti direttamente (`S5-F5-DIRECT`),
+quelli che richiedono ricerca (`S5-F5-SEARCHED`), gli stati esaminati e gli
+scambi deterministici. `TOTAL_RANDOM_KEMPE_SWITCHES` deve essere zero.
+Una ricerca fallita termina con codice diverso da zero e distingue il
+limite raggiunto dall'esaurimento della classe di Kempe. Aumentare il limite
+non può risolvere una classe completamente esaurita. Per le garanzie e i
+limiti matematici vedere [algorithm.md](algorithm.md).
 
 Un file `.planar` può contenere più grafi, uno per riga. In questo caso il
-programma esegue tutte le righe e il valore di `-n` viene ignorato dal
-comportamento corrente. Evitare righe vuote intermedie: il conteggio iniziale
-le ignora, ma la lettura successiva usa gli indici delle righe fisiche.
+programma esegue tutte le righe e il valore di `-n` viene ignorato.
+Ogni riga elaborata deve contenere una mappa JSON valida; le righe vuote
+non sono ammesse nella parte da elaborare.
+
+Per riprendere dalla quarta riga, saltando le prime tre:
+
+```bash
+uv run --python ../.venv/bin/python python 4ct.py \
+  -p examples/planar/maps_3000_maps_of_8000_faces.planar \
+  -s -s5 --skip 3 --continue-on-error -o test
+```
+
+`--skip` accetta un intero non negativo e, se maggiore di zero, richiede `-p`.
+Conta le righe fisiche, comprese quelle vuote: le righe saltate non vengono
+interpretate. Log e output mantengono i numeri originali, quindi nell'esempio
+gli output iniziano da `test.4.edgelist`, `test.4.orig.dot`, `test.4.dot`
+e `test.4.colored.planar`.
+Se resta una sola mappa da elaborare, gli output non hanno suffisso numerico.
+Se `N` raggiunge o supera il numero di righe, il programma segnala che non
+restano mappe e termina con successo, senza esportare file. Il riepilogo
+conta solo le mappe elaborate, escludendo quelle saltate con `--skip`.
+
+Per elaborare una raccolta anche quando alcune mappe non vengono colorate:
+
+```bash
+uv run --python ../.venv/bin/python python 4ct.py \
+  -p examples/planar/maps_3000_maps_of_8000_faces.planar \
+  -s -s5 --continue-on-error
+```
+
+Il parametro vale per tutte le strategie: intercetta il raggiungimento dei
+2.000 tentativi casuali F5 di S1–S4 e l'esaurimento del budget o della classe
+di Kempe in S5. Registra il numero della mappa (a partire da 1) e il motivo,
+poi riparte con grafo e statistiche nuovi per la mappa successiva. Alla fine
+stampa il numero di mappe riuscite e fallite e gli indici delle fallite;
+il codice di uscita è 1 se almeno una mappa è fallita, 0 altrimenti.
+Il fallimento della ricerca non dimostra che la mappa sia non colorabile.
+
+Senza il parametro, il primo fallimento interrompe l'esecuzione. Il parametro
+non ha effetto con una sola mappa o con input diversi da `-p`, anche usando
+`-n`. Errori inattesi, violazioni degli invarianti, input non valido e Ctrl+C
+interrompono comunque il programma. Anche dimensioni errate del grafo
+ricostruito o una colorazione finale non valida sono errori fatali.
 
 ## Test
 
@@ -140,6 +227,26 @@ Controllare nel log che:
 
 I generatori e il caso F5 usano casualità. Un singolo smoke test positivo non
 sostituisce i test mirati sui casi limite.
+
+## Verifica S5 sulle mappe Waterworld
+
+Da `ct/`:
+
+```bash
+uv run --python ../.venv/bin/python python tests/benchmark_selection5.py
+```
+
+Il benchmark trova tutti i file `examples/planar/waterworld-*.planar` ed
+esegue ogni riga non vuota. Impedisce le chiamate casuali nella selezione e
+nella ricostruzione e verifica la colorazione, la cubicità, l'esaurimento
+della pila e l'uguaglianza esatta dei vertici e del multinsieme degli archi
+etichettati con l'input. Stampa risultati JSON Lines, inclusi tempi e contatori.
+Per un singolo file usare `--pattern 'waterworld-1.planar'`.
+
+I risultati del campione verificato sono riportati in
+[s5-waterworld.md](s5-waterworld.md). I test ordinari includono fixture piccole
+per classificazione, selezione, ricerca, limiti, archi paralleli e CLI; il
+benchmark completo rimane separato perché usa mappe con migliaia di vertici.
 
 ## Converter
 

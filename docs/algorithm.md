@@ -105,7 +105,7 @@ Tutte le strategie restituiscono la stessa tupla:
 (edge, f1, f2, f1_plus_f2, event)
 ```
 
-`event` vale normalmente `None`. In S4 può valere `"fallback"`, segnalando a
+`event` vale normalmente `None`. In S4/S5 può valere `"fallback"`, segnalando a
 `reduce_faces()` che una ricerca globale ha interrotto la wave locale.
 
 ### Strategie di selezione
@@ -116,6 +116,7 @@ Tutte le strategie restituiscono la stessa tupla:
 | `-s2` | `select_edge_to_remove_by_largest_neighbor` | Per ogni classe prioritaria preferisce la candidata la cui faccia adiacente è più grande. |
 | `-s3` | `select_edge_to_remove_f5_shared_vertex` | Usa il first-fit per F2/F3/F4; sulle F5 preferisce configurazioni con una F5/F6 adiacente che condivide esattamente un vertice. |
 | `-s4` | `select_edge_to_remove_unavoidable_set` | Gestisce prima F2/F3/F4, poi coppie F5-F5 e F5-F6, privilegiando una regione locale attiva. |
+| `-s5` | `select_edge_to_remove_positive_corner` | Usa i sette tipi di vertice a curvatura positiva di v17, con località e scelte deterministiche; ricostruisce senza scambi casuali. |
 
 Per S1, S2 e S3, `--choices` stabilisce la priorità tra F3, F4 e F5, con F2
 sempre per prima. Sono accettate le permutazioni `2345`, `2354`, `2435`,
@@ -135,6 +136,70 @@ La regione locale è rappresentata da un insieme di vertici modificati di
 recente. `update_wave_frontier()` la avvia o la estende dopo una riduzione F5;
 le riduzioni F2/F3/F4 la estendono solo se era già attiva. Dopo un fallback
 globale, il comportamento corrente di `reduce_faces()` azzera la frontier.
+
+### S5: configurazioni inevitabili e verifica della ricostruzione
+
+Il punto di partenza è la sezione 6 di
+[v17](llm-vs-4ct/4ct-v17.md). Se tutte le facce hanno almeno cinque lati,
+la carica di un vertice incidente a facce di taglia `a,b,c` è
+`6/a + 6/b + 6/c - 3`. La somma delle cariche è 12. Pertanto esiste almeno
+un vertice positivo, con uno dei sette tipi:
+
+```text
+(5,5,5), (5,5,6), (5,5,7), (5,5,8), (5,5,9), (5,6,6), (5,6,7)
+```
+
+Questa è una garanzia di **inevitabilità**, non di riducibilità cromatica.
+V17 lascia aperta l'estensione R₅ (§10.3) e non garantisce che una qualunque
+colorazione dell'intermedio sia riparabile nella propria classe di Kempe.
+S5 usa quindi questi tipi per guidare la scelta, senza interpretarli come
+configurazioni la cui ricostruzione sia già dimostrata. Non implementa il
+catalogo delle 633 configurazioni riducibili della dimostrazione RSST, né
+il pilotaggio completo di tre facce di v17.
+
+La selezione ha priorità fissa `2345`:
+
+1. Per F2/F3/F4 ordina le candidate per taglia decrescente della faccia
+   adiacente e accetta la prima che non crea ponti. Anche F2 è deterministica.
+2. Per F5 privilegia le facce contenenti un vertice di uno dei sette tipi.
+   Dentro questa classe privilegia la wave locale.
+3. Ordina gli archi per numero di pentagoni laterali che diventano F4,
+   poi per taglia decrescente della faccia adiacente, poi per carica
+   decrescente del miglior vertice positivo della faccia. I pareggi seguono
+   l'ordine delle facce e degli archi nell'input.
+4. Se le candidate positive non ammettono una riduzione valida, prova le
+   altre F5. Ogni candidata accettata passa il controllo dei ponti.
+
+Le informazioni provengono dal `FaceIndex` corrente. S5 non modifica né
+l'embedding né la frontier durante la selezione. Come S4, emette `fallback`
+quando una scelta F5 globale interrompe una wave attiva; `reduce_faces()`
+rimane responsabile dell'aggiornamento degli indici e della frontier.
+
+Durante la ricostruzione, F2/F3/F4 e gli F5 che soddisfano subito il criterio
+di mezzo ciclo seguono le operazioni esistenti. Quando un F5 si blocca,
+`find_kempe_repair()` cerca deterministicamente una colorazione in cui i due
+archi da suddividere appartengano allo stesso ciclo di una coppia ammissibile
+(CONDITION-1, v17 §8.2). Alterna gruppi di al massimo otto espansioni sui
+cicli che toccano gli archi da suddividere con espansioni sui cicli remoti,
+ordinati per distanza topologica dagli archi da suddividere e poi per
+lunghezza decrescente. Le nuove colorazioni prodotte dai cicli remoti hanno
+priorità, per evitare che un'orbita locale molto grande le escluda dal
+budget. Queste priorità sono euristiche; non minimizzano il numero di scambi.
+Il risultato contiene i cicli completi da scambiare, i colori
+degli archi da suddividere e la coppia per il mezzo scambio finale.
+
+Lo stato visitato contiene la colorazione **completa**, con chiavi distinte
+per gli archi paralleli. Conservare soltanto la parola sul bordo non sarebbe
+corretto: uno scambio remoto può cambiare le connessioni senza cambiarla
+(v17 §§9.14–9.18). La ricerca non modifica il grafo; applica gli scambi solo
+dopo aver trovato una sequenza valida.
+
+`--kempe-search-limit` limita il numero di colorazioni distinte memorizzate
+per ciascun F5 (default 10000). Una classe esaurita o un limite raggiunto
+producono un errore esplicito e nessun ripiego casuale. La ricerca può essere
+esponenziale; un fallimento non dimostra che il grafo non sia colorabile.
+Questa politica assicura l'assenza di scambi casuali nelle esecuzioni S5,
+non il successo universale della selezione o della ricerca limitata.
 
 ## Il filo di Arianna
 
@@ -170,8 +235,10 @@ può liberare la combinazione richiesta per reinserire un arco. Le primitive
 principali sono `kempe_chain_color_swap()`, `is_a_kempe_cycle()` e
 `apply_half_kempe_loop_color_switching()` in `ct_graph_utils.py`.
 
-Il caso F5 contiene scelte casuali tra tentativi equivalenti. Di conseguenza,
-esecuzioni ripetute sullo stesso input non sono necessariamente identiche.
+Il caso F5 delle strategie S1–S4 contiene scelte casuali tra tentativi
+equivalenti. Di conseguenza, esecuzioni ripetute sullo stesso input non sono
+necessariamente identiche. S5 usa invece la ricerca deterministica descritta
+sopra. I generatori casuali e l'opzione esplicita `--shuffle` rimangono casuali.
 
 ## Controlli finali
 
@@ -185,7 +252,7 @@ Il controllo topologico completo con `nx.is_isomorphic()` è presente nel
 codice ma attualmente commentato per ragioni prestazionali. L'uguaglianza di
 numero di vertici e archi è quindi un controllo meno forte dell'isomorfismo.
 
-Questo documento descrive il comportamento corrente di S4. Specifiche e note
+Questo documento descrive il comportamento corrente di S4 e S5. Specifiche e note
 storiche possono riportare priorità differenti e non sono la fonte canonica
 per l'algoritmo in uso.
 

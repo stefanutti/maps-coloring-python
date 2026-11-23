@@ -225,10 +225,11 @@ def test_random_kempe_limit_is_a_recoverable_failure(mod, tmp_path, monkeypatch)
         graph.add_edge(i, i + 4, color="blue")
     monkeypatch.setattr(mod, "are_edges_on_the_same_kempe_cycle", lambda *args: False)
     monkeypatch.setattr(mod, "kempe_chain_color_swap", lambda *args: None)
-    # Redirect the diagnostic files; keep the real export and sentinel writes.
-    export = mod.export_graph
-    monkeypatch.setattr(mod, "export_graph", lambda graph, name: export(graph, str(tmp_path / "failed")))
+    # The autouse working directory isolates real diagnostic and sentinel writes.
+    sentinel = tmp_path / "debug" / "error.txt"
+    assert not sentinel.exists()
     with pytest.raises(mod.KempeSearchExhausted, match="2000"):
         mod.ariadne_case_f5(graph, [5, 8, 9, 0, 2, 4, 6])
-    assert (tmp_path / "failed.edgelist").exists()
+    assert (tmp_path / "debug" / "debug.really_bad_case_infinite_loop.edgelist").exists()
+    assert sentinel.read_bytes() == b""
     assert mod.stats["TOTAL_RANDOM_KEMPE_SWITCHES"] == 2000

@@ -141,12 +141,12 @@ def test_search_retains_parallel_edge_identity(mod):
     assert mod.is_well_colored(graph)
 
 
-def test_s5_cli_rebuilds_map(tmp_path):
+def test_s5_cli_rebuilds_map(tmp_path, isolated_workdir):
     planar = tmp_path / "dodecahedron.planar"
     planar.write_text(json.dumps(embedding(nx.dodecahedral_graph())) + "\n")
     result = subprocess.run(
-        [sys.executable, "4ct.py", "-s5", "-p", str(planar)],
-        cwd=CT, text=True, capture_output=True, timeout=30)
+        [sys.executable, str(CT / "4ct.py"), "-s5", "-p", str(planar)],
+        cwd=isolated_workdir, text=True, capture_output=True, timeout=30)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Stats: TOTAL_RANDOM_KEMPE_SWITCHES = 0" in result.stdout
     assert "ERROR" not in result.stdout

@@ -1,4 +1,4 @@
-"""Colored planar I/O preserves the embedding, but input colors are ignored."""
+"""Colored planar I/O keeps the input oracle separate from reconstruction."""
 from collections import Counter
 import importlib.util
 import json
@@ -24,6 +24,17 @@ DOUBLE_EDGES = [
     [(0, 1), (1, 3), (3, 2), (2, 0)],
     [(1, 0), (0, 2), (2, 3), (3, 1)],
 ]
+COLORED_TETRAHEDRON = (
+    ((0, 1, "blue"), (1, 2, "green"), (2, 0, "red")),
+    ((1, 0, "blue"), (0, 3, "green"), (3, 1, "red")),
+    ((2, 1, "green"), (1, 3, "red"), (3, 2, "blue")),
+    ((0, 2, "red"), (2, 3, "blue"), (3, 0, "green")),
+)
+COLORED_THETA = (
+    ((0, 1, "red"), (1, 0, "green")),
+    ((0, 1, "green"), (1, 0, "blue")),
+    ((0, 1, "blue"), (1, 0, "red")),
+)
 
 
 @pytest.fixture
@@ -37,7 +48,7 @@ def mod():
 
 
 @pytest.mark.parametrize("mode", ["pairs", "triples", "mixed"])
-def test_loader_ignores_input_colors(mod, tmp_path, mode):
+def test_loader_keeps_input_colors_out_of_reconstruction(mod, tmp_path, mode):
     faces = [[list(edge) for edge in face] for face in TETRAHEDRON]
     for face in faces:
         for i, edge in enumerate(face):
@@ -49,9 +60,46 @@ def test_loader_ignores_input_colors(mod, tmp_path, mode):
     assert loaded == TETRAHEDRON
     assert graph.number_of_edges() == 6
     assert all("color" not in data for _, _, data in graph.edges(data=True))
+    expected_oracle = None if mode == "pairs" else tuple(
+        tuple(tuple(edge) for edge in face) for face in faces)
+    assert graph.graph["oracle_faces"] == expected_oracle
     mod.init_f_distribution(loaded)
     thread = mod.reduce_faces(loaded, 2345, mod.select_edge_to_remove_positive_corner)
     assert mod.is_well_colored(mod.rebuild_faces(loaded, thread, kempe_search_limit=100))
+    assert graph.graph["oracle_faces"] == expected_oracle
+
+
+@pytest.mark.parametrize("source", [COLORED_TETRAHEDRON, COLORED_THETA])
+def test_loader_preserves_oracle_through_shuffle_and_reconstruction(
+        mod, tmp_path, monkeypatch, source):
+    planar = tmp_path / "colored.planar"
+    planar.write_text(json.dumps(source) + "\n")
+    monkeypatch.setattr(mod, "shuffle", lambda items: items.reverse())
+
+    graph, loaded = mod.create_from_planar(planar, True)
+
+    assert graph.graph["oracle_faces"] == source
+    assert loaded == [[edge[:2] for edge in face] for face in reversed(source)]
+    mod.init_f_distribution(loaded)
+    thread = mod.reduce_faces(loaded, 2345, mod.select_edge_to_remove_positive_corner)
+    rebuilt = mod.rebuild_faces(loaded, thread, kempe_search_limit=100)
+    assert mod.is_well_colored(rebuilt)
+    assert graph.graph["oracle_faces"] == source
+    assert "oracle_faces" not in rebuilt.graph
+
+
+def test_loader_keeps_oracles_separate_between_map_lines(mod, tmp_path):
+    planar = tmp_path / "maps.planar"
+    planar.write_text("\n".join(json.dumps(faces) for faces in (
+        COLORED_TETRAHEDRON, TETRAHEDRON, COLORED_THETA)) + "\n")
+
+    first, _ = mod.create_from_planar(planar, False, line_number=0)
+    uncolored, _ = mod.create_from_planar(planar, False, line_number=1)
+    last, _ = mod.create_from_planar(planar, False, line_number=2)
+
+    assert first.graph["oracle_faces"] == COLORED_TETRAHEDRON
+    assert uncolored.graph["oracle_faces"] is None
+    assert last.graph["oracle_faces"] == COLORED_THETA
 
 
 @pytest.mark.parametrize("edge", [[0], [0, 1, "red", "extra"]])

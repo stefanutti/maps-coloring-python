@@ -119,9 +119,15 @@ anche eseguendo il programma più volte. Le mappe che falliscono con
 `--continue-on-error` non vengono scritte.
 
 Il caricamento con `-p` accetta sia coppie `[u, v]` sia triple `[u, v, colore]`,
-anche mescolate. Per ora ignora completamente il terzo valore: il grafo viene
-ricolorato con l'algoritmo normale. È quindi possibile rileggere direttamente
-un file `.colored.planar` senza attivare alcun uso dei colori come oracolo.
+anche mescolate. Conserva automaticamente i record originali con i colori
+in `the_graph.graph["oracle_faces"]`, come tuple annidate nell'ordine del file;
+il valore è `None` se nessun arco contiene un colore. Il contratto di ritorno
+di `create_from_planar()` rimane `(the_graph, g_faces)`.
+Questa copia è disponibile per gli esperimenti sull'oracolo della mappa
+iniziale, anche dopo shuffle e riduzione. Non aggiunge verifiche cromatiche
+né completa i colori degli input misti. La pipeline continua a usare
+`g_faces` senza colori e a ricolorare il grafo con l'algoritmo normale;
+gli export contengono la nuova colorazione calcolata dalla ricostruzione.
 
 S5 usa i sette tipi a curvatura positiva di v17 e ricostruisce senza scambi
 casuali. Per esempio:
@@ -184,6 +190,22 @@ non ha effetto con una sola mappa o con input diversi da `-p`, anche usando
 interrompono comunque il programma. Anche dimensioni errate del grafo
 ricostruito o una colorazione finale non valida sono errori fatali.
 
+## Esperimento F5 con oracolo
+
+`experiments/f5_oracle_probe.py` studia i pentagoni iniziali di una raccolta
+già colorata. Conta le scelte compatibili con un criterio di ciclo bicolore
+e verifica nove trasformazioni campione sulla prima mappa. Da `ct/`:
+
+```bash
+uv run --python ../.venv/bin/python python experiments/f5_oracle_probe.py --limit 1
+```
+
+Il default di input è `maps_3000_maps_of_8000_faces.colored.planar`;
+`--input FILE` lo sostituisce e `--limit 151` estende il conteggio alle prime
+151 mappe. È un prototipo per gli stati iniziali, non una nuova strategia
+della pipeline. Metodo, risultati e limiti sono nel
+[resoconto del primo studio](llm-vs-4ct/4ct-oracle-study-step-1.md).
+
 ## Test
 
 La suite completa si esegue da `ct/`:
@@ -208,6 +230,16 @@ uv run --python ../.venv/bin/python python -m pytest \
 Poiché `4ct.py` inizia con una cifra, i test lo caricano tramite `importlib`.
 Non rinominare il file solo per poterlo importare: mantenere lo stesso approccio
 nei nuovi test che devono accedere alle sue funzioni.
+
+`tests/conftest.py` crea `debug/` nel `tmp_path` di ogni test e usa quella
+directory come cwd, mantenendo reali tutte le scritture. Avviare pytest da
+`ct/`; nei subprocess usare la fixture `isolated_workdir` come cwd e percorsi
+assoluti per gli script. Gli input del checkout vanno risolti tramite
+`__file__`, gli output tramite `tmp_path`. Per conservare anche cache e
+temporanei precedenti, scegliere una nuova radice di lavoro e usare
+`PYTHONDONTWRITEBYTECODE=1`, `uv run --python ../.venv/bin/python --offline`,
+`UV_CACHE_DIR` e `TMPDIR` sotto quella radice, più `-p no:cacheprovider` e un
+`--basetemp` nuovo per ciascuna invocazione.
 
 ## Smoke test
 
@@ -247,6 +279,95 @@ I risultati del campione verificato sono riportati in
 [s5-waterworld.md](s5-waterworld.md). I test ordinari includono fixture piccole
 per classificazione, selezione, ricerca, limiti, archi paralleli e CLI; il
 benchmark completo rimane separato perché usa mappe con migliaia di vertici.
+
+## Catene sperimentali dell'oracolo
+
+La CLI separata lavora su **una sola riga fisica**, numerata da 1, di un
+embedding interamente colorato. Non modifica il file sorgente e non esegue
+una validazione dell'intera raccolta. Il caso piccolo versionabile
+`examples/planar/oracle-study-dodecahedron.colored.planar` contiene 20 vertici,
+30 archi e 12 pentagoni; la colorazione alterna rosso/verde sul ciclo
+hamiltoniano 0–1–…–19–0 e usa blu sugli altri archi.
+
+Da `ct/`, scegliendo directory di output non ancora popolate:
+
+```bash
+uv run --python ../.venv/bin/python python experiments/oracle_reduction_run.py \
+  --input examples/planar/oracle-study-dodecahedron.colored.planar \
+  --map-number 1 --max-steps 9 \
+  --output debug/oracle-study/task4-dodecahedron-001 \
+  --ordinary-rebuild --kempe-search-limit 10000
+uv run --python ../.venv/bin/python python experiments/oracle_reduction_run.py \
+  --replay debug/oracle-study/task4-dodecahedron-001
+```
+
+La prova documentata raggiunge theta in nove passi (1 F5, 6 F4, 2 F3),
+con replay esatto e ricostruzione ordinaria validi. Per un prefisso usare
+`--max-steps 2` e un'altra directory: l'esito è `step_limit`, il replay
+ripristina comunque l'input e l'ordinario risulta `not_run_nonterminal`.
+
+`--input` richiede `--max-steps` non negativo e `--output`; `--map-number`
+ha default 1, `--kempe-search-limit` default 10000 e deve essere positivo.
+`--replay DIR` è una modalità separata e non accetta le opzioni della corsa.
+Il replay rilegge la sola riga indicata dal manifest e ne controlla SHA-256,
+snapshot completo e multinsieme degli archi con ID e colori; il file sorgente
+deve restare disponibile al percorso registrato. Anche un prefisso salvato
+è riproducibile, senza essere dichiarato una catena completa.
+
+Un arresto non conclusivo viene salvato e restituisce codice 0: leggere
+`status` nel JSON, non dedurre il successo matematico dall'exit code.
+Input/opzioni non validi, file incompleti e errori software terminano con
+codice non nullo. Se la scrittura si interrompe, usare una directory nuova;
+il loader rifiuta salvataggi incompleti e il runner non sovrascrive quelli
+esistenti. Conservare l'intera directory e la riga sorgente per il replay.
+Gli artefatti in `debug/` sono ignorati da Git.
+
+Test dedicati, senza dipendere dalle 151 mappe:
+
+```bash
+uv run --python ../.venv/bin/python python -m pytest tests/test_oracle_reduction.py -q
+uv run --python ../.venv/bin/python python -m pytest tests/test_oracle_bridges.py -q
+uv run --python ../.venv/bin/python python -m pytest tests/test_oracle_validation_cache.py -q
+```
+
+Nel sandbox, se la cache utente di `uv` non è scrivibile, anteporre
+`UV_CACHE_DIR=/private/tmp/maps-coloring-uv-cache`. Contratti e formato sono
+in [architettura](architecture.md#prototipo-sperimentale-delloracolo);
+risultati e limiti nel [resoconto dello studio](llm-vs-4ct/4ct-oracle-study-step-2.md#aggiornamento-task-4-catene-persistenza-e-replay-su-piccole-mappe).
+Le prove del prefisso sulla sola riga 1 e il confronto prima/dopo la
+costruzione lineare di `FaceIndex` sono nel
+[resoconto Task 5](llm-vs-4ct/4ct-oracle-study-step-3.md#aggiornamento-costruzione-lineare-di-faceindex).
+La catena grande completa resta da eseguire. I test mirati all'indice sono
+in `tests/test_face_index.py`; la regressione di costo usa conteggi di
+chiamate su dati sintetici, senza soglie temporali né accesso al dataset.
+La successiva profilazione e ottimizzazione del controllo ponti, con nuova
+misura della stessa riga 1 e replay esatto, sono nell'
+[aggiornamento sui ponti](llm-vs-4ct/4ct-oracle-study-step-3.md#aggiornamento-controllo-iterativo-dei-ponti).
+`test_oracle_bridges.py` confronta il predicato con la cancellazione degli
+archi su piccoli multigrafi sintetici e verifica assenza di mutazioni e
+ricorsione; non accede alla raccolta grande.
+I test del riuso delle verifiche in `test_oracle_validation_cache.py`
+esercitano mutazioni dirette di grafo, facce, lookup, contatori e indici,
+oltre ad atomicità, copie e caricamento. `assert_state_invariants(state,
+force=True)` permette di forzare il controllo completo per diagnosi e
+confronti; i normali chiamanti riutilizzano soltanto un'istantanea ancora
+identica. La cache è privata e non cambia i file dei certificati o del replay.
+La diagnosi del maggiore RSS distingue memoria corrente, picco storico,
+oggetti vivi e regioni native vuote ma residenti. Script e confronti
+controllati sono nel [resoconto della memoria](llm-vs-4ct/4ct-oracle-study-step-3.md#aggiornamento-diagnosi-della-memoria).
+La compressione lossless è ora integrata nella rappresentazione privata
+delle istantanee, senza nuove opzioni CLI. Il test su theta controlla
+dimensione conservata e recupero esatto dell'intero payload tipizzato;
+i test di riuso e invalidazione continuano a esercitare il checker reale.
+Suite, smoke e confronto del prefisso di 20 passi con replay separato sono
+nell'[aggiornamento sull'implementazione](llm-vs-4ct/4ct-oracle-study-step-3.md#aggiornamento-compressione-lossless-integrata).
+
+La costruzione corrente serializza i componenti del payload uno alla volta
+in un unico flusso zlib. Il test di costo osserva le dimensioni prodotte dal
+vero encoder `marshal`, senza soglie RSS o temporali; il test indipendente
+su theta verifica tutti i byte del nuovo flusso tipizzato. Il checker
+completo e il ciclo di invalidazione/riuso sono invariati. Misure della CLI,
+replay separato e limiti sono nell'[aggiornamento sui buffer](llm-vs-4ct/4ct-oracle-study-step-3.md#aggiornamento-istantanee-serializzate-per-componenti).
 
 ## Converter
 

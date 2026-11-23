@@ -769,8 +769,16 @@ class FaceIndex:
         self.faces_by_len.clear()
         self.vertex_to_faces.clear()
         self.refresh_positions()
-        for face in self.g_faces:
-            self.index_face(face)
+        # Traversal already follows bucket order: append without rescanning
+        # earlier faces. A repeated object keeps its last source position,
+        # matching refresh_positions() and the incremental identity semantics.
+        for position, face in enumerate(self.g_faces):
+            if self.face_positions[id(face)] == position:
+                self.faces_by_len[len(face)].append(face)
+                for edge in set(face):
+                    self.edge_to_faces[edge].append(face)
+                for vertex in _vertices_of(face):
+                    self.vertex_to_faces[vertex].append(face)
 
     def refresh_positions(self):
         self.face_positions = {id(face): index for index, face in enumerate(self.g_faces)}
@@ -1706,8 +1714,10 @@ def create_from_planar(planar_filename, shuffle_the_planar_representation, line_
 
     Returns
     -------
-        the_graph: The graph
-        g_faces: The planar representation of the graph
+        the_graph: The uncolored graph, with original colored face records in
+            graph["oracle_faces"] as nested tuples (None for uncolored input).
+            Input colors are preserved without validating or using them.
+        g_faces: The mutable, color-blind planar representation of the graph
     """
 
     logger.info("BEGIN: Load the planar embedding of a graph (output of the gfaces() function): %s (line: %s)", planar_filename, line_number + 1)
@@ -1724,11 +1734,18 @@ def create_from_planar(planar_filename, shuffle_the_planar_representation, line_
             exit(-1)
         g_faces = json.loads(line)
 
-    # Colors in triples are intentionally ignored: reduction still uses pairs.
+    # Keep the input oracle separate: reduction still uses only pairs.
+    has_input_colors = False
     for face in g_faces:
         for edge in face:
             if not isinstance(edge, list) or len(edge) not in (2, 3):
                 raise ValueError("Each planar edge must be a pair or triple: [u, v] or [u, v, color]")
+            if len(edge) == 3:
+                has_input_colors = True
+    oracle_faces = (
+        tuple(tuple(tuple(edge) for edge in face) for face in g_faces)
+        if has_input_colors else None
+    )
     g_faces = [[tuple(edge[:2]) for edge in face] for face in g_faces]
 
     if shuffle_the_planar_representation:
@@ -1736,6 +1753,7 @@ def create_from_planar(planar_filename, shuffle_the_planar_representation, line_
 
     # I need the graph here only to check_graph_at_beginning
     the_graph = create_graph_from_planar_representation(g_faces)
+    the_graph.graph["oracle_faces"] = oracle_faces
 
     check_graph_planarity_3_regularity_no_loops(the_graph)
 

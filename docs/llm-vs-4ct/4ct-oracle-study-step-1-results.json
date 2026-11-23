@@ -1,0 +1,653 @@
+{
+  "experiment": "F5 oracle: initial states only",
+  "input": "ct/maps_3000_maps_of_8000_faces.colored.planar",
+  "maps": 151,
+  "totals": {
+    "pentagons": 571369,
+    "candidates": 2856845,
+    "structurally_admissible": 2856845,
+    "same_complementary_cycle": 1888271,
+    "admissible_same_cycle": 1888271,
+    "singleton_witnesses": 571369,
+    "singleton_admissible": 571369,
+    "other_same_cycle": 1316902,
+    "unresolved_without_extra_switches": 968574
+  },
+  "direct_choices_per_f5": {
+    "1": 107159,
+    "3": 269969,
+    "5": 194241
+  },
+  "examples": {
+    "1": {
+      "map_number": 1,
+      "face_index": 0,
+      "candidates": [
+        {
+          "edge_number": 0,
+          "edge": [
+            0,
+            1
+          ],
+          "structure": {
+            "neighbor_degree": 6,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              6,
+              5,
+              5,
+              5,
+              6
+            ]
+          },
+          "oracle": {
+            "input_color": "blue",
+            "singleton": false,
+            "same_complementary_cycle": false
+          }
+        },
+        {
+          "edge_number": 1,
+          "edge": [
+            1,
+            2
+          ],
+          "structure": {
+            "neighbor_degree": 6,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              6,
+              5,
+              5,
+              5,
+              6
+            ]
+          },
+          "oracle": {
+            "input_color": "green",
+            "singleton": false,
+            "same_complementary_cycle": false
+          }
+        },
+        {
+          "edge_number": 2,
+          "edge": [
+            2,
+            3
+          ],
+          "structure": {
+            "neighbor_degree": 5,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              5,
+              5,
+              5,
+              6,
+              6
+            ]
+          },
+          "oracle": {
+            "input_color": "red",
+            "singleton": true,
+            "same_complementary_cycle": true,
+            "experiment": {
+              "path_edges": 4,
+              "reduced_coloring_valid": true,
+              "face_surgery_matches": true,
+              "exact_inverse_colors": true,
+              "existing_f5_handler_direct": true,
+              "handler_matches_original_colors": true
+            }
+          }
+        },
+        {
+          "edge_number": 3,
+          "edge": [
+            3,
+            4
+          ],
+          "structure": {
+            "neighbor_degree": 5,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              5,
+              5,
+              6,
+              6,
+              5
+            ]
+          },
+          "oracle": {
+            "input_color": "blue",
+            "singleton": false,
+            "same_complementary_cycle": false
+          }
+        },
+        {
+          "edge_number": 4,
+          "edge": [
+            4,
+            0
+          ],
+          "structure": {
+            "neighbor_degree": 5,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              5,
+              5,
+              5,
+              6,
+              6
+            ]
+          },
+          "oracle": {
+            "input_color": "green",
+            "singleton": false,
+            "same_complementary_cycle": false
+          }
+        }
+      ],
+      "structure": {
+        "face": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            0
+          ]
+        ],
+        "neighbor_degrees": [
+          6,
+          6,
+          5,
+          5,
+          5
+        ]
+      },
+      "oracle": {
+        "face": [
+          [
+            0,
+            1,
+            "blue"
+          ],
+          [
+            1,
+            2,
+            "green"
+          ],
+          [
+            2,
+            3,
+            "red"
+          ],
+          [
+            3,
+            4,
+            "blue"
+          ],
+          [
+            4,
+            0,
+            "green"
+          ]
+        ]
+      }
+    },
+    "3": {
+      "map_number": 1,
+      "face_index": 2,
+      "candidates": [
+        {
+          "edge_number": 0,
+          "edge": [
+            4,
+            9
+          ],
+          "structure": {
+            "neighbor_degree": 5,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              5,
+              5,
+              6,
+              5,
+              10
+            ]
+          },
+          "oracle": {
+            "input_color": "red",
+            "singleton": false,
+            "same_complementary_cycle": true,
+            "experiment": {
+              "path_edges": 37,
+              "reduced_coloring_valid": true,
+              "face_surgery_matches": true,
+              "exact_inverse_colors": true,
+              "existing_f5_handler_direct": true,
+              "handler_matches_original_colors": false
+            }
+          }
+        },
+        {
+          "edge_number": 1,
+          "edge": [
+            9,
+            10
+          ],
+          "structure": {
+            "neighbor_degree": 10,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              10,
+              5,
+              5,
+              6,
+              5
+            ]
+          },
+          "oracle": {
+            "input_color": "green",
+            "singleton": false,
+            "same_complementary_cycle": false
+          }
+        },
+        {
+          "edge_number": 2,
+          "edge": [
+            10,
+            5
+          ],
+          "structure": {
+            "neighbor_degree": 5,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              5,
+              6,
+              5,
+              5,
+              10
+            ]
+          },
+          "oracle": {
+            "input_color": "blue",
+            "singleton": true,
+            "same_complementary_cycle": true,
+            "experiment": {
+              "path_edges": 4,
+              "reduced_coloring_valid": true,
+              "face_surgery_matches": true,
+              "exact_inverse_colors": true,
+              "existing_f5_handler_direct": true,
+              "handler_matches_original_colors": true
+            }
+          }
+        },
+        {
+          "edge_number": 3,
+          "edge": [
+            5,
+            0
+          ],
+          "structure": {
+            "neighbor_degree": 6,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              6,
+              5,
+              5,
+              10,
+              5
+            ]
+          },
+          "oracle": {
+            "input_color": "red",
+            "singleton": false,
+            "same_complementary_cycle": true,
+            "experiment": {
+              "path_edges": 18,
+              "reduced_coloring_valid": true,
+              "face_surgery_matches": true,
+              "exact_inverse_colors": true,
+              "existing_f5_handler_direct": true,
+              "handler_matches_original_colors": true
+            }
+          }
+        },
+        {
+          "edge_number": 4,
+          "edge": [
+            0,
+            4
+          ],
+          "structure": {
+            "neighbor_degree": 5,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              5,
+              5,
+              10,
+              5,
+              6
+            ]
+          },
+          "oracle": {
+            "input_color": "green",
+            "singleton": false,
+            "same_complementary_cycle": false
+          }
+        }
+      ],
+      "structure": {
+        "face": [
+          [
+            4,
+            9
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            0,
+            4
+          ]
+        ],
+        "neighbor_degrees": [
+          5,
+          10,
+          5,
+          6,
+          5
+        ]
+      },
+      "oracle": {
+        "face": [
+          [
+            4,
+            9,
+            "red"
+          ],
+          [
+            9,
+            10,
+            "green"
+          ],
+          [
+            10,
+            5,
+            "blue"
+          ],
+          [
+            5,
+            0,
+            "red"
+          ],
+          [
+            0,
+            4,
+            "green"
+          ]
+        ]
+      }
+    },
+    "5": {
+      "map_number": 1,
+      "face_index": 7,
+      "candidates": [
+        {
+          "edge_number": 0,
+          "edge": [
+            22,
+            23
+          ],
+          "structure": {
+            "neighbor_degree": 9,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              9,
+              6,
+              5,
+              5,
+              7
+            ]
+          },
+          "oracle": {
+            "input_color": "red",
+            "singleton": false,
+            "same_complementary_cycle": true,
+            "experiment": {
+              "path_edges": 7,
+              "reduced_coloring_valid": true,
+              "face_surgery_matches": true,
+              "exact_inverse_colors": true,
+              "existing_f5_handler_direct": true,
+              "handler_matches_original_colors": true
+            }
+          }
+        },
+        {
+          "edge_number": 1,
+          "edge": [
+            23,
+            11
+          ],
+          "structure": {
+            "neighbor_degree": 7,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              7,
+              5,
+              5,
+              6,
+              9
+            ]
+          },
+          "oracle": {
+            "input_color": "blue",
+            "singleton": false,
+            "same_complementary_cycle": true,
+            "experiment": {
+              "path_edges": 108,
+              "reduced_coloring_valid": true,
+              "face_surgery_matches": true,
+              "exact_inverse_colors": true,
+              "existing_f5_handler_direct": true,
+              "handler_matches_original_colors": true
+            }
+          }
+        },
+        {
+          "edge_number": 2,
+          "edge": [
+            11,
+            3
+          ],
+          "structure": {
+            "neighbor_degree": 5,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              5,
+              5,
+              6,
+              9,
+              7
+            ]
+          },
+          "oracle": {
+            "input_color": "green",
+            "singleton": true,
+            "same_complementary_cycle": true,
+            "experiment": {
+              "path_edges": 4,
+              "reduced_coloring_valid": true,
+              "face_surgery_matches": true,
+              "exact_inverse_colors": true,
+              "existing_f5_handler_direct": true,
+              "handler_matches_original_colors": true
+            }
+          }
+        },
+        {
+          "edge_number": 3,
+          "edge": [
+            3,
+            2
+          ],
+          "structure": {
+            "neighbor_degree": 5,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              5,
+              5,
+              7,
+              9,
+              6
+            ]
+          },
+          "oracle": {
+            "input_color": "red",
+            "singleton": false,
+            "same_complementary_cycle": true,
+            "experiment": {
+              "path_edges": 48,
+              "reduced_coloring_valid": true,
+              "face_surgery_matches": true,
+              "exact_inverse_colors": true,
+              "existing_f5_handler_direct": true,
+              "handler_matches_original_colors": true
+            }
+          }
+        },
+        {
+          "edge_number": 4,
+          "edge": [
+            2,
+            22
+          ],
+          "structure": {
+            "neighbor_degree": 6,
+            "admissible": true,
+            "rooted_neighbor_signature": [
+              6,
+              5,
+              5,
+              7,
+              9
+            ]
+          },
+          "oracle": {
+            "input_color": "blue",
+            "singleton": false,
+            "same_complementary_cycle": true,
+            "experiment": {
+              "path_edges": 69,
+              "reduced_coloring_valid": true,
+              "face_surgery_matches": true,
+              "exact_inverse_colors": true,
+              "existing_f5_handler_direct": true,
+              "handler_matches_original_colors": true
+            }
+          }
+        }
+      ],
+      "structure": {
+        "face": [
+          [
+            22,
+            23
+          ],
+          [
+            23,
+            11
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            2,
+            22
+          ]
+        ],
+        "neighbor_degrees": [
+          9,
+          7,
+          5,
+          5,
+          6
+        ]
+      },
+      "oracle": {
+        "face": [
+          [
+            22,
+            23,
+            "red"
+          ],
+          [
+            23,
+            11,
+            "blue"
+          ],
+          [
+            11,
+            3,
+            "green"
+          ],
+          [
+            3,
+            2,
+            "red"
+          ],
+          [
+            2,
+            22,
+            "blue"
+          ]
+        ]
+      }
+    }
+  },
+  "per_map_ranges": {
+    "faces": [
+      8019,
+      8054
+    ],
+    "pentagons": [
+      3699,
+      3844
+    ],
+    "admissible_same_cycle": [
+      11969,
+      13150
+    ]
+  },
+  "all_maps_have_only_1_3_5_direct_choices": true
+}

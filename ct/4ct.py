@@ -232,6 +232,27 @@ def initialize_statistics():
     stats['S5-MAX-KEMPE-STATES'] = 0
     stats['S5-DETERMINISTIC-SWITCHES'] = 0
 
+    stats['SELECT-S6-F2'] = 0
+    stats['SELECT-S6-CONTINUE'] = 0
+    stats['SELECT-S6-START'] = 0
+    stats['SELECT-S6-FALLBACK'] = 0
+    stats['S6-MEASURE-STEPS'] = 0
+    stats['S6-MEASURE-UNKNOWN'] = 0
+    stats['S6-MEASURE-M-EVEN'] = 0
+    stats['S6-MEASURE-M-EVEN-BICHROMATIC'] = 0
+    stats['S6-MEASURE-M-EVEN-SAME-KEMPE'] = 0
+    stats['S6-MEASURE-M-ODD'] = 0
+    stats['S6-MEASURE-M-ODD-SAME-KEMPE'] = 0
+    for size in ('F3', 'F4', 'F5', 'F6+'):
+        stats['S6-MEASURE-%s-M-EVEN' % size] = 0
+        stats['S6-MEASURE-%s-M-EVEN-SAME-KEMPE' % size] = 0
+    stats['S6-REBUILD-DIRECT'] = 0
+    stats['S6-REBUILD-SEARCHED'] = 0
+    stats['S6-REBUILD-MAX-FACE'] = 0
+    stats['S6-KEMPE-STATES'] = 0
+    stats['S6-MAX-KEMPE-STATES'] = 0
+    stats['S6-DETERMINISTIC-SWITCHES'] = 0
+
     stats['TOTAL_RANDOM_KEMPE_SWITCHES'] = 0
     stats['MAX_RANDOM_KEMPE_SWITCHES'] = 0
 
@@ -663,10 +684,7 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, kempe_search_limit=None):
             second_edge = (vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v2_not_on_the_face)
             switches, colors, pair, examined = find_kempe_repair(
                 the_colored_graph, first_edge, second_edge, kempe_search_limit)
-            for a, b, cycle in switches:
-                for u, v, key in cycle:
-                    old = the_colored_graph[u][v][key]['color']
-                    the_colored_graph[u][v][key]['color'] = b if old == a else a
+            _apply_kempe_switches(the_colored_graph, switches)
             apply_half_kempe_loop_color_switching(
                 the_colored_graph, ariadne_step, *colors, *pair)
             stats['S5-F5-SEARCHED'] += 1
@@ -731,6 +749,90 @@ def ariadne_case_f5(the_colored_graph, ariadne_step, kempe_search_limit=None):
 
     if logger.isEnabledFor(logging.DEBUG): logger.debug("END: restore an F5: %s", stats['TOTAL_RANDOM_KEMPE_SWITCHES'])
 
+
+
+def _apply_kempe_switches(the_colored_graph, switches):
+    """Swap the two colors on every keyed cycle returned by find_kempe_repair()."""
+    for a, b, cycle in switches:
+        for u, v, key in cycle:
+            old = the_colored_graph[u][v][key]['color']
+            the_colored_graph[u][v][key]['color'] = b if old == a else a
+
+
+def _kempe_cycle_reaches(the_colored_graph, start, other_color, target):
+    """
+    Walk the Kempe cycle through the keyed edge `start` = (u, v, key) that
+    alternates its color with `other_color`. Return the color of the first
+    edge whose endpoints are the vertex set `target`, or None if the cycle
+    closes without reaching it. Keys keep parallel edges distinct.
+    """
+    u, v, key = start
+    start_color = the_colored_graph[u][v][key]['color']
+    vertex = v
+    color = start_color
+    reached_color = None
+    is_closed = False
+    while reached_color is None and not is_closed:
+        color = other_color if color == start_color else start_color
+        neighbor, edge_key = next(
+            (w, k) for _, w, k, c in the_colored_graph.edges(vertex, keys=True, data='color') if c == color)
+        if {vertex, neighbor} == target:
+            reached_color = color
+        is_closed = edge_key == key and {vertex, neighbor} == {u, v}
+        vertex = neighbor
+    return reached_color
+
+
+def _find_common_kempe_cycle(the_colored_graph, edge_at_v1, edge_at_v2):
+    """
+    Return ((color_at_v1, color_at_v2), (swap_c1, swap_c2)) if the two edges
+    lie on the same Kempe cycle for some color pair, else None.
+
+    Every parallel copy of `edge_at_v1` is tried. The result is the argument
+    list expected by apply_half_kempe_loop_color_switching(), whose deletes
+    select the parallel copy by color.
+    """
+    u, v = edge_at_v1
+    target = set(edge_at_v2)
+    return next(
+        (
+            ((color_at_v1, color_at_v2), (color_at_v1, other_color))
+            for key, color_at_v1 in sorted((k, data['color']) for k, data in the_colored_graph[u][v].items())
+            for other_color in get_the_other_colors([color_at_v1])
+            for color_at_v2 in [_kempe_cycle_reaches(the_colored_graph, (u, v, key), other_color, target)]
+            if color_at_v2 is not None
+        ),
+        None,
+    )
+
+
+def ariadne_case_any_face(the_colored_graph, ariadne_step, kempe_search_limit):
+    """
+    S6: restore the edge of a face of any size with one half Kempe-cycle switch.
+
+    The two edges to subdivide lie on the boundary of the merged face. If they
+    already lie on a common Kempe cycle, swapping its colors on the arc that
+    starts at the v1 side of the face reconnects them; planarity makes that
+    arc end on the v2 side of the face. Otherwise find_kempe_repair() looks,
+    deterministically, for whole-cycle switches that create such a cycle, and
+    raises KempeSearchExhausted when the budget or the Kempe class runs out.
+    No random choice is made.
+    """
+    edge_at_v1 = (ariadne_step[3], ariadne_step[5])
+    edge_at_v2 = (ariadne_step[4], ariadne_step[6])
+    common_cycle = _find_common_kempe_cycle(the_colored_graph, edge_at_v1, edge_at_v2)
+    if common_cycle is None:
+        switches, colors, pair, examined = find_kempe_repair(the_colored_graph, edge_at_v1, edge_at_v2, kempe_search_limit)
+        _apply_kempe_switches(the_colored_graph, switches)
+        stats['S6-REBUILD-SEARCHED'] += 1
+        stats['S6-KEMPE-STATES'] += examined
+        stats['S6-MAX-KEMPE-STATES'] = max(stats['S6-MAX-KEMPE-STATES'], examined)
+        stats['S6-DETERMINISTIC-SWITCHES'] += len(switches)
+    else:
+        colors, pair = common_cycle
+        stats['S6-REBUILD-DIRECT'] += 1
+    stats['S6-REBUILD-MAX-FACE'] = max(stats['S6-REBUILD-MAX-FACE'], ariadne_step[0])
+    apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, *colors, *pair)
 
 
 def _remove_by_identity(items, item):
@@ -1490,6 +1592,150 @@ def select_edge_to_remove_positive_corner(g_faces, choices, i_global_counter,
     raise RuntimeError("S5 found no bridge-free small-face reduction")
 
 
+# S6 reduces only faces of at most five sides. Without the cap, waterworld maps showed
+# reinsertions of F6-F12 faces that no Kempe search could repair (no coloring allowed the
+# half switch); records above F5 are still restored by restore_ariadne_step_s6().
+S6_MAX_REDUCED_FACE = 5
+
+# S6 state: the face produced by the previous S6 reduction (the principal face).
+# reduce_faces() starts every execution with i_global_counter == 0, which resets it.
+s6_principal_face = None
+
+
+def _length_after_merge(face, edge, face_index):
+    """Length of `face` after the two endpoints of `edge` are suppressed."""
+    return len(face) - sum(
+        any(candidate is face for candidate in face_index.vertex_to_faces.get(vertex, ()))
+        for vertex in edge
+    )
+
+
+def _even_neighbor_after_merge(f1, f2, edge, face_index):
+    """
+    Return True if the face obtained by removing `edge` touches an even face.
+
+    Neighbor lengths are measured after the reduction: a face loses one edge
+    for each endpoint of `edge` it contains, so its parity can change.
+    """
+    return any(
+        _length_after_merge(neighbor, edge, face_index) % 2 == 0
+        for face in (f1, f2)
+        for boundary_edge in face
+        # single-element list binds neighbor so it can be tested in one expression
+        for neighbor in [face_index.first_face_with_edge(rotate(boundary_edge, 1), exclude_face=face)]
+        if neighbor is not None and neighbor is not f1 and neighbor is not f2
+    )
+
+
+def _face_reductions(face_index, sizes):
+    """Yield (edge, f1, f2) for every edge of every face whose size is in `sizes`, in order."""
+    for size in sizes:
+        for f1 in face_index.faces_of_size(size):
+            for edge in f1:
+                f2 = face_index.first_face_with_edge(rotate(edge, 1), exclude_face=f1)
+                if f2 is not None:
+                    yield edge, f1, f2
+
+
+def _first_s6_reduction(candidates, face_index, require_parity):
+    """
+    Return the first bridge-free (edge, f1, f2, merged), or None.
+
+    With `require_parity`, the merged face must also be even and touch at
+    least one even face after the reduction.
+    """
+    return next(
+        (
+            (edge, f1, f2, merged)
+            for edge, f1, f2 in candidates
+            for merged in [join_faces(f1, f2, edge)]
+            if not require_parity or (len(merged) % 2 == 0 and _even_neighbor_after_merge(f1, f2, edge, face_index))
+            if not is_the_graph_one_edge_connected(merged)
+        ),
+        None,
+    )
+
+
+def select_edge_to_remove_even_faces(g_faces, choices, i_global_counter,
+                                     recently_modified_vertices=None, face_index=None):
+    """
+    S6: grow an even principal face by absorbing adjacent even faces.
+
+    0. F2 first: take the first bridge-free F2 reduction. The rebuild
+       handlers and remove_vertex_from_face() assume that no multiple edge
+       touches a reduced F3/F4, as in S1-S5. Removing an F2 changes no
+       parity: f2 and the third face both lose two edges.
+    1. Continue: if the principal face (produced by the previous S6
+       reduction) still exists and is even, merge it with an adjacent even
+       face. The smaller of the two faces is f1, and it must have at most
+       S6_MAX_REDUCED_FACE sides. Two even faces always merge into an even face.
+    2. Start: otherwise take, in 345 order, the first reduction whose merged
+       face is even.
+    Steps 1 and 2 accept a candidate only if it is bridge-free and the merged
+    face touches an even face, with lengths measured after the reduction.
+    3. Fallback: if no candidate satisfies the parity conditions, take the
+       first bridge-free reduction in 345 order.
+
+    f1, the face recorded by Ariadne, is always the smaller face and has at
+    most five sides. Smaller f1 come first, so F4 neighbors keep their proven
+    F4 handler; F5 records are restored deterministically by
+    restore_ariadne_step_s6(). The merged face becomes the new principal face;
+    an F2 reduction moves the principal face only when it absorbs it. S6 is
+    deterministic, ignores --choices and the wave frontier, and always
+    returns event None. It never mutates the faces or the index; it only
+    updates its own principal-face reference.
+    """
+    global s6_principal_face
+    face_index = _face_index_or_build(g_faces, face_index)
+    if i_global_counter == 0:
+        s6_principal_face = None
+        if choices != 2345:
+            logger.warning("S6 ignores --choices; priority is fixed at 2345")
+
+    principal = s6_principal_face
+    continuation = []
+    if principal is not None and id(principal) in face_index.face_positions and len(principal) % 2 == 0:
+        for principal_edge in principal:
+            neighbor = face_index.first_face_with_edge(rotate(principal_edge, 1), exclude_face=principal)
+            if neighbor is not None and len(neighbor) % 2 == 0:
+                if len(neighbor) <= min(len(principal), S6_MAX_REDUCED_FACE):
+                    continuation.append((rotate(principal_edge, 1), neighbor, principal))
+                elif len(principal) <= S6_MAX_REDUCED_FACE:
+                    continuation.append((principal_edge, principal, neighbor))
+        # Stable: smaller f1 first, then the order of the principal face's edges.
+        continuation.sort(key=lambda candidate: len(candidate[1]))
+
+    # Merging is symmetric: scanning by increasing size keeps f1 the smaller face
+    sizes = range(3, S6_MAX_REDUCED_FACE + 1)
+    attempts = (
+        ('SELECT-S6-F2', _face_reductions(face_index, (2,)), False),
+        ('SELECT-S6-CONTINUE', continuation, True),
+        ('SELECT-S6-START', _face_reductions(face_index, sizes), True),
+        ('SELECT-S6-FALLBACK', _face_reductions(face_index, sizes), False),
+    )
+    stat, result = next(
+        (
+            (stat, reduction)
+            for stat, candidates, require_parity in attempts
+            for reduction in [_first_s6_reduction(candidates, face_index, require_parity)]
+            if reduction is not None
+        ),
+        (None, None),
+    )
+
+    if result is None:
+        logger.error("END %s: S6 found no bridge-free reduction. Mario you'd better go back to paper", i_global_counter)
+        exit(-1)
+
+    edge, f1, f2, merged = result
+    stats[stat] += 1
+    if stat != 'SELECT-S6-F2' or principal is f1 or principal is f2:
+        s6_principal_face = merged
+    logger.info("S6 step %s: %s edge %s (case: %s, %s -> %s)",
+                i_global_counter, stat, edge, len(f1), len(f2), len(merged))
+    return edge, f1, f2, merged, None
+
+
 def from_graph_to_planar(the_graph):
     """
     Convert a graph to the planar representation.
@@ -1800,7 +2046,7 @@ def create_from_planar(planar_filename, shuffle_the_planar_representation, line_
 ######
 ######
 
-def reduce_faces(g_faces, choices, selection_strategy):
+def reduce_faces(g_faces, choices, selection_strategy, perimeters=None):
     """
     Method similar to the Kempe reduction "patching" method.\n
     For each loop remove an edge from a face <= F5, until the graph will have only three faces (an island with two lands)
@@ -1810,6 +2056,7 @@ def reduce_faces(g_faces, choices, selection_strategy):
         g_faces: The planar representation of the graph
         choices: The selection method for the edges
         selection_strategy: The function to use to select the edge to remove (select_edge_to_remove_by_largest_neighbor or select_edge_to_remove_first_fit)
+        perimeters: Optional list (S6 study). When given, a copy of each merged face is appended, one per Ariadne record
 
     Returns
     -------
@@ -1859,6 +2106,10 @@ def reduce_faces(g_faces, choices, selection_strategy):
         # Select an edge from the graph
         # This is one of the most important function to work on, to apply different strategies
         edge_to_remove, f1, f2, f1_plus_f2_temp, selection_event = selection_strategy(g_faces, choices, i_global_counter, recently_modified_vertices, face_index)
+
+        # The merged face is mutated by later reductions: keep a copy of its boundary as it is now
+        if perimeters is not None:
+            perimeters.append(list(f1_plus_f2_temp))
 
         # Since Euler's formula is right :-) an edge to remove must exist, and it means that I made a programming error if I get here without finding it
         if edge_to_remove == ():
@@ -2069,7 +2320,75 @@ def reduce_faces(g_faces, choices, selection_strategy):
     return ariadne_s_thread
 
 
-def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None):
+def measure_s6_reinsertion(the_colored_graph, ariadne_step, perimeter):
+    """
+    S6 study, before a non-F2 reinsertion and before any color change.
+
+    `perimeter` is the boundary of the merged face as it was when the face was
+    created; the graph is in that same state now. Count whether the perimeter
+    is even, whether it is bichromatic (one Kempe cycle) and whether the two
+    edges to subdivide already lie on a common Kempe cycle. Perimeters that
+    contain a multiple edge are counted as unknown, because a color lookup by
+    vertex pair would be ambiguous. Read-only: no color or random state changes.
+    """
+    if ariadne_step[0] != 2:
+        stats['S6-MEASURE-STEPS'] += 1
+        if any(is_multiedge(the_colored_graph, u, v) for u, v in perimeter):
+            stats['S6-MEASURE-UNKNOWN'] += 1
+        else:
+            parity = 'EVEN' if len(perimeter) % 2 == 0 else 'ODD'
+            stats['S6-MEASURE-M-' + parity] += 1
+            # A proper bichromatic cycle alternates its two colors, so it is always even
+            if len({get_edge_color(the_colored_graph, edge) for edge in perimeter}) == 2:
+                stats['S6-MEASURE-M-EVEN-BICHROMATIC'] += 1
+            edge_at_v1 = (ariadne_step[3], ariadne_step[5])
+            edge_at_v2 = (ariadne_step[4], ariadne_step[6])
+            same_kempe = _find_common_kempe_cycle(the_colored_graph, edge_at_v1, edge_at_v2) is not None
+            stats['S6-MEASURE-M-' + parity + '-SAME-KEMPE'] += int(same_kempe)
+            # Per reduced-face size, to see whether the common cycle gets rarer as f1 grows
+            if parity == 'EVEN':
+                size = 'F%s' % ariadne_step[0] if ariadne_step[0] <= 5 else 'F6+'
+                stats['S6-MEASURE-%s-M-EVEN' % size] += 1
+                stats['S6-MEASURE-%s-M-EVEN-SAME-KEMPE' % size] += int(same_kempe)
+
+
+def restore_ariadne_step(the_colored_graph, ariadne_step, kempe_search_limit=None):
+    """
+    Classic reconstruction (S1-S5): one handler per reduced face size, F2 to F5.
+
+    F2 = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
+    F3, 4, 5 = [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
+    """
+    if ariadne_step[0] == 2:
+        ariadne_case_f2(the_colored_graph, ariadne_step)
+    elif ariadne_step[0] == 3:
+        ariadne_case_f3(the_colored_graph, ariadne_step)
+    elif ariadne_step[0] == 4:
+        ariadne_case_f4(the_colored_graph, ariadne_step)
+    elif ariadne_step[0] == 5:
+        ariadne_case_f5(the_colored_graph, ariadne_step, kempe_search_limit)
+    else:
+        logger.error("Unexpected condition (no classic handler for Ariadne step %s; F6+ records need -s6). Mario you'd better go back to paper", ariadne_step)
+        exit(-1)
+
+
+def restore_ariadne_step_s6(the_colored_graph, ariadne_step, kempe_search_limit=None):
+    """
+    S6 reconstruction: F2, F3 and F4 keep their proven handlers; F5 and any
+    larger face use ariadne_case_any_face(), with no random choice.
+    `kempe_search_limit` must be a positive integer when a search is needed.
+    """
+    if ariadne_step[0] == 2:
+        ariadne_case_f2(the_colored_graph, ariadne_step)
+    elif ariadne_step[0] == 3:
+        ariadne_case_f3(the_colored_graph, ariadne_step)
+    elif ariadne_step[0] == 4:
+        ariadne_case_f4(the_colored_graph, ariadne_step)
+    else:
+        ariadne_case_any_face(the_colored_graph, ariadne_step, kempe_search_limit)
+
+
+def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None, perimeters=None, restore_step=restore_ariadne_step):
     """
     Restore the edges one at a time and apply the half Kempe-cycle color switching method.\n
     Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
@@ -2078,6 +2397,10 @@ def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None):
     ----------
         g_faces: The planar representation of the graph
         ariadne_s_thread: You would better study the classics
+        perimeters: Optional list filled by reduce_faces() (S6 study). When given, each step is measured
+            with measure_s6_reinsertion() before it is restored; colors and choices are unchanged
+        restore_step: The function that restores one Ariadne step: restore_ariadne_step (default, S1-S5)
+            or restore_ariadne_step_s6 (S6, faces of any size)
 
     Returns
     -------
@@ -2117,6 +2440,10 @@ def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None):
     i_global_rebuilding_counter = 0
     number_of_steps_to_take = len(ariadne_s_thread)
 
+    if perimeters is not None and len(perimeters) != number_of_steps_to_take:
+        logger.error("Unexpected condition (%s perimeters for %s Ariadne steps). Mario you'd better go back to paper", len(perimeters), number_of_steps_to_take)
+        exit(-1)
+
     # Start the rebuilding process
     while is_the_end_of_the_rebuild_process is False:
 
@@ -2126,16 +2453,10 @@ def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None):
         ariadne_step = ariadne_s_thread.pop()
         logger.info("ariadne_step (%s/%s): %s", i_global_rebuilding_counter, number_of_steps_to_take, ariadne_step)
 
-        # F2 = [2, v1, v2, vertex_to_join_near_v1, vertex_to_join_near_v2]
-        # F3, 4, 5 = [x, v1, v2, vertex_to_join_near_v1_on_the_face, vertex_to_join_near_v2_on_the_face, vertex_to_join_near_v1_not_on_the_face, vertex_to_join_near_v2_not_on_the_face]
-        if ariadne_step[0] == 2:
-            ariadne_case_f2(the_colored_graph, ariadne_step)
-        elif ariadne_step[0] == 3:
-            ariadne_case_f3(the_colored_graph, ariadne_step)
-        elif ariadne_step[0] == 4:
-            ariadne_case_f4(the_colored_graph, ariadne_step)
-        elif ariadne_step[0] == 5:
-            ariadne_case_f5(the_colored_graph, ariadne_step, kempe_search_limit)
+        if perimeters is not None:
+            measure_s6_reinsertion(the_colored_graph, ariadne_step, perimeters.pop())
+
+        restore_step(the_colored_graph, ariadne_step, kempe_search_limit)
 
         # Separator
         if logger.isEnabledFor(logging.DEBUG): logger.debug("")
@@ -2248,8 +2569,9 @@ def main():
     group_selection.add_argument("-s3", "--selection3", help="Edge selection strategy 3: for F5 faces, select edge with one shared vertex with adjacent F5/F6", action='store_true', default=False)
     group_selection.add_argument("-s4", "--selection4", help="Edge selection strategy 4: unavoidable set — max neighbor for F2/F3/F4, F5 pairs with locality", action='store_true', default=False)
     group_selection.add_argument("-s5", "--selection5", help="Edge selection strategy 5: v17 positive corners with deterministic Kempe repair (no random switches)", action='store_true', default=False)
+    group_selection.add_argument("-s6", "--selection6", help="Edge selection strategy 6: grow an even principal face by merging it with adjacent even faces (reduced face at most F5); deterministic Kempe repair", action='store_true', default=False)
     parser.add_argument("--kempe-search-limit", type=int, default=10000,
-                        help="S5: maximum distinct colorings per F5 repair (default: 10000); stops on exhaustion")
+                        help="S5/S6: maximum distinct colorings per Kempe repair (default: 10000); stops on exhaustion")
     args = parser.parse_args()
     if args.kempe_search_limit < 1:
         parser.error("--kempe-search-limit must be positive")
@@ -2272,6 +2594,8 @@ def main():
         selection_strategy = select_edge_to_remove_unavoidable_set
     elif args.selection5:
         selection_strategy = select_edge_to_remove_positive_corner
+    elif args.selection6:
+        selection_strategy = select_edge_to_remove_even_faces
     else:
         selection_strategy = select_edge_to_remove_first_fit
 
@@ -2373,7 +2697,9 @@ def main():
         logger.info("BEGIN: Reduction phase" + " (execution " + str(i_execution + 1) + ")")
         logger.info("----------------------")
 
-        ariadne_s_thread = reduce_faces(g_faces, args.choices, selection_strategy)
+        # S6 study: keep the merged perimeters to measure them before each reinsertion
+        perimeters = [] if args.selection6 else None
+        ariadne_s_thread = reduce_faces(g_faces, args.choices, selection_strategy, perimeters)
 
         logger.debug("----------------------")
         logger.debug("END: Reduction phase" + " (execution " + str(i_execution + 1) + ")")
@@ -2387,11 +2713,13 @@ def main():
         try:
             the_colored_graph = rebuild_faces(
                 g_faces, ariadne_s_thread,
-                kempe_search_limit=args.kempe_search_limit if args.selection5 else None)
+                kempe_search_limit=args.kempe_search_limit if args.selection5 or args.selection6 else None,
+                perimeters=perimeters,
+                restore_step=restore_ariadne_step_s6 if args.selection6 else restore_ariadne_step)
         except KempeSearchExhausted as error:
             logger.error("Map %s/%s: reconstruction stopped: %s", i_execution + 1, num_executions, error)
             if not continue_on_error:
-                raise SystemExit(1 if args.selection5 else -1) from error
+                raise SystemExit(1 if args.selection5 or args.selection6 else -1) from error
             failed_maps.append(i_execution + 1)
             # The next iteration starts with a new graph, reduction stack and statistics.
             continue

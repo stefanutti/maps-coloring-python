@@ -209,7 +209,7 @@ def test_any_face_handler_splits_a_face_with_one_half_switch(mod):
     assert mod.is_well_colored(graph)
     assert graph.number_of_nodes() == 10 and graph.number_of_edges() == 15
     assert all(degree == 3 for _, degree in graph.degree())
-    assert mod.stats['S6-REBUILD-DIRECT'] == 1 and mod.stats['S6-REBUILD-SEARCHED'] == 0
+    assert mod.stats['REBUILD-DIRECT'] == 1 and mod.stats['REBUILD-SEARCHED'] == 0
 
 
 def test_s6_reduction_is_deterministic(mod):
@@ -230,7 +230,7 @@ def test_s6_cli_rebuilds_map(tmp_path, isolated_workdir):
         cwd=isolated_workdir, text=True, capture_output=True, timeout=30)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Stats: SELECT-S6-START" in result.stdout
-    assert "Stats: S6-MEASURE-STEPS = 0" not in result.stdout
+    assert "Stats: MEASURE-STEPS = 0" not in result.stdout
     assert "Stats: TOTAL_RANDOM_KEMPE_SWITCHES = 0" in result.stdout
     assert "ERROR" not in result.stdout
 
@@ -246,9 +246,9 @@ def colored_prism():
     return graph
 
 
-S6_MEASURES = ['S6-MEASURE-STEPS', 'S6-MEASURE-UNKNOWN', 'S6-MEASURE-M-EVEN', 'S6-MEASURE-M-EVEN-BICHROMATIC',
-               'S6-MEASURE-M-EVEN-SAME-KEMPE', 'S6-MEASURE-M-ODD', 'S6-MEASURE-M-ODD-SAME-KEMPE'] + [
-    'S6-MEASURE-%s-M-EVEN%s' % (size, suffix) for size in ('F3', 'F4', 'F5', 'F6+') for suffix in ('', '-SAME-KEMPE')]
+S6_MEASURES = ['MEASURE-STEPS', 'MEASURE-UNKNOWN', 'MEASURE-M-EVEN', 'MEASURE-M-EVEN-BICHROMATIC',
+               'MEASURE-M-EVEN-SAME-KEMPE', 'MEASURE-M-ODD', 'MEASURE-M-ODD-SAME-KEMPE'] + [
+    'MEASURE-%s-M-EVEN%s' % (size, suffix) for size in ('F3', 'F4', 'F5', 'F6+') for suffix in ('', '-SAME-KEMPE')]
 
 
 def measures(mod):
@@ -258,11 +258,11 @@ def measures(mod):
 @pytest.mark.parametrize("perimeter,step,expected", [
     # Top square, red/green: bichromatic, and (0,1), (2,3) are on its Kempe cycle.
     ([(0, 1), (1, 2), (2, 3), (3, 0)], [4, 98, 99, 0, 2, 1, 3],
-     {'S6-MEASURE-STEPS': 1, 'S6-MEASURE-M-EVEN': 1, 'S6-MEASURE-M-EVEN-BICHROMATIC': 1,
-      'S6-MEASURE-M-EVEN-SAME-KEMPE': 1, 'S6-MEASURE-F4-M-EVEN': 1, 'S6-MEASURE-F4-M-EVEN-SAME-KEMPE': 1}),
+     {'MEASURE-STEPS': 1, 'MEASURE-M-EVEN': 1, 'MEASURE-M-EVEN-BICHROMATIC': 1,
+      'MEASURE-M-EVEN-SAME-KEMPE': 1, 'MEASURE-F4-M-EVEN': 1, 'MEASURE-F4-M-EVEN-SAME-KEMPE': 1}),
     # Even hexagon with three colors; (0,1) and (5,6) lie on different red/green squares.
     ([(0, 1), (1, 5), (5, 6), (6, 2), (2, 3), (3, 0)], [4, 98, 99, 0, 5, 1, 6],
-     {'S6-MEASURE-STEPS': 1, 'S6-MEASURE-M-EVEN': 1, 'S6-MEASURE-F4-M-EVEN': 1}),
+     {'MEASURE-STEPS': 1, 'MEASURE-M-EVEN': 1, 'MEASURE-F4-M-EVEN': 1}),
     # F2 records subdivide a single edge: not measured.
     ([(0, 1), (1, 2), (2, 3), (3, 0)], [2, 98, 99, 0, 1], {}),
 ])
@@ -279,7 +279,7 @@ def test_measure_s6_reinsertion_marks_multiple_edges_unknown(mod):
     for color in ("red", "green", "blue"):
         graph.add_edge(0, 1, color=color)
     mod.measure_s6_reinsertion(graph, [3, 98, 99, 0, 1, 1, 0], [(0, 1), (1, 0)])
-    assert measures(mod) == {key: int(key in ('S6-MEASURE-STEPS', 'S6-MEASURE-UNKNOWN')) for key in S6_MEASURES}
+    assert measures(mod) == {key: int(key in ('MEASURE-STEPS', 'MEASURE-UNKNOWN')) for key in S6_MEASURES}
 
 
 def colored_edges(graph):
@@ -301,13 +301,13 @@ def test_s6_measurement_is_consistent_and_does_not_change_the_coloring(mod, seed
     assert results[0] == results[1]
     assert perimeters == []
     counts = measures(mod)
-    assert counts['S6-MEASURE-STEPS'] == non_f2_steps > 0
-    assert counts['S6-MEASURE-M-EVEN'] + counts['S6-MEASURE-M-ODD'] + counts['S6-MEASURE-UNKNOWN'] == non_f2_steps
-    assert counts['S6-MEASURE-M-EVEN-BICHROMATIC'] <= counts['S6-MEASURE-M-EVEN-SAME-KEMPE'] <= counts['S6-MEASURE-M-EVEN']
-    assert counts['S6-MEASURE-M-ODD-SAME-KEMPE'] <= counts['S6-MEASURE-M-ODD']
+    assert counts['MEASURE-STEPS'] == non_f2_steps > 0
+    assert counts['MEASURE-M-EVEN'] + counts['MEASURE-M-ODD'] + counts['MEASURE-UNKNOWN'] == non_f2_steps
+    assert counts['MEASURE-M-EVEN-BICHROMATIC'] <= counts['MEASURE-M-EVEN-SAME-KEMPE'] <= counts['MEASURE-M-EVEN']
+    assert counts['MEASURE-M-ODD-SAME-KEMPE'] <= counts['MEASURE-M-ODD']
     for suffix in ('', '-SAME-KEMPE'):
-        assert sum(counts['S6-MEASURE-%s-M-EVEN%s' % (size, suffix)] for size in ('F3', 'F4', 'F5', 'F6+')) == \
-            counts['S6-MEASURE-M-EVEN' + suffix]
+        assert sum(counts['MEASURE-%s-M-EVEN%s' % (size, suffix)] for size in ('F3', 'F4', 'F5', 'F6+')) == \
+            counts['MEASURE-M-EVEN' + suffix]
 
 
 def test_other_strategies_do_not_measure(mod):
@@ -360,7 +360,7 @@ def test_map3_exhausted_class_is_recolored_exactly(mod):
     expected = before - collections.Counter([(4718, 7960), (9023, 10989)]) + collections.Counter(
         [(4718, 7970), (7960, 7970), (9023, 10318), (10318, 10989), (7970, 10318)])
     assert edge_multiset(graph) == expected
-    assert mod.stats['S6-EXACT-RECOLORINGS'] == 1 and mod.stats['S6-EXACT-MAX-VERTICES'] == 30
+    assert mod.stats['EXACT-RECOLORINGS'] == 1 and mod.stats['EXACT-MAX-VERTICES'] == 30
 
 
 def test_three_edge_coloring_keeps_a_proper_coloring(mod):

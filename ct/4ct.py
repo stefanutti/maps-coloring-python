@@ -237,24 +237,28 @@ def initialize_statistics():
     stats['SELECT-S6-CONTINUE'] = 0
     stats['SELECT-S6-START'] = 0
     stats['SELECT-S6-FALLBACK'] = 0
-    stats['S6-MEASURE-STEPS'] = 0
-    stats['S6-MEASURE-UNKNOWN'] = 0
-    stats['S6-MEASURE-M-EVEN'] = 0
-    stats['S6-MEASURE-M-EVEN-BICHROMATIC'] = 0
-    stats['S6-MEASURE-M-EVEN-SAME-KEMPE'] = 0
-    stats['S6-MEASURE-M-ODD'] = 0
-    stats['S6-MEASURE-M-ODD-SAME-KEMPE'] = 0
+    stats['MEASURE-STEPS'] = 0
+    stats['MEASURE-UNKNOWN'] = 0
+    stats['MEASURE-M-EVEN'] = 0
+    stats['MEASURE-M-EVEN-BICHROMATIC'] = 0
+    stats['MEASURE-M-EVEN-SAME-KEMPE'] = 0
+    stats['MEASURE-M-ODD'] = 0
+    stats['MEASURE-M-ODD-SAME-KEMPE'] = 0
     for size in ('F3', 'F4', 'F5', 'F6+'):
-        stats['S6-MEASURE-%s-M-EVEN' % size] = 0
-        stats['S6-MEASURE-%s-M-EVEN-SAME-KEMPE' % size] = 0
-    stats['S6-REBUILD-DIRECT'] = 0
-    stats['S6-REBUILD-SEARCHED'] = 0
-    stats['S6-REBUILD-MAX-FACE'] = 0
-    stats['S6-KEMPE-STATES'] = 0
-    stats['S6-MAX-KEMPE-STATES'] = 0
-    stats['S6-DETERMINISTIC-SWITCHES'] = 0
-    stats['S6-EXACT-RECOLORINGS'] = 0
-    stats['S6-EXACT-MAX-VERTICES'] = 0
+        stats['MEASURE-%s-M-EVEN' % size] = 0
+        stats['MEASURE-%s-M-EVEN-SAME-KEMPE' % size] = 0
+    stats['REBUILD-DIRECT'] = 0
+    stats['REBUILD-SEARCHED'] = 0
+    stats['REBUILD-MAX-FACE'] = 0
+    stats['REBUILD-KEMPE-STATES'] = 0
+    stats['REBUILD-MAX-KEMPE-STATES'] = 0
+    stats['REBUILD-DETERMINISTIC-SWITCHES'] = 0
+    stats['EXACT-RECOLORINGS'] = 0
+    for key in ('SELECT-S7-F2', 'SELECT-S7-CONTINUE', 'SELECT-S7-START', 'SELECT-S7-FALLBACK',
+                'S7-BREAK-PRINCIPAL-GONE', 'S7-BREAK-ODD-PRINCIPAL', 'S7-BREAK-NO-EVEN-NEIGHBOR',
+                'S7-BREAK-BRIDGE', 'S7-BREAK-NO-DURABLE-EVEN', 'S7-MAX-CHAIN', 'S7-MAX-PRINCIPAL'):
+        stats[key] = 0
+    stats['EXACT-MAX-VERTICES'] = 0
 
     stats['TOTAL_RANDOM_KEMPE_SWITCHES'] = 0
     stats['MAX_RANDOM_KEMPE_SWITCHES'] = 0
@@ -269,13 +273,32 @@ def initialize_statistics():
     return
 
 
-def print_stats():
+# Statistics that only make sense for some strategies: name prefix -> strategies that update them.
+# Statistics with any other prefix (face distributions, F2/F3/F4 cases, random switches, times)
+# are printed for every strategy. REBUILD-*, EXACT-* and MEASURE-* belong to the reconstruction
+# (restore_ariadne_step_s6) and the perimeter measurement shared by S6 and S7.
+STRATEGY_STATS = {
+    'CASE-F5-': ('s1', 's2', 's3', 's4', 's5'),
+    'SELECT-S4-': ('s4',),
+    'SELECT-S5-': ('s5',),
+    'S5-': ('s5',),
+    'SELECT-S6-': ('s6',),
+    'REBUILD-': ('s6', 's7'),
+    'EXACT-': ('s6', 's7'),
+    'MEASURE-': ('s6', 's7'),
+    'SELECT-S7-': ('s7',),
+    'S7-': ('s7',),
+}
+
+
+def print_stats(strategy=None):
     """
     Print the statistics.
 
     Parameters
     ----------
-        stats: The statistics to print
+        strategy: 's1' ... 's7'. Statistics of other strategies (STRATEGY_STATS)
+            are omitted; None prints everything
     """
 
     logger.info("------------------")
@@ -283,9 +306,10 @@ def print_stats():
     logger.info("------------------")
     logger.info("Stats: ---")
 
-    ordered_stats = collections.OrderedDict(sorted(stats.items()))
-    for stat in ordered_stats:
-        logger.info("Stats: %s = %s", stat, stats[stat])
+    for stat in sorted(stats):
+        owners = next((owners for prefix, owners in STRATEGY_STATS.items() if stat.startswith(prefix)), None)
+        if strategy is None or owners is None or strategy in owners:
+            logger.info("Stats: %s = %s", stat, stats[stat])
 
     logger.info("----------------")
     logger.info("END: Print stats")
@@ -831,8 +855,8 @@ def _recolor_with_edge_restored(the_colored_graph, ariadne_step, error):
     the_colored_graph.clear()
     for (u, v, _), color in coloring.items():
         graph_add_edge(the_colored_graph, u, v, color)
-    stats['S6-EXACT-RECOLORINGS'] += 1
-    stats['S6-EXACT-MAX-VERTICES'] = max(stats['S6-EXACT-MAX-VERTICES'], the_colored_graph.number_of_nodes())
+    stats['EXACT-RECOLORINGS'] += 1
+    stats['EXACT-MAX-VERTICES'] = max(stats['EXACT-MAX-VERTICES'], the_colored_graph.number_of_nodes())
 
 
 def ariadne_case_any_face(the_colored_graph, ariadne_step, kempe_search_limit):
@@ -860,14 +884,14 @@ def ariadne_case_any_face(the_colored_graph, ariadne_step, kempe_search_limit):
             is_restored = True
         else:
             _apply_kempe_switches(the_colored_graph, switches)
-            stats['S6-REBUILD-SEARCHED'] += 1
-            stats['S6-KEMPE-STATES'] += examined
-            stats['S6-MAX-KEMPE-STATES'] = max(stats['S6-MAX-KEMPE-STATES'], examined)
-            stats['S6-DETERMINISTIC-SWITCHES'] += len(switches)
+            stats['REBUILD-SEARCHED'] += 1
+            stats['REBUILD-KEMPE-STATES'] += examined
+            stats['REBUILD-MAX-KEMPE-STATES'] = max(stats['REBUILD-MAX-KEMPE-STATES'], examined)
+            stats['REBUILD-DETERMINISTIC-SWITCHES'] += len(switches)
     else:
         colors, pair = common_cycle
-        stats['S6-REBUILD-DIRECT'] += 1
-    stats['S6-REBUILD-MAX-FACE'] = max(stats['S6-REBUILD-MAX-FACE'], ariadne_step[0])
+        stats['REBUILD-DIRECT'] += 1
+    stats['REBUILD-MAX-FACE'] = max(stats['REBUILD-MAX-FACE'], ariadne_step[0])
     if not is_restored:
         apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, *colors, *pair)
 
@@ -1647,15 +1671,17 @@ def _length_after_merge(face, edge, face_index):
     )
 
 
-def _even_neighbor_after_merge(f1, f2, edge, face_index):
+def _even_neighbor_after_merge(f1, f2, edge, face_index, min_length=0):
     """
-    Return True if the face obtained by removing `edge` touches an even face.
+    Return True if the face obtained by removing `edge` touches an even face
+    with at least `min_length` sides.
 
     Neighbor lengths are measured after the reduction: a face loses one edge
     for each endpoint of `edge` it contains, so its parity can change.
     """
     return any(
         _length_after_merge(neighbor, edge, face_index) % 2 == 0
+        and _length_after_merge(neighbor, edge, face_index) >= min_length
         for face in (f1, f2)
         for boundary_edge in face
         # single-element list binds neighbor so it can be tested in one expression
@@ -1769,6 +1795,137 @@ def select_edge_to_remove_even_faces(g_faces, choices, i_global_counter,
     if stat != 'SELECT-S6-F2' or principal is f1 or principal is f2:
         s6_principal_face = merged
     logger.info("S6 step %s: %s edge %s (case: %s, %s -> %s)",
+                i_global_counter, stat, edge, len(f1), len(f2), len(merged))
+    return edge, f1, f2, merged, None
+
+
+# S7 state: the principal face (as in S6) and the length of the current continuation chain.
+# reduce_faces() starts every execution with i_global_counter == 0, which resets it.
+s7_state = {'principal': None, 'chain': 0}
+
+# An F2 is reduced as soon as it appears, so only even faces of at least four sides keep
+# a chain alive.
+S7_DURABLE_EVEN = 4
+
+
+def _first_s7_reduction(candidates, face_index, require_durable_even):
+    """
+    Return (first bridge-free (edge, f1, f2, merged) or None, number of bridge-free candidates).
+
+    With `require_durable_even`, the merged face must be even with at least
+    S7_DURABLE_EVEN sides (an F2 would be reduced at once and pass its role to
+    a face of any parity) and touch, after the reduction, an even face of at
+    least S7_DURABLE_EVEN sides.
+    """
+    bridge_free = 0
+    result = None
+    for edge, f1, f2 in candidates:
+        if result is None:
+            merged = join_faces(f1, f2, edge)
+            if not is_the_graph_one_edge_connected(merged):
+                bridge_free += 1
+                if not require_durable_even or (
+                        len(merged) % 2 == 0 and len(merged) >= S7_DURABLE_EVEN
+                        and _even_neighbor_after_merge(f1, f2, edge, face_index, S7_DURABLE_EVEN)):
+                    result = (edge, f1, f2, merged)
+    return result, bridge_free
+
+
+def select_edge_to_remove_even_ring(g_faces, choices, i_global_counter,
+                                    recently_modified_vertices=None, face_index=None):
+    """
+    S7: like S6 (grow an even principal face P), with no limit on face sizes and
+    a lookahead that keeps the chain alive.
+
+    Ring argument. Let N1..Nk be the faces around P, in order. Merging P with an
+    even Ni gives an even face M; the two faces beside Ni in the ring, N(i-1)
+    and N(i+1), lose one side and change parity, all others keep it. If the
+    ring holds both parities, some even Ni sits next to an odd face, which
+    becomes even: M has an even neighbor. If the ring is all even and has at
+    least four faces, the faces away from Ni stay even. So a well-chosen edge
+    keeps an even neighbor next to M, except in degenerate cases (bridges, a
+    face touching P twice, coinciding laterals, short rings) and when the only
+    even neighbor is an F2, which is reduced at once.
+
+    Order: 1. F2 first, as in S6 (parity neutral). 2. Continue: merge P with an
+    even neighbor of any size such that M touches an even face of at least
+    S7_DURABLE_EVEN sides. 3. Start: the first adjacent pair (any sizes,
+    increasing f1) whose merged face is even with the same durable even
+    neighbor; at every vertex two of the three faces share parity, so such
+    pairs always exist up to bridges and the lookahead. 4. Fallback: the first
+    bridge-free reduction by increasing size.
+
+    f1, recorded by Ariadne, is always the smaller face; any size is restored
+    by restore_ariadne_step_s6(). Whenever a chain breaks, S7-BREAK-* records
+    why. Deterministic; ignores --choices and the wave frontier; event None.
+    """
+    face_index = _face_index_or_build(g_faces, face_index)
+    if i_global_counter == 0:
+        s7_state['principal'] = None
+        s7_state['chain'] = 0
+        if choices != 2345:
+            logger.warning("S7 ignores --choices; priority is fixed")
+
+    principal = s7_state['principal']
+    principal_alive = principal is not None and id(principal) in face_index.face_positions
+    continuation = []
+    has_even_neighbor = False
+    if principal_alive and len(principal) % 2 == 0:
+        for principal_edge in principal:
+            neighbor = face_index.first_face_with_edge(rotate(principal_edge, 1), exclude_face=principal)
+            if neighbor is not None and len(neighbor) % 2 == 0:
+                has_even_neighbor = True
+                if len(neighbor) <= len(principal):
+                    continuation.append((rotate(principal_edge, 1), neighbor, principal))
+                else:
+                    continuation.append((principal_edge, principal, neighbor))
+        # Stable: smaller f1 first, then the order of the principal face's edges.
+        continuation.sort(key=lambda candidate: len(candidate[1]))
+
+    sizes = sorted(size for size in face_index.faces_by_len if size >= 3)
+    stat = 'SELECT-S7-F2'
+    result, _ = _first_s7_reduction(_face_reductions(face_index, (2,)), face_index, False)
+    if result is None:
+        stat = 'SELECT-S7-CONTINUE'
+        result, bridge_free_continuations = _first_s7_reduction(continuation, face_index, True)
+    if result is None:
+        # The chain breaks: record why (nothing to record before the first chain)
+        if not principal_alive:
+            reason = None if principal is None else 'S7-BREAK-PRINCIPAL-GONE'
+        elif len(principal) % 2 == 1:
+            reason = 'S7-BREAK-ODD-PRINCIPAL'
+        elif not has_even_neighbor:
+            reason = 'S7-BREAK-NO-EVEN-NEIGHBOR'
+        elif bridge_free_continuations == 0:
+            reason = 'S7-BREAK-BRIDGE'
+        else:
+            reason = 'S7-BREAK-NO-DURABLE-EVEN'
+        if reason is not None:
+            stats[reason] += 1
+        stat = 'SELECT-S7-START'
+        result, _ = _first_s7_reduction(_face_reductions(face_index, sizes), face_index, True)
+    if result is None:
+        stat = 'SELECT-S7-FALLBACK'
+        result, _ = _first_s7_reduction(_face_reductions(face_index, sizes), face_index, False)
+
+    if result is None:
+        logger.error("END %s: S7 found no bridge-free reduction. Mario you'd better go back to paper", i_global_counter)
+        exit(-1)
+
+    edge, f1, f2, merged = result
+    stats[stat] += 1
+    if stat == 'SELECT-S7-CONTINUE':
+        s7_state['chain'] += 1
+        stats['S7-MAX-CHAIN'] = max(stats['S7-MAX-CHAIN'], s7_state['chain'])
+    elif stat != 'SELECT-S7-F2':
+        s7_state['chain'] = 0
+    # An F2 step moves P only when P absorbs the F2. If P itself has shrunk to an F2 (each
+    # adjacent F2 that is reduced takes two of its sides), its chain is over: the face that
+    # absorbs it may have any parity, so P is left to disappear (S7-BREAK-PRINCIPAL-GONE).
+    if stat != 'SELECT-S7-F2' or principal is f2:
+        s7_state['principal'] = merged
+        stats['S7-MAX-PRINCIPAL'] = max(stats['S7-MAX-PRINCIPAL'], len(merged))
+    logger.info("S7 step %s: %s edge %s (case: %s, %s -> %s)",
                 i_global_counter, stat, edge, len(f1), len(f2), len(merged))
     return edge, f1, f2, merged, None
 
@@ -2369,24 +2526,24 @@ def measure_s6_reinsertion(the_colored_graph, ariadne_step, perimeter):
     vertex pair would be ambiguous. Read-only: no color or random state changes.
     """
     if ariadne_step[0] != 2:
-        stats['S6-MEASURE-STEPS'] += 1
+        stats['MEASURE-STEPS'] += 1
         if any(is_multiedge(the_colored_graph, u, v) for u, v in perimeter):
-            stats['S6-MEASURE-UNKNOWN'] += 1
+            stats['MEASURE-UNKNOWN'] += 1
         else:
             parity = 'EVEN' if len(perimeter) % 2 == 0 else 'ODD'
-            stats['S6-MEASURE-M-' + parity] += 1
+            stats['MEASURE-M-' + parity] += 1
             # A proper bichromatic cycle alternates its two colors, so it is always even
             if len({get_edge_color(the_colored_graph, edge) for edge in perimeter}) == 2:
-                stats['S6-MEASURE-M-EVEN-BICHROMATIC'] += 1
+                stats['MEASURE-M-EVEN-BICHROMATIC'] += 1
             edge_at_v1 = (ariadne_step[3], ariadne_step[5])
             edge_at_v2 = (ariadne_step[4], ariadne_step[6])
             same_kempe = _find_common_kempe_cycle(the_colored_graph, edge_at_v1, edge_at_v2) is not None
-            stats['S6-MEASURE-M-' + parity + '-SAME-KEMPE'] += int(same_kempe)
+            stats['MEASURE-M-' + parity + '-SAME-KEMPE'] += int(same_kempe)
             # Per reduced-face size, to see whether the common cycle gets rarer as f1 grows
             if parity == 'EVEN':
                 size = 'F%s' % ariadne_step[0] if ariadne_step[0] <= 5 else 'F6+'
-                stats['S6-MEASURE-%s-M-EVEN' % size] += 1
-                stats['S6-MEASURE-%s-M-EVEN-SAME-KEMPE' % size] += int(same_kempe)
+                stats['MEASURE-%s-M-EVEN' % size] += 1
+                stats['MEASURE-%s-M-EVEN-SAME-KEMPE' % size] += int(same_kempe)
 
 
 def restore_ariadne_step(the_colored_graph, ariadne_step, kempe_search_limit=None):
@@ -2606,6 +2763,7 @@ def main():
     group_selection.add_argument("-s3", "--selection3", help="Edge selection strategy 3: for F5 faces, select edge with one shared vertex with adjacent F5/F6", action='store_true', default=False)
     group_selection.add_argument("-s4", "--selection4", help="Edge selection strategy 4: unavoidable set — max neighbor for F2/F3/F4, F5 pairs with locality", action='store_true', default=False)
     group_selection.add_argument("-s5", "--selection5", help="Edge selection strategy 5: v17 positive corners with deterministic Kempe repair (no random switches)", action='store_true', default=False)
+    group_selection.add_argument("-s7", "--selection7", help="Edge selection strategy 7: like S6 with no face-size limit and a parity lookahead that keeps an even face next to the merged face (study)", action='store_true', default=False)
     group_selection.add_argument("-s6", "--selection6", help="Edge selection strategy 6: grow an even principal face by merging it with adjacent even faces (reduced face at most F5); deterministic Kempe repair", action='store_true', default=False)
     parser.add_argument("--kempe-search-limit", type=int, default=10000,
                         help="S5/S6: maximum distinct colorings per Kempe repair (default: 10000); stops on exhaustion")
@@ -2633,8 +2791,12 @@ def main():
         selection_strategy = select_edge_to_remove_positive_corner
     elif args.selection6:
         selection_strategy = select_edge_to_remove_even_faces
+    elif args.selection7:
+        selection_strategy = select_edge_to_remove_even_ring
     else:
         selection_strategy = select_edge_to_remove_first_fit
+    strategy_name = next((name for name in ('s2', 's3', 's4', 's5', 's6', 's7')
+                          if getattr(args, 'selection' + name[1])), 's1')
 
     # If using planar input, cap num_executions to the number of lines in the file
     num_executions = args.num_executions
@@ -2735,7 +2897,8 @@ def main():
         logger.info("----------------------")
 
         # S6 study: keep the merged perimeters to measure them before each reinsertion
-        perimeters = [] if args.selection6 else None
+        uses_s6_rebuild = args.selection6 or args.selection7
+        perimeters = [] if uses_s6_rebuild else None
         ariadne_s_thread = reduce_faces(g_faces, args.choices, selection_strategy, perimeters)
 
         logger.debug("----------------------")
@@ -2750,13 +2913,13 @@ def main():
         try:
             the_colored_graph = rebuild_faces(
                 g_faces, ariadne_s_thread,
-                kempe_search_limit=args.kempe_search_limit if args.selection5 or args.selection6 else None,
+                kempe_search_limit=args.kempe_search_limit if args.selection5 or uses_s6_rebuild else None,
                 perimeters=perimeters,
-                restore_step=restore_ariadne_step_s6 if args.selection6 else restore_ariadne_step)
+                restore_step=restore_ariadne_step_s6 if uses_s6_rebuild else restore_ariadne_step)
         except KempeSearchExhausted as error:
             logger.error("Map %s/%s: reconstruction stopped: %s", i_execution + 1, num_executions, error)
             if not continue_on_error:
-                raise SystemExit(1 if args.selection5 or args.selection6 else -1) from error
+                raise SystemExit(1 if args.selection5 or uses_s6_rebuild else -1) from error
             failed_maps.append(i_execution + 1)
             # The next iteration starts with a new graph, reduction stack and statistics.
             continue
@@ -2837,7 +3000,7 @@ def main():
             append_colored_planar_representation(the_colored_graph, args.output2, original_faces)
 
         # Print statistics
-        print_stats()
+        print_stats(strategy_name)
 
     if continue_on_error:
         logger.info("Batch summary: %s succeeded, %s failed (total: %s)",

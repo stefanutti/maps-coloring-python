@@ -75,7 +75,7 @@ uv run --python ../.venv/bin/python python 4ct.py \
 uv run --python ../.venv/bin/python python 4ct.py -e path/to/map.edgelist
 ```
 
-Le strategie si selezionano con `-s1`, `-s2`, `-s3`, `-s4`, `-s5` o `-s6`. S1 è il default:
+Le strategie si selezionano con `-s1`, `-s2`, `-s3`, `-s4`, `-s5`, `-s6` o `-s7` (studio). S1 è il default:
 
 ```bash
 uv run --python ../.venv/bin/python python 4ct.py \
@@ -92,7 +92,7 @@ Opzioni utili:
 | `-s` | Mescola inizialmente la lista delle facce. |
 | `-n N` | Ripete N volte gli input casuali o edgelist. |
 | `--skip N` / `-skip N` | Salta le prime N righe fisiche del file `.planar` (default 0). |
-| `-s1` ... `-s6` | Sceglie la strategia di selezione. |
+| `-s1` ... `-s7` | Sceglie la strategia di selezione. |
 | `--kempe-search-limit N` | Limita a N colorazioni distinte ciascuna ricerca di Kempe di S5 (F5) e di S6 (F5 e facce più grandi) (default 10000). |
 | `--continue-on-error` | Nei file `.planar` con più mappe, passa alla successiva se la ricerca Kempe fallisce; gli errori inattesi restano fatali. |
 

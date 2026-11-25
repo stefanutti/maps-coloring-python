@@ -53,7 +53,7 @@ NetworkX MultiGraph + g_faces
 init_f_distribution()
    |
    v
-reduce_faces() -- strategia S1...S6 --> ariadne_s_thread
+reduce_faces() -- strategia S1...S7 --> ariadne_s_thread
    |
    v
 rebuild_faces() --> MultiGraph con archi colorati
@@ -83,10 +83,10 @@ attuali sono:
 | Area | Elementi principali |
 | --- | --- |
 | CLI e ciclo di esecuzione | `main()` |
-| Statistiche | `initialize_statistics()`, `print_stats()`, dizionario globale `stats` |
+| Statistiche | `initialize_statistics()`, `print_stats()`, dizionario globale `stats`. Tutti i contatori esistono per ogni strategia; la stampa finale omette quelli delle strategie non in uso (`STRATEGY_STATS`, per prefisso: `CASE-F5-*` per S1–S5, `SELECT-S4-*`, `S5-*`/`SELECT-S5-*`, `SELECT-S6-*`, `REBUILD-*`/`EXACT-*`/`MEASURE-*` per S6 e S7, che ne condividono ricostruzione e misura, `S7-*`/`SELECT-S7-*`). Distribuzioni delle facce, casi F2/F3/F4, scambi casuali e tempi sono sempre stampati. |
 | Ricostruzione | `ariadne_case_f2()` ... `ariadne_case_f5()`, `ariadne_case_any_face()` (S6); `restore_ariadne_step()` (S1–S5) e `restore_ariadne_step_s6()` scelgono il gestore per ogni record |
 | Indici delle facce | `FaceIndex` e helper di aggiornamento |
-| Selezione | le sei funzioni `select_edge_to_remove_*()`, `positive_corners()` e gli helper di parità S6 |
+| Selezione | le sette funzioni `select_edge_to_remove_*()`, `positive_corners()` e gli helper di parità S6/S7 |
 | Località S4 | `update_wave_frontier()` e helper F5-F5/F5-F6 |
 | Input | `create_from_random1()`, `create_from_random2()`, `create_from_edge_list()`, `create_from_planar()` |
 | Conversione embedding | `from_graph_to_planar()` |

@@ -118,6 +118,7 @@ Tutte le strategie restituiscono la stessa tupla:
 | `-s4` | `select_edge_to_remove_unavoidable_set` | Gestisce prima F2/F3/F4, poi coppie F5-F5 e F5-F6, privilegiando una regione locale attiva. |
 | `-s5` | `select_edge_to_remove_positive_corner` | Usa i sette tipi di vertice a curvatura positiva di v17, con località e scelte deterministiche; ricostruisce senza scambi casuali. |
 | `-s6` | `select_edge_to_remove_even_faces` | Dopo le F2, fa crescere una faccia principale pari fondendola con facce adiacenti pari (faccia ridotta al massimo F5); ricostruzione dedicata, senza scambi casuali. |
+| `-s7` | `select_edge_to_remove_even_ring` | Studio: come S6 ma senza limite di taglia, con una scelta che garantisce una faccia pari accanto alla faccia unita; usa la ricostruzione di S6. |
 
 Per S1, S2 e S3, `--choices` stabilisce la priorità tra F3, F4 e F5, con F2
 sempre per prima. Sono accettate le permutazioni `2345`, `2354`, `2435`,
@@ -294,11 +295,12 @@ classe si esaurisce solo se è piccola, quindi solo su grafi piccoli, verso la
 fine della ricostruzione, dove la ricerca esaustiva è istantanea. È l'unico
 passo di S6 che esce dal metodo di Kempe.
 
-Le statistiche distinguono i reinserimenti diretti (`S6-REBUILD-DIRECT`) da
-quelli con ricerca (`S6-REBUILD-SEARCHED`), gli stati esaminati, gli scambi
-deterministici, la faccia più grande ricostruita (`S6-REBUILD-MAX-FACE`), le
-ricolorazioni esatte (`S6-EXACT-RECOLORINGS`) e il grafo più grande
-ricolorato (`S6-EXACT-MAX-VERTICES`).
+Le statistiche distinguono i reinserimenti diretti (`REBUILD-DIRECT`) da
+quelli con ricerca (`REBUILD-SEARCHED`), gli stati esaminati, gli scambi
+deterministici, la faccia più grande ricostruita (`REBUILD-MAX-FACE`), le
+ricolorazioni esatte (`EXACT-RECOLORINGS`) e il grafo più grande
+ricolorato (`EXACT-MAX-VERTICES`). S7 usa la stessa ricostruzione e la stessa misura dei perimetri, quindi
+aggiorna gli stessi contatori `REBUILD-*`, `EXACT-*` e `MEASURE-*`.
 
 Il gestore classico ora rifiuta con un errore esplicito un record senza
 gestore (per esempio F6+), invece di saltarlo in silenzio; S1–S5 non
@@ -310,7 +312,7 @@ Solo con `-s6`, `reduce_faces()` conserva una copia del bordo di ogni faccia
 unita e `rebuild_faces()` lo misura con `measure_s6_reinsertion()` prima di
 ogni reinserimento diverso da F2, senza modificare colori né scelte. In quel
 momento il grafo è nello stesso stato di quando la faccia è stata creata.
-Le statistiche `S6-MEASURE-*` contano:
+Le statistiche `MEASURE-*` contano:
 
 - la parità del perimetro (`M-EVEN`, `M-ODD`);
 - i perimetri bicolori, cioè un unico ciclo di Kempe (`M-EVEN-BICHROMATIC`);
@@ -323,6 +325,60 @@ Le statistiche `S6-MEASURE-*` contano:
 Un perimetro bicolore garantisce il reinserimento con un solo mezzo scambio,
 per qualunque taglia di `f1`; per il reinserimento basta però la condizione
 più debole `SAME-KEMPE`.
+
+### S7: catene pari senza limite di taglia (studio)
+
+S7 riprende S6 senza alcun limite sulla taglia delle facce e cerca di
+garantire che la catena non si interrompa: dopo ogni fusione, la faccia unita
+deve avere una vicina pari con cui continuare.
+
+**Argomento dell'anello.** Siano N1, …, Nk le facce attorno alla faccia
+principale P, pari, nell'ordine del bordo. Fondere P con una vicina pari Ni dà
+una faccia pari M; le due facce accanto a Ni nell'anello, N(i−1) e N(i+1),
+sono le laterali: perdono un lato e cambiano parità, le altre no.
+
+- Se l'anello contiene entrambe le parità, c'è una Ni pari accanto a una
+  faccia dispari: fondendo Ni, quella dispari diventa pari, quindi M ha una
+  vicina pari.
+- Se l'anello è tutto pari e ha almeno quattro facce, quelle lontane da Ni
+  restano pari.
+
+Le eccezioni sono i casi degeneri: ponti (una vicina che tocca P in più
+tratti), laterali coincidenti, anelli corti, e le vicine F2, che sono pari ma
+vengono ridotte subito. Una fusione che produce una faccia pari esiste sempre
+senza limiti di taglia: in ogni vertice due delle tre facce hanno la stessa
+parità.
+
+La selezione prova in ordine:
+
+1. **F2**, come in S6.
+2. **Continuazione:** una vicina pari di P, di qualunque taglia, tale che M
+   abbia almeno `S7_DURABLE_EVEN` = 4 lati e tocchi, dopo la riduzione, una
+   faccia pari di almeno quattro lati. Le `f1` più piccole hanno la
+   precedenza.
+3. **Avvio:** la prima coppia adiacente, per taglia crescente di `f1`, con le
+   stesse condizioni.
+4. **Ripiego:** la prima riduzione senza ponti, per taglia crescente.
+
+Quando una catena si interrompe, `S7-BREAK-*` ne registra il motivo:
+`ODD-PRINCIPAL` (la faccia principale è dispari, conseguenza di un ripiego),
+`PRINCIPAL-GONE` (la faccia principale non esiste più: ogni F2 adiacente
+eliminata le toglie due lati, e quando si riduce a una F2 viene eliminata a
+sua volta; la faccia che la assorbe può avere qualunque parità, quindi non
+eredita il ruolo), `NO-EVEN-NEIGHBOR`, `BRIDGE` (tutte le continuazioni creano
+un ponte) e `NO-DURABLE-EVEN`. `S7-MAX-CHAIN` e `S7-MAX-PRINCIPAL` danno
+la catena più lunga e la faccia principale più grande. La ricostruzione è
+quella di S6 (`restore_ariadne_step_s6()`), deterministica.
+
+**Risultati.** La garanzia di parità regge: con 20 mappe `-r1 300` le
+continuazioni passano da circa il 38% delle riduzioni (S6) all'84%, e la catena
+più lunga da 18 a 253 passi; il motivo principale di interruzione è un ponte.
+Su `waterworld-3` la riduzione è quasi un'unica catena (2235 continuazioni
+consecutive su 2787 riduzioni) e la faccia principale arriva a 408 lati. Proprio
+per questo la ricostruzione si ferma sullo stesso reinserimento F8 di S6 senza
+limite: una catena che non si interrompe produce una faccia principale enorme,
+e con essa i reinserimenti che nessuna colorazione permette. Le mappe
+casuali, `bad-c-2345-infinite_loops` e i poliedri di prova vengono completati.
 
 ## Il filo di Arianna
 

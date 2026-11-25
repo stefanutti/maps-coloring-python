@@ -879,6 +879,66 @@ class KempeSearchExhausted(RuntimeError):
     """Kempe repair exhausted its budget or class; this does not mean uncolorable."""
 
 
+class KempeClassExhausted(KempeSearchExhausted):
+    """
+    Every coloring of the Kempe class was examined without a repair.
+
+    Only a small class can be exhausted, so the graph is small. Another Kempe
+    class of the same graph may still contain a repair.
+    """
+
+
+def find_three_edge_coloring(graph):
+    """
+    Return {(u, v, key): color} for a proper 3-edge-coloring of `graph`, or None.
+
+    Exhaustive, deterministic backtracking. Edges are visited in breadth-first
+    order and an edge's current 'color' attribute, when present, is tried
+    first, so a coloring that is already proper is returned unchanged. The
+    cost is exponential in the worst case: it is meant for small graphs.
+    Keys (u, v, key) have u <= v; the graph is not mutated.
+    """
+    edges = sorted((min(u, v), max(u, v), key) for u, v, key in graph.edges(keys=True))
+    preferred = [graph[u][v][key].get('color') for u, v, key in edges]
+    incidence = defaultdict(list)
+    for i, (u, v, _) in enumerate(edges):
+        incidence[u].append(i)
+        incidence[v].append(i)
+    order = []
+    visited = set()
+    for seed in range(len(edges)):
+        if seed not in visited:
+            visited.add(seed)
+            pending = deque([seed])
+            while pending:
+                current = pending.popleft()
+                order.append(current)
+                for vertex in edges[current][:2]:
+                    for neighbor in incidence[vertex]:
+                        if neighbor not in visited:
+                            visited.add(neighbor)
+                            pending.append(neighbor)
+    colors = [None] * len(edges)
+    candidates = [None] * len(edges)
+    position = 0
+    while 0 <= position < len(edges):
+        current = order[position]
+        if candidates[position] is None:
+            used = {colors[i] for vertex in edges[current][:2] for i in incidence[vertex]
+                    if i != current and colors[i] is not None}
+            free = [color for color in VALID_COLORS if color not in used]
+            free.sort(key=lambda color: color != preferred[current])
+            candidates[position] = free
+        if candidates[position]:
+            colors[current] = candidates[position].pop(0)
+            position += 1
+        else:
+            colors[current] = None
+            candidates[position] = None
+            position -= 1
+    return dict(zip(edges, colors)) if position == len(edges) else None
+
+
 def find_kempe_repair(graph, first_edge, second_edge, max_states):
     """Search full labelled colorings for v17 section 8.2's CONDITION-1.
 
@@ -991,7 +1051,7 @@ def find_kempe_repair(graph, first_edge, second_edge, max_states):
             f"Kempe search budget reached ({max_states} states); "
             f"split edges {first_edge}, {second_edge}. "
             "Increase --kempe-search-limit or try a different reduction.")
-    raise KempeSearchExhausted(
+    raise KempeClassExhausted(
         f"Kempe class exhausted ({examined} states) for split edges "
         f"{first_edge}, {second_edge}; a different reduction or coloring class is needed")
 

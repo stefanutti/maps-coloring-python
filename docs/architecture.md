@@ -106,7 +106,8 @@ Con `-s6` passa anche `restore_step=restore_ariadne_step_s6` e
 `restore_step` è il gestore classico e il comportamento non cambia.
 
 `KempeSearchExhausted` segnala solo l'esaurimento della ricerca di colorazione:
-2.000 tentativi casuali F5 per S1–S4, budget o classe di Kempe esauriti per S5 e S6.
+2.000 tentativi casuali F5 per S1–S4, budget o classe di Kempe esauriti per S5, budget esaurito per S6
+(una classe esaurita in S6 attiva invece la ricolorazione esatta).
 `main()` intercetta questa eccezione nella ricostruzione. Con
 `--continue-on-error` e un file `.planar` con più mappe, registra il fallimento
 e passa alla mappa successiva; il riepilogo finale mantiene un codice di
@@ -179,7 +180,8 @@ dell'oracolo costruiscono invece il confronto tramite un nuovo `FaceIndex`.
 | Embedding | estrazione delle facce, grafo duale, creazione del grafo da `g_faces` |
 | Operazioni sulle facce | rotazione, rimozione di vertici, unione di due facce, ricerca di adiacenze |
 | Kempe | individuazione di cicli/catene, scambio di colori, half-cycle switching |
-| Ricerca S5 | `find_kempe_repair()` esplora colorazioni complete senza mutare il grafo e restituisce una sequenza di cicli con chiavi; `KempeSearchExhausted` distingue i fallimenti dalla colorazione riuscita. |
+| Ricerca S5/S6 | `find_kempe_repair()` esplora colorazioni complete senza mutare il grafo e restituisce una sequenza di cicli con chiavi; `KempeSearchExhausted` distingue i fallimenti dalla colorazione riuscita, e la sottoclasse `KempeClassExhausted` indica che l'intera classe è stata esaminata. |
+| Colorazione esatta | `find_three_edge_coloring()` trova per ricerca esaustiva e deterministica una 3-colorazione degli archi, provando prima i colori correnti; pensata per grafi piccoli (S6, classe di Kempe esaurita). |
 | I/O | esportazione `.edgelist` e `.dot`; con embedding originale fornito, `color_planar_representation()` associa i colori e `export_graph()` scrive anche `.colored.planar`; stampa diagnostica |
 
 Il confine corrente è quindi pratico: `4ct.py` decide il flusso e la strategia,

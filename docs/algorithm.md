@@ -274,13 +274,31 @@ scambio: si scambiano i due colori sull'arco del ciclo che parte dal lato
 nuovo arco prende il terzo colore. Il controllo usa le chiavi del multigrafo,
 quindi distingue gli archi paralleli. Se il ciclo comune non esiste,
 `find_kempe_repair()` cerca in modo deterministico gli scambi di cicli interi
-che lo creano, entro `--kempe-search-limit`; se il budget o la classe di Kempe
-si esauriscono, la ricostruzione si ferma con `KempeSearchExhausted`, come in
-S5. S6 non usa mai scambi casuali.
+che lo creano, entro `--kempe-search-limit`. Se si esaurisce il budget, la
+ricostruzione si ferma con `KempeSearchExhausted`, come in S5. S6 non usa mai
+scambi casuali.
+
+**Classe di Kempe esaurita: ricolorazione esatta.** Le colorazioni di un
+grafo possono formare più classi di Kempe, e gli scambi di Kempe non passano
+mai da una classe all'altra. Può succedere che i reinserimenti precedenti
+portino la colorazione in una classe in cui nessuna colorazione permette il
+mezzo scambio, anche se un'altra classe dello stesso grafo lo permette. Nella
+mappa 3 di `maps_3000_maps_of_8000_faces.planar`, al 14° reinserimento F5,
+il grafo di 28 vertici ha 210 colorazioni in due classi: quella raggiunta ne
+ha 36, nessuna utile; l'altra 174, di cui 96 utili. In questo caso
+`find_kempe_repair()` solleva `KempeClassExhausted` (sottoclasse di
+`KempeSearchExhausted`) e `_recolor_with_edge_restored()` reinserisce l'arco
+e colora l'intero grafo con `find_three_edge_coloring()`, una ricerca
+esaustiva e deterministica che conserva i colori correnti dove possibile. Una
+classe si esaurisce solo se è piccola, quindi solo su grafi piccoli, verso la
+fine della ricostruzione, dove la ricerca esaustiva è istantanea. È l'unico
+passo di S6 che esce dal metodo di Kempe.
 
 Le statistiche distinguono i reinserimenti diretti (`S6-REBUILD-DIRECT`) da
 quelli con ricerca (`S6-REBUILD-SEARCHED`), gli stati esaminati, gli scambi
-deterministici e la faccia più grande ricostruita (`S6-REBUILD-MAX-FACE`).
+deterministici, la faccia più grande ricostruita (`S6-REBUILD-MAX-FACE`), le
+ricolorazioni esatte (`S6-EXACT-RECOLORINGS`) e il grafo più grande
+ricolorato (`S6-EXACT-MAX-VERTICES`).
 
 Il gestore classico ora rifiuta con un errore esplicito un record senza
 gestore (per esempio F6+), invece di saltarlo in silenzio; S1–S5 non

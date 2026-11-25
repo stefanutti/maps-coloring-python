@@ -130,7 +130,8 @@ from ct_graph_utils import export_graph
 from ct_graph_utils import append_colored_planar_representation
 from ct_graph_utils import are_edges_on_the_same_kempe_cycle
 from ct_graph_utils import apply_half_kempe_loop_color_switching
-from ct_graph_utils import find_kempe_repair, KempeSearchExhausted
+from ct_graph_utils import find_kempe_repair, KempeSearchExhausted, KempeClassExhausted
+from ct_graph_utils import find_three_edge_coloring
 from ct_graph_utils import remove_vertex_from_face
 from ct_graph_utils import rotate
 from ct_graph_utils import join_faces
@@ -252,6 +253,8 @@ def initialize_statistics():
     stats['S6-KEMPE-STATES'] = 0
     stats['S6-MAX-KEMPE-STATES'] = 0
     stats['S6-DETERMINISTIC-SWITCHES'] = 0
+    stats['S6-EXACT-RECOLORINGS'] = 0
+    stats['S6-EXACT-MAX-VERTICES'] = 0
 
     stats['TOTAL_RANDOM_KEMPE_SWITCHES'] = 0
     stats['MAX_RANDOM_KEMPE_SWITCHES'] = 0
@@ -806,6 +809,32 @@ def _find_common_kempe_cycle(the_colored_graph, edge_at_v1, edge_at_v2):
     )
 
 
+def _recolor_with_edge_restored(the_colored_graph, ariadne_step, error):
+    """
+    S6, exhausted Kempe class: restore the edge and color the whole graph exactly.
+
+    The current coloring's Kempe class contains no coloring that allows the
+    half switch, but another class of the same graph may. A class can only be
+    exhausted when it is small, so the graph is small and an exhaustive search
+    (find_three_edge_coloring) is fast. Edges keep their current color where
+    possible. This leaves the Kempe class: it is the only non-Kempe step of S6.
+    """
+    v1, v2, on_v1, on_v2, off_v1, off_v2 = ariadne_step[1:]
+    restored = nx.MultiGraph(the_colored_graph)
+    restored.remove_edge(on_v1, off_v1)
+    restored.remove_edge(on_v2, off_v2)
+    for u, v in ((v1, on_v1), (v1, off_v1), (v2, on_v2), (v2, off_v2), (v1, v2)):
+        restored.add_edge(u, v)
+    coloring = find_three_edge_coloring(restored)
+    if coloring is None:
+        raise error
+    the_colored_graph.clear()
+    for (u, v, _), color in coloring.items():
+        graph_add_edge(the_colored_graph, u, v, color)
+    stats['S6-EXACT-RECOLORINGS'] += 1
+    stats['S6-EXACT-MAX-VERTICES'] = max(stats['S6-EXACT-MAX-VERTICES'], the_colored_graph.number_of_nodes())
+
+
 def ariadne_case_any_face(the_colored_graph, ariadne_step, kempe_search_limit):
     """
     S6: restore the edge of a face of any size with one half Kempe-cycle switch.
@@ -814,25 +843,33 @@ def ariadne_case_any_face(the_colored_graph, ariadne_step, kempe_search_limit):
     already lie on a common Kempe cycle, swapping its colors on the arc that
     starts at the v1 side of the face reconnects them; planarity makes that
     arc end on the v2 side of the face. Otherwise find_kempe_repair() looks,
-    deterministically, for whole-cycle switches that create such a cycle, and
-    raises KempeSearchExhausted when the budget or the Kempe class runs out.
-    No random choice is made.
+    deterministically, for whole-cycle switches that create such a cycle. If
+    it examines the whole Kempe class without success, the graph is small and
+    _recolor_with_edge_restored() colors it exactly. If the budget runs out,
+    KempeSearchExhausted is raised. No random choice is made.
     """
     edge_at_v1 = (ariadne_step[3], ariadne_step[5])
     edge_at_v2 = (ariadne_step[4], ariadne_step[6])
     common_cycle = _find_common_kempe_cycle(the_colored_graph, edge_at_v1, edge_at_v2)
+    is_restored = False
     if common_cycle is None:
-        switches, colors, pair, examined = find_kempe_repair(the_colored_graph, edge_at_v1, edge_at_v2, kempe_search_limit)
-        _apply_kempe_switches(the_colored_graph, switches)
-        stats['S6-REBUILD-SEARCHED'] += 1
-        stats['S6-KEMPE-STATES'] += examined
-        stats['S6-MAX-KEMPE-STATES'] = max(stats['S6-MAX-KEMPE-STATES'], examined)
-        stats['S6-DETERMINISTIC-SWITCHES'] += len(switches)
+        try:
+            switches, colors, pair, examined = find_kempe_repair(the_colored_graph, edge_at_v1, edge_at_v2, kempe_search_limit)
+        except KempeClassExhausted as error:
+            _recolor_with_edge_restored(the_colored_graph, ariadne_step, error)
+            is_restored = True
+        else:
+            _apply_kempe_switches(the_colored_graph, switches)
+            stats['S6-REBUILD-SEARCHED'] += 1
+            stats['S6-KEMPE-STATES'] += examined
+            stats['S6-MAX-KEMPE-STATES'] = max(stats['S6-MAX-KEMPE-STATES'], examined)
+            stats['S6-DETERMINISTIC-SWITCHES'] += len(switches)
     else:
         colors, pair = common_cycle
         stats['S6-REBUILD-DIRECT'] += 1
     stats['S6-REBUILD-MAX-FACE'] = max(stats['S6-REBUILD-MAX-FACE'], ariadne_step[0])
-    apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, *colors, *pair)
+    if not is_restored:
+        apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, *colors, *pair)
 
 
 def _remove_by_identity(items, item):

@@ -317,3 +317,68 @@ def test_other_strategies_do_not_measure(mod):
     mod.rebuild_faces(faces, thread)
     assert all(value == 0 for value in measures(mod).values())
 
+
+
+# Map 3 of maps_3000_maps_of_8000_faces.planar, 14th S6 reinsertion: the coloring built by the
+# previous reinsertions lies in a Kempe class of 36 colorings, none of which allows the half switch
+# (the other class of this graph has 96 good colorings out of 174).
+MAP3_STEP = [5, 7970, 10318, 7960, 10989, 4718, 9023]
+MAP3_EDGES = [
+    (4718, 4993, 'r'), (4718, 7960, 'g'), (4718, 9546, 'b'), (4993, 5771, 'g'), (4993, 5855, 'b'), (5771, 7019, 'r'),
+    (5771, 7960, 'b'), (5855, 9130, 'r'), (5855, 9393, 'g'), (7019, 9393, 'b'), (7019, 9764, 'g'), (7960, 10454, 'r'),
+    (9023, 9546, 'g'), (9023, 10989, 'r'), (9023, 11537, 'b'), (9130, 9472, 'b'), (9130, 10439, 'g'), (9393, 10397, 'r'),
+    (9472, 10397, 'g'), (9472, 10601, 'r'), (9546, 10439, 'r'), (9764, 10892, 'r'), (9764, 10967, 'b'), (10395, 10397, 'b'),
+    (10395, 10892, 'g'), (10395, 11755, 'r'), (10439, 10628, 'b'), (10454, 10967, 'g'), (10454, 10989, 'b'), (10601, 10628, 'g'),
+    (10601, 11755, 'b'), (10628, 11787, 'r'), (10892, 14535, 'b'), (10967, 12803, 'r'), (10989, 12515, 'g'), (11537, 11787, 'g'),
+    (11537, 12515, 'r'), (11755, 13316, 'g'), (11787, 13316, 'b'), (12515, 12803, 'b'), (12803, 14535, 'g'), (13316, 14535, 'r'),
+]
+
+
+def map3_graph():
+    names = {'r': 'red', 'g': 'green', 'b': 'blue'}
+    graph = nx.MultiGraph()
+    for u, v, c in MAP3_EDGES:
+        graph.add_edge(u, v, color=names[c])
+    return graph
+
+
+def test_map3_kempe_class_is_exhausted(mod):
+    graph = map3_graph()
+    assert mod.is_well_colored(graph)
+    with pytest.raises(mod.KempeClassExhausted, match="exhausted"):
+        mod.find_kempe_repair(graph, (7960, 4718), (10989, 9023), 10000)
+
+
+def test_map3_exhausted_class_is_recolored_exactly(mod):
+    graph = map3_graph()
+    before = edge_multiset(graph)
+    mod.ariadne_case_any_face(graph, MAP3_STEP, 10000)
+    assert mod.is_well_colored(graph)
+    assert graph.number_of_nodes() == 30 and graph.number_of_edges() == 45
+    assert all(degree == 3 for _, degree in graph.degree())
+    # The two split edges are replaced by their halves; the new edge joins v1 and v2
+    expected = before - collections.Counter([(4718, 7960), (9023, 10989)]) + collections.Counter(
+        [(4718, 7970), (7960, 7970), (9023, 10318), (10318, 10989), (7970, 10318)])
+    assert edge_multiset(graph) == expected
+    assert mod.stats['S6-EXACT-RECOLORINGS'] == 1 and mod.stats['S6-EXACT-MAX-VERTICES'] == 30
+
+
+def test_three_edge_coloring_keeps_a_proper_coloring(mod):
+    graph = colored_prism()
+    coloring = mod.find_three_edge_coloring(graph)
+    assert coloring == {(min(u, v), max(u, v), k): c for u, v, k, c in graph.edges(keys=True, data='color')}
+
+
+@pytest.mark.parametrize("graph", [nx.tetrahedral_graph(), nx.dodecahedral_graph(), nx.truncated_cube_graph()])
+def test_three_edge_coloring_colors_uncolored_graphs(mod, graph):
+    coloring = mod.find_three_edge_coloring(nx.MultiGraph(graph))
+    colored = nx.MultiGraph()
+    for (u, v, _), color in coloring.items():
+        colored.add_edge(u, v, color=color)
+    assert mod.is_well_colored(colored)
+    assert edge_multiset(colored) == edge_multiset(graph)
+
+
+def test_three_edge_coloring_reports_impossible_graphs(mod):
+    # The Petersen graph is cubic but not 3-edge-colorable
+    assert mod.find_three_edge_coloring(nx.MultiGraph(nx.petersen_graph())) is None

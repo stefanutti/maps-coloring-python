@@ -75,7 +75,7 @@ uv run --python ../.venv/bin/python python 4ct.py \
 uv run --python ../.venv/bin/python python 4ct.py -e path/to/map.edgelist
 ```
 
-Le strategie si selezionano con `-s1`, `-s2`, `-s3`, `-s4` o `-s5`. S1 è il default:
+Le strategie si selezionano con `-s1`, `-s2`, `-s3`, `-s4`, `-s5` o `-s6`. S1 è il default:
 
 ```bash
 uv run --python ../.venv/bin/python python 4ct.py \
@@ -92,8 +92,8 @@ Opzioni utili:
 | `-s` | Mescola inizialmente la lista delle facce. |
 | `-n N` | Ripete N volte gli input casuali o edgelist. |
 | `--skip N` / `-skip N` | Salta le prime N righe fisiche del file `.planar` (default 0). |
-| `-s1` ... `-s5` | Sceglie la strategia di selezione. |
-| `--kempe-search-limit N` | Limita a N colorazioni distinte ciascuna ricerca F5 di S5 (default 10000). |
+| `-s1` ... `-s6` | Sceglie la strategia di selezione. |
+| `--kempe-search-limit N` | Limita a N colorazioni distinte ciascuna ricerca di Kempe di S5 (F5) e di S6 (F5 e facce più grandi) (default 10000). |
 | `--continue-on-error` | Nei file `.planar` con più mappe, passa alla successiva se la ricerca Kempe fallisce; gli errori inattesi restano fatali. |
 
 Con `-o test` e una sola esecuzione vengono salvati `test.edgelist`,
@@ -178,7 +178,7 @@ uv run --python ../.venv/bin/python python 4ct.py \
 
 Il parametro vale per tutte le strategie: intercetta il raggiungimento dei
 2.000 tentativi casuali F5 di S1–S4 e l'esaurimento del budget o della classe
-di Kempe in S5. Registra il numero della mappa (a partire da 1) e il motivo,
+di Kempe in S5 e S6. Registra il numero della mappa (a partire da 1) e il motivo,
 poi riparte con grafo e statistiche nuovi per la mappa successiva. Alla fine
 stampa il numero di mappe riuscite e fallite e gli indici delle fallite;
 il codice di uscita è 1 se almeno una mappa è fallita, 0 altrimenti.

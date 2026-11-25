@@ -117,6 +117,7 @@ Tutte le strategie restituiscono la stessa tupla:
 | `-s3` | `select_edge_to_remove_f5_shared_vertex` | Usa il first-fit per F2/F3/F4; sulle F5 preferisce configurazioni con una F5/F6 adiacente che condivide esattamente un vertice. |
 | `-s4` | `select_edge_to_remove_unavoidable_set` | Gestisce prima F2/F3/F4, poi coppie F5-F5 e F5-F6, privilegiando una regione locale attiva. |
 | `-s5` | `select_edge_to_remove_positive_corner` | Usa i sette tipi di vertice a curvatura positiva di v17, con località e scelte deterministiche; ricostruisce senza scambi casuali. |
+| `-s6` | `select_edge_to_remove_even_faces` | Dopo le F2, fa crescere una faccia principale pari fondendola con facce adiacenti pari (faccia ridotta al massimo F5); ricostruzione dedicata, senza scambi casuali. |
 
 Per S1, S2 e S3, `--choices` stabilisce la priorità tra F3, F4 e F5, con F2
 sempre per prima. Sono accettate le permutazioni `2345`, `2354`, `2435`,
@@ -201,6 +202,128 @@ esponenziale; un fallimento non dimostra che il grafo non sia colorabile.
 Questa politica assicura l'assenza di scambi casuali nelle esecuzioni S5,
 non il successo universale della selezione o della ricerca limitata.
 
+### S6: faccia principale pari
+
+S6 cerca di mantenere pari la faccia prodotta da ogni riduzione e di farla
+crescere assorbendo facce adiacenti pari, fino al grafo theta (tre F2).
+Le lunghezze dopo una riduzione si calcolano così: la faccia unita misura
+`len(f1) + len(f2) - 4` (per una F2, `len(f2) - 2`); ogni altra faccia perde
+un lato per ciascuno dei due vertici soppressi che contiene, e può quindi
+cambiare parità.
+
+La selezione, deterministica e a priorità fissa, prova in ordine:
+
+1. **F2.** La prima riduzione F2 senza ponti. I gestori di ricostruzione e
+   `remove_vertex_from_face()` presuppongono che nessun arco multiplo tocchi
+   una F3/F4 ridotta, come in S1–S5. Rimuovere una F2 non cambia alcuna
+   parità: `f2` e la terza faccia perdono due lati ciascuna.
+2. **Continuazione.** Se la faccia principale, cioè la faccia prodotta dalla
+   riduzione S6 precedente, esiste ancora ed è pari, la fonde con una faccia
+   adiacente pari. La più piccola delle due facce deve avere al più cinque
+   lati; le vicine più piccole hanno la precedenza. Due facce pari si
+   fondono sempre in una faccia pari.
+3. **Avvio.** Altrimenti, in ordine F3, F4, F5, la prima riduzione la cui
+   faccia unita è pari.
+4. **Ripiego.** Se nessuna candidata soddisfa le condizioni di parità, la
+   prima riduzione F3/F4/F5 senza ponti.
+
+`f1`, la faccia descritta dal record di Arianna, è sempre la più piccola
+delle due e ha al più cinque lati (`S6_MAX_REDUCED_FACE`). Così una vicina F4
+mantiene il suo gestore di ricostruzione dimostrato e un F5 usa la
+ricostruzione deterministica descritta sotto.
+
+**Perché il limite di cinque lati.** Una versione senza limite fondeva la
+faccia principale con vicine pari di qualunque taglia. Completava le mappe
+casuali, ma si fermava su 4 delle 10 mappe waterworld, su record da F6 a F12.
+Il caso studiato in dettaglio, in `waterworld-3`, staccava una F8 da una
+faccia di 402 lati: in 160 colorazioni diverse del grafo nessuna permetteva il
+mezzo scambio, quindi nessuna ricerca di Kempe poteva riuscire. In termini di
+colori delle facce, `f1` ed `f2` stanno nella stessa coppia di colori A; il
+mezzo scambio richiede che le due facce agli estremi dell'arco reinserito
+siano collegate senza attraversare la regione A che contiene `f1` ed `f2`.
+Una faccia principale enorme, che avvolge parti della mappa, chiude quel
+passaggio, e più lati ha `f1` più vicine possono bloccarlo.
+
+Una protezione euristica "dalle sacche" (scartare un F5 se una sua vicina
+tocca `f2` in più tratti separati) è stata provata e scartata: senza limite
+di taglia non evitava i blocchi, e con il limite faceva fallire
+`waterworld-2`, che senza protezione viene completata.
+
+Nei passi 2 e 3 una candidata è accettata solo se non crea ponti
+(`is_the_graph_one_edge_connected()` falso) e se la faccia unita, dopo la
+riduzione, ha almeno una faccia adiacente pari. La faccia unita diventa la
+nuova faccia principale; una riduzione F2 la sposta solo se la assorbe.
+Il riferimento è conservato in `s6_principal_face` e azzerato all'inizio di
+ogni esecuzione (`i_global_counter == 0`). S6 ignora `--choices` e la wave
+frontier e restituisce sempre `event = None`. Le statistiche `SELECT-S6-*`
+contano i quattro casi.
+
+#### Ricostruzione S6
+
+Solo con `-s6`, `rebuild_faces()` riceve `restore_step=restore_ariadne_step_s6`
+invece del gestore classico `restore_ariadne_step`:
+
+- F2, F3 e F4 usano i gestori esistenti, il cui successo è garantito;
+- F5 usa `ariadne_case_any_face()`, che gestirebbe anche facce più grandi.
+
+`ariadne_case_any_face()` non dipende dalla taglia della faccia. I due archi da
+suddividere, `(on_v1, off_v1)` e `(on_v2, off_v2)`, stanno sul bordo della
+faccia unita. Se stanno già su un ciclo di Kempe comune, basta un mezzo
+scambio: si scambiano i due colori sull'arco del ciclo che parte dal lato
+`on_v1`, e la planarità garantisce che quell'arco arrivi dal lato `on_v2`. Il
+nuovo arco prende il terzo colore. Il controllo usa le chiavi del multigrafo,
+quindi distingue gli archi paralleli. Se il ciclo comune non esiste,
+`find_kempe_repair()` cerca in modo deterministico gli scambi di cicli interi
+che lo creano, entro `--kempe-search-limit`. Se si esaurisce il budget, la
+ricostruzione si ferma con `KempeSearchExhausted`, come in S5. S6 non usa mai
+scambi casuali.
+
+**Classe di Kempe esaurita: ricolorazione esatta.** Le colorazioni di un
+grafo possono formare più classi di Kempe, e gli scambi di Kempe non passano
+mai da una classe all'altra. Può succedere che i reinserimenti precedenti
+portino la colorazione in una classe in cui nessuna colorazione permette il
+mezzo scambio, anche se un'altra classe dello stesso grafo lo permette. Nella
+mappa 3 di `maps_3000_maps_of_8000_faces.planar`, al 14° reinserimento F5,
+il grafo di 28 vertici ha 210 colorazioni in due classi: quella raggiunta ne
+ha 36, nessuna utile; l'altra 174, di cui 96 utili. In questo caso
+`find_kempe_repair()` solleva `KempeClassExhausted` (sottoclasse di
+`KempeSearchExhausted`) e `_recolor_with_edge_restored()` reinserisce l'arco
+e colora l'intero grafo con `find_three_edge_coloring()`, una ricerca
+esaustiva e deterministica che conserva i colori correnti dove possibile. Una
+classe si esaurisce solo se è piccola, quindi solo su grafi piccoli, verso la
+fine della ricostruzione, dove la ricerca esaustiva è istantanea. È l'unico
+passo di S6 che esce dal metodo di Kempe.
+
+Le statistiche distinguono i reinserimenti diretti (`S6-REBUILD-DIRECT`) da
+quelli con ricerca (`S6-REBUILD-SEARCHED`), gli stati esaminati, gli scambi
+deterministici, la faccia più grande ricostruita (`S6-REBUILD-MAX-FACE`), le
+ricolorazioni esatte (`S6-EXACT-RECOLORINGS`) e il grafo più grande
+ricolorato (`S6-EXACT-MAX-VERTICES`).
+
+Il gestore classico ora rifiuta con un errore esplicito un record senza
+gestore (per esempio F6+), invece di saltarlo in silenzio; S1–S5 non
+producono mai record del genere.
+
+#### Misura dei perimetri (studio)
+
+Solo con `-s6`, `reduce_faces()` conserva una copia del bordo di ogni faccia
+unita e `rebuild_faces()` lo misura con `measure_s6_reinsertion()` prima di
+ogni reinserimento diverso da F2, senza modificare colori né scelte. In quel
+momento il grafo è nello stesso stato di quando la faccia è stata creata.
+Le statistiche `S6-MEASURE-*` contano:
+
+- la parità del perimetro (`M-EVEN`, `M-ODD`);
+- i perimetri bicolori, cioè un unico ciclo di Kempe (`M-EVEN-BICHROMATIC`);
+- i casi in cui i due archi da suddividere stanno già su un ciclo di Kempe
+  comune per almeno una coppia di colori (`M-*-SAME-KEMPE`), anche per
+  taglia della faccia ridotta (`F3/F4/F5/F6+-M-EVEN*`);
+- i perimetri con un arco multiplo (`UNKNOWN`), per i quali la ricerca del
+  colore per coppia di vertici sarebbe ambigua.
+
+Un perimetro bicolore garantisce il reinserimento con un solo mezzo scambio,
+per qualunque taglia di `f1`; per il reinserimento basta però la condizione
+più debole `SAME-KEMPE`.
+
 ## Il filo di Arianna
 
 Ogni riduzione memorizza soltanto il contesto locale necessario per tornare
@@ -208,10 +331,11 @@ indietro. I record hanno due forme:
 
 ```text
 F2:       [2, v1, v2, near_v1, near_v2]
-F3/F4/F5: [n, v1, v2, on_v1, on_v2, off_v1, off_v2]
+F3+:      [n, v1, v2, on_v1, on_v2, off_v1, off_v2]
 ```
 
-La prima posizione identifica il caso di ricostruzione. I record sono
+La prima posizione identifica il caso di ricostruzione. S1–S5 producono
+soltanto `n <= 5`; S6 può produrre anche `n > 5`. I record sono
 consumati in ordine LIFO: l'ultima configurazione rimossa è la prima a essere
 reinserita.
 
@@ -237,8 +361,8 @@ principali sono `kempe_chain_color_swap()`, `is_a_kempe_cycle()` e
 
 Il caso F5 delle strategie S1–S4 contiene scelte casuali tra tentativi
 equivalenti. Di conseguenza, esecuzioni ripetute sullo stesso input non sono
-necessariamente identiche. S5 usa invece la ricerca deterministica descritta
-sopra. I generatori casuali e l'opzione esplicita `--shuffle` rimangono casuali.
+necessariamente identiche. S5 e S6 usano invece la ricerca deterministica
+descritta sopra. I generatori casuali e l'opzione esplicita `--shuffle` rimangono casuali.
 
 ## Controlli finali
 

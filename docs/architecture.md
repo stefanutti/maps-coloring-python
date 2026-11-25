@@ -53,7 +53,7 @@ NetworkX MultiGraph + g_faces
 init_f_distribution()
    |
    v
-reduce_faces() -- strategia S1/S2/S3/S4/S5 --> ariadne_s_thread
+reduce_faces() -- strategia S1...S6 --> ariadne_s_thread
    |
    v
 rebuild_faces() --> MultiGraph con archi colorati
@@ -84,9 +84,9 @@ attuali sono:
 | --- | --- |
 | CLI e ciclo di esecuzione | `main()` |
 | Statistiche | `initialize_statistics()`, `print_stats()`, dizionario globale `stats` |
-| Ricostruzione | `ariadne_case_f2()`, `ariadne_case_f3()`, `ariadne_case_f4()`, `ariadne_case_f5()` |
+| Ricostruzione | `ariadne_case_f2()` ... `ariadne_case_f5()`, `ariadne_case_any_face()` (S6); `restore_ariadne_step()` (S1–S5) e `restore_ariadne_step_s6()` scelgono il gestore per ogni record |
 | Indici delle facce | `FaceIndex` e helper di aggiornamento |
-| Selezione | le cinque funzioni `select_edge_to_remove_*()` e `positive_corners()` |
+| Selezione | le sei funzioni `select_edge_to_remove_*()`, `positive_corners()` e gli helper di parità S6 |
 | Località S4 | `update_wave_frontier()` e helper F5-F5/F5-F6 |
 | Input | `create_from_random1()`, `create_from_random2()`, `create_from_edge_list()`, `create_from_planar()` |
 | Conversione embedding | `from_graph_to_planar()` |
@@ -98,8 +98,16 @@ comportamento storico; un intero positivo attiva la ricerca deterministica.
 Le statistiche `SELECT-S5-*` distinguono le riduzioni e `S5-*` distinguono
 estensioni dirette, ricerche, stati esaminati e scambi deterministici.
 
+Con `-s6`, `main()` passa a `reduce_faces()` e a `rebuild_faces()` la stessa
+lista `perimeters`: la riduzione vi aggiunge una copia di ogni faccia unita,
+la ricostruzione la consuma in ordine LIFO e chiama `measure_s6_reinsertion()`.
+Con `-s6` passa anche `restore_step=restore_ariadne_step_s6` e
+`kempe_search_limit`. Con le altre strategie `perimeters` vale `None`,
+`restore_step` è il gestore classico e il comportamento non cambia.
+
 `KempeSearchExhausted` segnala solo l'esaurimento della ricerca di colorazione:
-2.000 tentativi casuali F5 per S1–S4, budget o classe di Kempe esauriti per S5.
+2.000 tentativi casuali F5 per S1–S4, budget o classe di Kempe esauriti per S5, budget esaurito per S6
+(una classe esaurita in S6 attiva invece la ricolorazione esatta).
 `main()` intercetta questa eccezione nella ricostruzione. Con
 `--continue-on-error` e un file `.planar` con più mappe, registra il fallimento
 e passa alla mappa successiva; il riepilogo finale mantiene un codice di
@@ -172,7 +180,8 @@ dell'oracolo costruiscono invece il confronto tramite un nuovo `FaceIndex`.
 | Embedding | estrazione delle facce, grafo duale, creazione del grafo da `g_faces` |
 | Operazioni sulle facce | rotazione, rimozione di vertici, unione di due facce, ricerca di adiacenze |
 | Kempe | individuazione di cicli/catene, scambio di colori, half-cycle switching |
-| Ricerca S5 | `find_kempe_repair()` esplora colorazioni complete senza mutare il grafo e restituisce una sequenza di cicli con chiavi; `KempeSearchExhausted` distingue i fallimenti dalla colorazione riuscita. |
+| Ricerca S5/S6 | `find_kempe_repair()` esplora colorazioni complete senza mutare il grafo e restituisce una sequenza di cicli con chiavi; `KempeSearchExhausted` distingue i fallimenti dalla colorazione riuscita, e la sottoclasse `KempeClassExhausted` indica che l'intera classe è stata esaminata. |
+| Colorazione esatta | `find_three_edge_coloring()` trova per ricerca esaustiva e deterministica una 3-colorazione degli archi, provando prima i colori correnti; pensata per grafi piccoli (S6, classe di Kempe esaurita). |
 | I/O | esportazione `.edgelist` e `.dot`; con embedding originale fornito, `color_planar_representation()` associa i colori e `export_graph()` scrive anche `.colored.planar`; stampa diagnostica |
 
 Il confine corrente è quindi pratico: `4ct.py` decide il flusso e la strategia,

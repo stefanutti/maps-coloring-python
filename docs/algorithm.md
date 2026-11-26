@@ -119,6 +119,7 @@ Tutte le strategie restituiscono la stessa tupla:
 | `-s5` | `select_edge_to_remove_positive_corner` | Usa i sette tipi di vertice a curvatura positiva di v17, con località e scelte deterministiche; ricostruisce senza scambi casuali. |
 | `-s6` | `select_edge_to_remove_even_faces` | Dopo le F2, fa crescere una faccia principale pari fondendola con facce adiacenti pari (faccia ridotta al massimo F5); ricostruzione dedicata, senza scambi casuali. |
 | `-s7` | `select_edge_to_remove_even_ring` | Studio: come S6 ma senza limite di taglia, con una scelta che garantisce una faccia pari accanto alla faccia unita; usa la ricostruzione di S6. |
+| `-s8` | `select_edge_to_remove_even_faces_restart_away` | Completa le fusioni pari ammissibili, senza limite di taglia, prima di ripartire lontano dal perimetro della faccia principale. Usa la ricostruzione di S6. |
 
 Per S1, S2 e S3, `--choices` stabilisce la priorità tra F3, F4 e F5, con F2
 sempre per prima. Sono accettate le permutazioni `2345`, `2354`, `2435`,
@@ -261,11 +262,11 @@ contano i quattro casi.
 
 #### Ricostruzione S6
 
-Solo con `-s6`, `rebuild_faces()` riceve `restore_step=restore_ariadne_step_s6`
-invece del gestore classico `restore_ariadne_step`:
+Con `-s6`, `-s7` e `-s8`, `rebuild_faces()` riceve il gestore
+`restore_step=restore_ariadne_step_s6`:
 
 - F2, F3 e F4 usano i gestori esistenti, il cui successo è garantito;
-- F5 usa `ariadne_case_any_face()`, che gestirebbe anche facce più grandi.
+- F5 e le facce più grandi usano `ariadne_case_any_face()`.
 
 `ariadne_case_any_face()` non dipende dalla taglia della faccia. I due archi da
 suddividere, `(on_v1, off_v1)` e `(on_v2, off_v2)`, stanno sul bordo della
@@ -299,8 +300,8 @@ Le statistiche distinguono i reinserimenti diretti (`REBUILD-DIRECT`) da
 quelli con ricerca (`REBUILD-SEARCHED`), gli stati esaminati, gli scambi
 deterministici, la faccia più grande ricostruita (`REBUILD-MAX-FACE`), le
 ricolorazioni esatte (`EXACT-RECOLORINGS`) e il grafo più grande
-ricolorato (`EXACT-MAX-VERTICES`). S7 usa la stessa ricostruzione e la stessa misura dei perimetri, quindi
-aggiorna gli stessi contatori `REBUILD-*`, `EXACT-*` e `MEASURE-*`.
+ricolorato (`EXACT-MAX-VERTICES`). S7 e S8 usano la stessa ricostruzione e la stessa misura dei perimetri, quindi
+aggiornano gli stessi contatori `REBUILD-*`, `EXACT-*` e `MEASURE-*`.
 
 Il gestore classico ora rifiuta con un errore esplicito un record senza
 gestore (per esempio F6+), invece di saltarlo in silenzio; S1–S5 non
@@ -308,7 +309,7 @@ producono mai record del genere.
 
 #### Misura dei perimetri (studio)
 
-Solo con `-s6`, `reduce_faces()` conserva una copia del bordo di ogni faccia
+Con `-s6`, `-s7` e `-s8`, `reduce_faces()` conserva una copia del bordo di ogni faccia
 unita e `rebuild_faces()` lo misura con `measure_s6_reinsertion()` prima di
 ogni reinserimento diverso da F2, senza modificare colori né scelte. In quel
 momento il grafo è nello stesso stato di quando la faccia è stata creata.
@@ -325,6 +326,67 @@ Le statistiche `MEASURE-*` contano:
 Un perimetro bicolore garantisce il reinserimento con un solo mezzo scambio,
 per qualunque taglia di `f1`; per il reinserimento basta però la condizione
 più debole `SAME-KEMPE`.
+
+### S8: catene pari e riavvii lontani dalla faccia principale
+
+S8 fa avanzare la catena finché la faccia principale può fondersi con una
+vicina pari senza creare ponti. Le fusioni considerano facce di qualunque
+taglia, dando precedenza alle candidate con `f1` più piccola. A ogni nuovo
+avvio, entrambi gli estremi dell'arco scelto devono stare fuori dal perimetro
+dell'ultima faccia principale ancora presente.
+
+La selezione prova in ordine:
+
+1. **F2**, come in S6.
+2. **Continuazione** (`SELECT-S8-CONTINUE`). Seleziona la prima
+   fusione pari senza ponti che lascia almeno una vicina pari dopo la riduzione.
+3. **Ultima fusione** (`SELECT-S8-CONTINUE-LAST`). Se nessuna candidata lascia
+   una vicina pari, seleziona comunque la prima fusione senza ponti con una
+   vicina pari della faccia principale corrente. La faccia unita diventa la
+   nuova principale e al passo seguente il selettore rivaluta il suo perimetro.
+4. **Avvio lontano** (`SELECT-S8-START`). Cerca una fusione senza ponti con
+   faccia unita pari. Esclude la principale e le facce che condividono un
+   arco con lei. Fra le candidate lontane dà precedenza a quelle che lasciano
+   una vicina pari e, in assenza di queste, accetta la prima fusione pari.
+5. **Avvio vicino** (`SELECT-S8-START-TOUCHING`). Se un avvio lontano non
+   esiste, cerca una fusione pari anche fra le facce vicine, mantenendo il
+   vincolo sugli estremi dell'arco.
+6. **Ripiego** (`SELECT-S8-FALLBACK`). Sceglie la prima fusione senza ponti,
+   in ordine crescente di taglia di `f1`, fra gli archi con entrambi gli
+   estremi fuori dal perimetro precedente. È un passo strutturale di
+   qualunque parità. La faccia unita resta fuori dall'onda e la principale
+   precedente continua a essere protetta. Se manca anche questa fusione,
+   S8 si ferma e segnala il vincolo che impedisce la ripartenza.
+
+Da CLI, `-s8` prosegue dopo ogni avvio vicino riuscito. Esporta il grafo
+corrente in DOT quando tutte le mosse fino all'avvio vicino sono esaurite,
+prima del ripiego strutturale. Se raggiunge theta, esporta theta. La chiamata
+Python a `reduce_faces()` può proseguire con il ripiego strutturale e fornire
+il filo di Arianna alla ricostruzione.
+
+Come in S7, una riduzione F2 sposta la faccia principale solo se questa
+assorbe la F2; se la faccia principale si è ridotta essa stessa a una F2,
+scompare con lei. `S8-MAX-PRINCIPAL` registra il numero massimo di lati
+raggiunto dalla faccia principale durante la riduzione. Il primo numero di
+un record di Arianna è la lunghezza di `f1`, quindi può superare 5. La
+ricostruzione condivide i contatori `REBUILD-*`, `EXACT-*` e `MEASURE-*`.
+
+Durante la riduzione S8 conserva i bordi pari delle onde ancora presenti,
+preferendo il bordo più recente quando due bordi condividono un vertice.
+Quando i cicli sono disgiunti e coprono tutti i vertici, salva la copertura
+accanto al record di Arianna (`S8-CYCLE-COVER`). Alternare rosso e verde lungo
+i cicli lascia esattamente un arco blu a ogni vertice.
+
+Durante la ricostruzione, se i due archi da suddividere appartengono allo
+stesso ciclo rosso–verde, S8 applica il mezzo scambio (`S8-CYCLE-DIRECT`).
+Se serve, prova prima la colorazione della copertura salvata per quel passo
+(`S8-CYCLE-RECOLORED`). Le F2, i triangoli da ripristinare su due archi
+paralleli e i casi privi di un ciclo rosso–verde comune usano i gestori di
+S6 (`S8-CYCLE-SPECIAL`), compresa la ricerca di Kempe quando necessaria.
+
+Nelle prove precedenti all'introduzione di `SELECT-S8-CONTINUE-LAST` si è
+osservato un avvio vicino su 3697 con 20 mappe `-r1 300` e 42 su 803 con 20
+mappe `-r2 200`. Il numero di continuazioni era simile a S6.
 
 ### S7: catene pari senza limite di taglia (studio)
 

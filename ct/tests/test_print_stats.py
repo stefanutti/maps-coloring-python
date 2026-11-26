@@ -37,15 +37,17 @@ SHARED = ['REBUILD-', 'EXACT-', 'MEASURE-']  # S6/S7 reconstruction and perimete
 
 
 @pytest.mark.parametrize("strategy,kept,dropped", [
-    ('s1', ['CASE-F5-'], ['SELECT-S4-', 'S5-', 'SELECT-S5-', 'SELECT-S6-', 'S7-', 'SELECT-S7-'] + SHARED),
+    ('s1', ['CASE-F5-'], ['SELECT-S4-', 'S5-', 'SELECT-S5-', 'SELECT-S6-', 'S7-', 'SELECT-S7-', 'SELECT-S8-'] + SHARED),
     ('s4', ['CASE-F5-', 'SELECT-S4-'], ['S5-', 'SELECT-S5-', 'SELECT-S6-', 'S7-', 'SELECT-S7-'] + SHARED),
     ('s5', ['CASE-F5-', 'S5-', 'SELECT-S5-'], ['SELECT-S4-', 'SELECT-S6-', 'S7-', 'SELECT-S7-'] + SHARED),
     ('s6', ['SELECT-S6-'] + SHARED, ['CASE-F5-', 'SELECT-S4-', 'S5-', 'SELECT-S5-', 'S7-', 'SELECT-S7-']),
     ('s7', ['S7-', 'SELECT-S7-'] + SHARED, ['CASE-F5-', 'SELECT-S4-', 'S5-', 'SELECT-S5-', 'SELECT-S6-']),
+    ('s8', ['SELECT-S8-'] + SHARED, ['CASE-F5-', 'SELECT-S4-', 'S5-', 'SELECT-S5-', 'SELECT-S6-', 'S7-', 'SELECT-S7-']),
 ])
 def test_only_relevant_stats_are_printed(mod, caplog, strategy, kept, dropped):
     names = printed(mod, caplog, strategy)
     assert COMMON <= names
+    assert ('S8-MAX-PRINCIPAL' in names) == (strategy == 's8')
     for prefix in kept:
         assert any(name.startswith(prefix) for name in names), prefix
     for prefix in dropped:

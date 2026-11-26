@@ -14,7 +14,7 @@ Homepage and full write-up: https://4coloring.wordpress.com
 
 ## Canonical documentation
 
-- `docs/algorithm.md` — mathematical model, reduction, S1-S7, Ariadne, Kempe.
+- `docs/algorithm.md` — mathematical model, reduction, S1-S8, Ariadne, Kempe.
 - `docs/architecture.md` — current modules, state, data formats, boundaries.
 - `docs/development.md` — environment, `uv`, CLI, converters, tests, debug.
 
@@ -40,7 +40,7 @@ explanations in their canonical document instead of copying them here.
   assumes this property is automatic and does not call the bridge check.
 - Every selection strategy returns exactly
   `(edge, f1, f2, f1_plus_f2, event)`.
-- `event` is `None` for S1/S2/S3/S6/S7. In S4/S5 it is `'fallback'` only when a global
+- `event` is `None` for S1/S2/S3/S6/S7/S8. In S4/S5 it is `'fallback'` only when a global
   F5 fallback fires with an active wave; `reduce_faces()` consumes the event.
 - Preserve the Ariadne record formats consumed by `rebuild_faces()`.
 - The reconstructed graph must retain the original vertex/edge counts and

@@ -47,6 +47,22 @@ def mod():
     return module
 
 
+def test_face_conversion_preserves_interleaved_parallel_edges(mod):
+    faces = [
+        [(3, 2), (2, 3)],
+        [(0, 2), (2, 3), (3, 1), (1, 0)],
+        [(0, 1), (1, 0)],
+        [(3, 2), (2, 0), (0, 1), (1, 3)],
+    ]
+
+    graph = mod.create_graph_from_planar_representation(faces)
+
+    assert dict(graph.degree()) == {0: 3, 1: 3, 2: 3, 3: 3}
+    assert Counter(tuple(sorted(edge)) for edge in graph.edges()) == {
+        (0, 1): 2, (0, 2): 1, (1, 3): 1, (2, 3): 2,
+    }
+
+
 @pytest.mark.parametrize("mode", ["pairs", "triples", "mixed"])
 def test_loader_keeps_input_colors_out_of_reconstruction(mod, tmp_path, mode):
     faces = [[list(edge) for edge in face] for face in TETRAHEDRON]

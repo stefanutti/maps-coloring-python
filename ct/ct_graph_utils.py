@@ -21,7 +21,7 @@ __credits__ = "Mario Stefanutti <mario.stefanutti@gmail.com>, someone_who_would_
 import logging
 import random
 import json
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque
 from itertools import permutations
 
 import networkx as nx
@@ -641,18 +641,16 @@ def create_graph_from_planar_representation(faces):
         new_graph: The graph created from its planar representation
     """
 
-    # Create the graph from the list of faces
-    flattened_egdes = [edge for face in faces for edge in face]
-
-    # TODO: This cycle remove duplicates. Two adjacent faces, list at least one edge twice
-    for edge in flattened_egdes:
-        reverse_edge = (edge[1], edge[0])
-        if reverse_edge in flattened_egdes:
-            flattened_egdes.remove(reverse_edge)
-
     new_graph = nx.MultiGraph()
-    for edge_to_add in flattened_egdes:
-        new_graph.add_edge(edge_to_add[0], edge_to_add[1])
+    # Each graph edge is listed once in each direction across the face boundaries.
+    pending_reverses = Counter()
+    for face in faces:
+        for u, v in face:
+            if pending_reverses[u, v]:
+                pending_reverses[u, v] -= 1
+            else:
+                new_graph.add_edge(u, v)
+                pending_reverses[v, u] += 1
 
     return new_graph
 
@@ -699,6 +697,18 @@ def color_planar_representation(graph, faces):
     return colored_faces
 
 
+def export_dot(graph, filename, *, color_attribute='color'):
+    """Write a DOT graph with one statement per edge, including parallel edges."""
+    with open(filename, 'w') as dot:
+        dot.write("graph {\n")
+        for u, v, color in graph.edges(data='color'):
+            u = json.dumps(u, ensure_ascii=False) if isinstance(u, str) else u
+            v = json.dumps(v, ensure_ascii=False) if isinstance(v, str) else v
+            attribute = f' [{color_attribute}="{color}"]' if color else ''
+            dot.write(f'    {u} -- {v}{attribute};\n')
+        dot.write("}\n")
+
+
 def export_graph(graph_to_export, name_of_file_without_extension, *, planar_faces=None):
     """
     Export graph
@@ -727,28 +737,11 @@ def export_graph(graph_to_export, name_of_file_without_extension, *, planar_face
     # Export as edgelist using NetworkX
     nx.write_edgelist(graph_to_export, name_of_file_without_extension + ".edgelist")
     
-    # Export as DOT file (custom implementation)
-    with open(name_of_file_without_extension + ".orig.dot", 'w') as f:
-        f.write("graph {\n")
-        for u, v, key, data in graph_to_export.edges(keys=True, data=True):
-            label = data.get('color', '')
-            if label:
-                f.write(f'    {u} -- {v} [label="{label}"];\n')
-            else:
-                f.write(f'    {u} -- {v};\n')
-        f.write("}\n")
+    export_dot(graph_to_export, name_of_file_without_extension + ".orig.dot", color_attribute='label')
     
     logger.info("File saved: %s", name_of_file_without_extension)
 
-    # Replace label with color. Just to be used from Gephy
-    filedata = None
-    with open(name_of_file_without_extension + ".orig.dot", 'r') as file:
-        filedata = file.read()
-
-    filedata = filedata.replace('label', 'color')
-
-    with open(name_of_file_without_extension + ".dot", 'w') as file:
-        file.write(filedata)
+    export_dot(graph_to_export, name_of_file_without_extension + ".dot")
 
     if colored_faces is not None:
         with open(name_of_file_without_extension + ".colored.planar", 'w') as file:

@@ -75,7 +75,7 @@ uv run --python ../.venv/bin/python python 4ct.py \
 uv run --python ../.venv/bin/python python 4ct.py -e path/to/map.edgelist
 ```
 
-Le strategie si selezionano con `-s1`, `-s2`, `-s3`, `-s4`, `-s5`, `-s6` o `-s7` (studio). S1 è il default:
+Le strategie si selezionano con `-s1`, `-s2`, `-s3`, `-s4`, `-s5`, `-s6`, `-s7` (studio) o `-s8`. S1 è il default:
 
 ```bash
 uv run --python ../.venv/bin/python python 4ct.py \
@@ -86,15 +86,21 @@ Opzioni utili:
 
 | Opzione | Effetto |
 | --- | --- |
-| `-o NAME` | Esporta `NAME.edgelist`, `NAME.orig.dot`, `NAME.dot` e `NAME.colored.planar`; con più esecuzioni aggiunge `.N` al prefisso, a partire da 1. |
+| `-o NAME` | Con S8 salva `NAME.reduced.dot`. Con le altre strategie esporta `NAME.edgelist`, `NAME.orig.dot`, `NAME.dot` e `NAME.colored.planar`. Con più esecuzioni aggiunge `.N` al prefisso. |
 | `-o2 FILE` | Aggiunge la rappresentazione planare colorata di ogni mappa riuscita come nuova riga JSON in `FILE`; il nome deve includere un'estensione. |
 | `-c 2345` | Imposta la priorità delle facce per S1/S2/S3. |
 | `-s` | Mescola inizialmente la lista delle facce. |
 | `-n N` | Ripete N volte gli input casuali o edgelist. |
 | `--skip N` / `-skip N` | Salta le prime N righe fisiche del file `.planar` (default 0). |
-| `-s1` ... `-s7` | Sceglie la strategia di selezione. |
-| `--kempe-search-limit N` | Limita a N colorazioni distinte ciascuna ricerca di Kempe di S5 (F5) e di S6 (F5 e facce più grandi) (default 10000). |
+| `-s1` ... `-s8` | Sceglie la strategia di selezione. |
+| `--kempe-search-limit N` | Limita a N colorazioni distinte ciascuna ricerca di Kempe con S5, S6 o S7 (default 10000). |
 | `--continue-on-error` | Nei file `.planar` con più mappe, passa alla successiva se la ricerca Kempe fallisce; gli errori inattesi restano fatali. |
+
+Con `-s8` la CLI prosegue dopo ogni avvio vicino riuscito. Quando esaurisce
+tutte le mosse fino all'avvio vicino, esporta il grafo corrente prima del
+ripiego strutturale. Se raggiunge theta, esporta theta. Dopo ogni esportazione
+passa alla mappa successiva. Il file predefinito è `debug/s8.reduced.dot` per
+una mappa e `debug/s8.N.reduced.dot` per più mappe.
 
 Con `-o test` e una sola esecuzione vengono salvati `test.edgelist`,
 `test.orig.dot`, `test.dot` e `test.colored.planar`. Con più mappe nel `.planar` o più ripetizioni

@@ -53,7 +53,7 @@ NetworkX MultiGraph + g_faces
 init_f_distribution()
    |
    v
-reduce_faces() -- strategia S1...S7 --> ariadne_s_thread
+reduce_faces() -- strategia S1...S8 --> ariadne_s_thread
    |
    v
 rebuild_faces() --> MultiGraph con archi colorati
@@ -83,10 +83,10 @@ attuali sono:
 | Area | Elementi principali |
 | --- | --- |
 | CLI e ciclo di esecuzione | `main()` |
-| Statistiche | `initialize_statistics()`, `print_stats()`, dizionario globale `stats`. Tutti i contatori esistono per ogni strategia; la stampa finale omette quelli delle strategie non in uso (`STRATEGY_STATS`, per prefisso: `CASE-F5-*` per S1–S5, `SELECT-S4-*`, `S5-*`/`SELECT-S5-*`, `SELECT-S6-*`, `REBUILD-*`/`EXACT-*`/`MEASURE-*` per S6 e S7, che ne condividono ricostruzione e misura, `S7-*`/`SELECT-S7-*`). Distribuzioni delle facce, casi F2/F3/F4, scambi casuali e tempi sono sempre stampati. |
+| Statistiche | `initialize_statistics()`, `print_stats()`, dizionario globale `stats`. Tutti i contatori esistono per ogni strategia; la stampa finale omette quelli delle strategie non in uso (`STRATEGY_STATS`, per prefisso: `CASE-F5-*` per S1–S5, `SELECT-S4-*`, `S5-*`/`SELECT-S5-*`, `SELECT-S6-*`, `REBUILD-*`/`EXACT-*`/`MEASURE-*` per S6, S7 e S8, che ne condividono ricostruzione e misura, `S7-*`/`SELECT-S7-*`, `S8-*`/`SELECT-S8-*`). Distribuzioni delle facce, casi F2/F3/F4, scambi casuali e tempi sono sempre stampati. |
 | Ricostruzione | `ariadne_case_f2()` ... `ariadne_case_f5()`, `ariadne_case_any_face()` (S6); `restore_ariadne_step()` (S1–S5) e `restore_ariadne_step_s6()` scelgono il gestore per ogni record |
 | Indici delle facce | `FaceIndex` e helper di aggiornamento |
-| Selezione | le sette funzioni `select_edge_to_remove_*()`, `positive_corners()` e gli helper di parità S6/S7 |
+| Selezione | le otto funzioni `select_edge_to_remove_*()`, `positive_corners()` e gli helper di parità S6/S7/S8 |
 | Località S4 | `update_wave_frontier()` e helper F5-F5/F5-F6 |
 | Input | `create_from_random1()`, `create_from_random2()`, `create_from_edge_list()`, `create_from_planar()` |
 | Conversione embedding | `from_graph_to_planar()` |
@@ -98,12 +98,15 @@ comportamento storico; un intero positivo attiva la ricerca deterministica.
 Le statistiche `SELECT-S5-*` distinguono le riduzioni e `S5-*` distinguono
 estensioni dirette, ricerche, stati esaminati e scambi deterministici.
 
-Con `-s6`, `main()` passa a `reduce_faces()` e a `rebuild_faces()` la stessa
-lista `perimeters`: la riduzione vi aggiunge una copia di ogni faccia unita,
-la ricostruzione la consuma in ordine LIFO e chiama `measure_s6_reinsertion()`.
-Con `-s6` passa anche `restore_step=restore_ariadne_step_s6` e
-`kempe_search_limit`. Con le altre strategie `perimeters` vale `None`,
-`restore_step` è il gestore classico e il comportamento non cambia.
+Con `-s6` e `-s7`, `main()` passa a `reduce_faces()` e a `rebuild_faces()` la
+stessa lista `perimeters`. La riduzione vi aggiunge una copia di ogni faccia
+unita e la ricostruzione la consuma in ordine LIFO chiamando
+`measure_s6_reinsertion()`. Queste strategie usano `restore_ariadne_step_s6()`
+con `kempe_search_limit`. Con `-s8`, `main()` esporta il grafo ridotto in DOT
+quando si esauriscono le mosse prima del ripiego strutturale o quando si
+raggiunge theta. La pipeline Python completa di S8 può passare anche
+`s8_cycle_covers`, la lista parallela al filo di Arianna consumata da
+`restore_ariadne_step_s8()`.
 
 `KempeSearchExhausted` segnala solo l'esaurimento della ricerca di colorazione:
 2.000 tentativi casuali F5 per S1–S4, budget o classe di Kempe esauriti per S5, budget esaurito per S6

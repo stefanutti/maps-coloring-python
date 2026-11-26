@@ -126,6 +126,7 @@ from ct_graph_utils import get_edge_color
 from ct_graph_utils import is_multiedge
 from ct_graph_utils import check_if_vertex_is_in_face
 from ct_graph_utils import create_graph_from_planar_representation
+from ct_graph_utils import export_dot
 from ct_graph_utils import export_graph
 from ct_graph_utils import append_colored_planar_representation
 from ct_graph_utils import are_edges_on_the_same_kempe_cycle
@@ -254,6 +255,12 @@ def initialize_statistics():
     stats['REBUILD-MAX-KEMPE-STATES'] = 0
     stats['REBUILD-DETERMINISTIC-SWITCHES'] = 0
     stats['EXACT-RECOLORINGS'] = 0
+    for key in ('SELECT-S8-F2', 'SELECT-S8-CONTINUE', 'SELECT-S8-CONTINUE-LAST', 'SELECT-S8-START',
+                'SELECT-S8-START-TOUCHING', 'SELECT-S8-FALLBACK'):
+        stats[key] = 0
+    stats['S8-MAX-PRINCIPAL'] = 0
+    for key in ('S8-CYCLE-COVER', 'S8-CYCLE-DIRECT', 'S8-CYCLE-RECOLORED', 'S8-CYCLE-SPECIAL'):
+        stats[key] = 0
     for key in ('SELECT-S7-F2', 'SELECT-S7-CONTINUE', 'SELECT-S7-START', 'SELECT-S7-FALLBACK',
                 'S7-BREAK-PRINCIPAL-GONE', 'S7-BREAK-ODD-PRINCIPAL', 'S7-BREAK-NO-EVEN-NEIGHBOR',
                 'S7-BREAK-BRIDGE', 'S7-BREAK-NO-DURABLE-EVEN', 'S7-MAX-CHAIN', 'S7-MAX-PRINCIPAL'):
@@ -276,18 +283,20 @@ def initialize_statistics():
 # Statistics that only make sense for some strategies: name prefix -> strategies that update them.
 # Statistics with any other prefix (face distributions, F2/F3/F4 cases, random switches, times)
 # are printed for every strategy. REBUILD-*, EXACT-* and MEASURE-* belong to the reconstruction
-# (restore_ariadne_step_s6) and the perimeter measurement shared by S6 and S7.
+# (restore_ariadne_step_s6) and the perimeter measurement shared by S6, S7 and S8.
 STRATEGY_STATS = {
     'CASE-F5-': ('s1', 's2', 's3', 's4', 's5'),
     'SELECT-S4-': ('s4',),
     'SELECT-S5-': ('s5',),
     'S5-': ('s5',),
     'SELECT-S6-': ('s6',),
-    'REBUILD-': ('s6', 's7'),
-    'EXACT-': ('s6', 's7'),
-    'MEASURE-': ('s6', 's7'),
+    'REBUILD-': ('s6', 's7', 's8'),
+    'EXACT-': ('s6', 's7', 's8'),
+    'MEASURE-': ('s6', 's7', 's8'),
     'SELECT-S7-': ('s7',),
+    'SELECT-S8-': ('s8',),
     'S7-': ('s7',),
+    'S8-': ('s8',),
 }
 
 
@@ -297,7 +306,7 @@ def print_stats(strategy=None):
 
     Parameters
     ----------
-        strategy: 's1' ... 's7'. Statistics of other strategies (STRATEGY_STATS)
+        strategy: 's1' ... 's8'. Statistics of other strategies (STRATEGY_STATS)
             are omitted; None prints everything
     """
 
@@ -810,10 +819,10 @@ def _kempe_cycle_reaches(the_colored_graph, start, other_color, target):
     return reached_color
 
 
-def _find_common_kempe_cycle(the_colored_graph, edge_at_v1, edge_at_v2):
+def _find_common_kempe_cycle(the_colored_graph, edge_at_v1, edge_at_v2, color_pair=None):
     """
     Return ((color_at_v1, color_at_v2), (swap_c1, swap_c2)) if the two edges
-    lie on the same Kempe cycle for some color pair, else None.
+    lie on the same Kempe cycle for the requested color pair or any pair, else None.
 
     Every parallel copy of `edge_at_v1` is tried. The result is the argument
     list expected by apply_half_kempe_loop_color_switching(), whose deletes
@@ -826,6 +835,7 @@ def _find_common_kempe_cycle(the_colored_graph, edge_at_v1, edge_at_v2):
             ((color_at_v1, color_at_v2), (color_at_v1, other_color))
             for key, color_at_v1 in sorted((k, data['color']) for k, data in the_colored_graph[u][v].items())
             for other_color in get_the_other_colors([color_at_v1])
+            if color_pair is None or (color_at_v1 in color_pair and other_color in color_pair)
             for color_at_v2 in [_kempe_cycle_reaches(the_colored_graph, (u, v, key), other_color, target)]
             if color_at_v2 is not None
         ),
@@ -1700,23 +1710,48 @@ def _face_reductions(face_index, sizes):
                     yield edge, f1, f2
 
 
-def _first_s6_reduction(candidates, face_index, require_parity):
+def _first_s6_reduction(candidates, face_index, require_parity, *, allow_even_without_neighbor=False):
     """
     Return the first bridge-free (edge, f1, f2, merged), or None.
 
     With `require_parity`, the merged face must also be even and touch at
-    least one even face after the reduction.
+    least one even face after the reduction. For an S8 start, remember the
+    first bridge-free even merge in case none leaves an even neighbor.
     """
-    return next(
-        (
-            (edge, f1, f2, merged)
-            for edge, f1, f2 in candidates
-            for merged in [join_faces(f1, f2, edge)]
-            if not require_parity or (len(merged) % 2 == 0 and _even_neighbor_after_merge(f1, f2, edge, face_index))
-            if not is_the_graph_one_edge_connected(merged)
-        ),
-        None,
-    )
+    first_even = None
+    for edge, f1, f2 in candidates:
+        merged = join_faces(f1, f2, edge)
+        if not require_parity or len(merged) % 2 == 0:
+            preferred = not require_parity or _even_neighbor_after_merge(f1, f2, edge, face_index)
+            if ((preferred or (allow_even_without_neighbor and first_even is None))
+                    and not is_the_graph_one_edge_connected(merged)):
+                result = edge, f1, f2, merged
+                if preferred:
+                    return result
+                first_even = result
+    return first_even
+
+
+def _even_continuations(principal, face_index, max_reduced_face=None):
+    """
+    Candidate reductions (edge, f1, f2) merging the principal face with an adjacent even face.
+
+    f1, the face recorded by Ariadne, is the smaller of the two faces; with
+    `max_reduced_face` it must have at most that many sides. Smaller f1 come
+    first (stable sort), then the order of the principal face's edges.
+    """
+    continuation = []
+    for principal_edge in principal:
+        neighbor = face_index.first_face_with_edge(rotate(principal_edge, 1), exclude_face=principal)
+        if neighbor is not None and len(neighbor) % 2 == 0:
+            if len(neighbor) <= len(principal):
+                candidate = (rotate(principal_edge, 1), neighbor, principal)
+            else:
+                candidate = (principal_edge, principal, neighbor)
+            if max_reduced_face is None or len(candidate[1]) <= max_reduced_face:
+                continuation.append(candidate)
+    continuation.sort(key=lambda candidate: len(candidate[1]))
+    return continuation
 
 
 def select_edge_to_remove_even_faces(g_faces, choices, i_global_counter,
@@ -1758,15 +1793,7 @@ def select_edge_to_remove_even_faces(g_faces, choices, i_global_counter,
     principal = s6_principal_face
     continuation = []
     if principal is not None and id(principal) in face_index.face_positions and len(principal) % 2 == 0:
-        for principal_edge in principal:
-            neighbor = face_index.first_face_with_edge(rotate(principal_edge, 1), exclude_face=principal)
-            if neighbor is not None and len(neighbor) % 2 == 0:
-                if len(neighbor) <= min(len(principal), S6_MAX_REDUCED_FACE):
-                    continuation.append((rotate(principal_edge, 1), neighbor, principal))
-                elif len(principal) <= S6_MAX_REDUCED_FACE:
-                    continuation.append((principal_edge, principal, neighbor))
-        # Stable: smaller f1 first, then the order of the principal face's edges.
-        continuation.sort(key=lambda candidate: len(candidate[1]))
+        continuation = _even_continuations(principal, face_index, S6_MAX_REDUCED_FACE)
 
     # Merging is symmetric: scanning by increasing size keeps f1 the smaller face
     sizes = range(3, S6_MAX_REDUCED_FACE + 1)
@@ -1869,18 +1896,10 @@ def select_edge_to_remove_even_ring(g_faces, choices, i_global_counter,
     principal = s7_state['principal']
     principal_alive = principal is not None and id(principal) in face_index.face_positions
     continuation = []
-    has_even_neighbor = False
     if principal_alive and len(principal) % 2 == 0:
-        for principal_edge in principal:
-            neighbor = face_index.first_face_with_edge(rotate(principal_edge, 1), exclude_face=principal)
-            if neighbor is not None and len(neighbor) % 2 == 0:
-                has_even_neighbor = True
-                if len(neighbor) <= len(principal):
-                    continuation.append((rotate(principal_edge, 1), neighbor, principal))
-                else:
-                    continuation.append((principal_edge, principal, neighbor))
-        # Stable: smaller f1 first, then the order of the principal face's edges.
-        continuation.sort(key=lambda candidate: len(candidate[1]))
+        continuation = _even_continuations(principal, face_index)
+    # Without a size limit every even neighbor is a candidate
+    has_even_neighbor = bool(continuation)
 
     sizes = sorted(size for size in face_index.faces_by_len if size >= 3)
     stat = 'SELECT-S7-F2'
@@ -1928,6 +1947,129 @@ def select_edge_to_remove_even_ring(g_faces, choices, i_global_counter,
     logger.info("S7 step %s: %s edge %s (case: %s, %s -> %s)",
                 i_global_counter, stat, edge, len(f1), len(f2), len(merged))
     return edge, f1, f2, merged, None
+
+
+# S8 state: the principal face, as in S6. reduce_faces() starts every execution with
+# i_global_counter == 0, which resets it.
+s8_principal_face = None
+
+
+def select_edge_to_remove_even_faces_restart_away(g_faces, choices, i_global_counter,
+                                                  recently_modified_vertices=None, face_index=None, *,
+                                                  stop_before_fallback=False):
+    """
+    S8: merge even faces of any size and restart away from the principal face.
+
+    When the chain cannot continue, S6 restarts with the first valid reduction
+    anywhere, and in about a third of the cases it touches the principal face.
+    S8 first looks for a start whose two faces are neither the principal face
+    nor adjacent to it (they share no edge with it), so the merged face does
+    not touch it either. Only if no such start exists does it accept one that
+    touches the principal face.
+
+    F2 comes first. For continuations, prefer a merge that leaves an even
+    neighbor. If none does, take the first bridge-free merge with an even
+    neighbor of the current principal face (SELECT-S8-CONTINUE-LAST).
+    Once no continuation is possible, try starting away from the principal
+    face, then nearby, then take the first bridge-free reduction. All restart
+    attempts exclude edges incident to vertices of the previous principal face.
+    Starts need an even merged face and no bridge, preferably with an even
+    neighbor. The structural fallback keeps the previous principal face and
+    only requires a bridge-free restart. Scans by increasing size keep f1
+    the smaller face.
+
+    An F2 step moves the principal face only when it absorbs the F2; if the
+    principal face has shrunk to an F2 itself, it disappears with it (as in
+    S7). Deterministic; ignores --choices and the wave frontier; event None.
+    Reconstruction uses restore_ariadne_step_s8().
+    """
+    global s8_principal_face
+    face_index = _face_index_or_build(g_faces, face_index)
+    if i_global_counter == 0:
+        s8_principal_face = None
+        if choices != 2345:
+            logger.warning("S8 ignores --choices; faces are considered in increasing size order")
+
+    principal = s8_principal_face
+    principal_alive = principal is not None and id(principal) in face_index.face_positions
+    perimeter_vertices = _vertices_of(principal) if principal_alive else set()
+    continuation = []
+    touching = set()
+    if principal_alive:
+        if len(principal) % 2 == 0:
+            continuation = _even_continuations(principal, face_index)
+        # The principal face and every face sharing an edge with it
+        touching = {id(principal)} | {
+            id(face_index.first_face_with_edge(rotate(edge, 1), exclude_face=principal)) for edge in principal}
+
+    sizes = sorted(size for size in face_index.faces_by_len if size >= 3)
+
+    def restart_candidates():
+        return (candidate for candidate in _face_reductions(face_index, sizes)
+                if perimeter_vertices.isdisjoint(candidate[0]))
+
+    away = (candidate for candidate in restart_candidates()
+            if id(candidate[1]) not in touching and id(candidate[2]) not in touching)
+    attempts = (
+        ('SELECT-S8-F2', _face_reductions(face_index, (2,)), False),
+        ('SELECT-S8-CONTINUE', continuation, True),
+        ('SELECT-S8-CONTINUE-LAST', continuation, False),
+        ('SELECT-S8-START', away, True),
+        ('SELECT-S8-START-TOUCHING', restart_candidates(), True),
+        ('SELECT-S8-FALLBACK', restart_candidates(), False),
+    )
+    if stop_before_fallback:
+        attempts = attempts[:-1]
+    stat, result = next(
+        (
+            (stat, reduction)
+            for stat, candidates, require_parity in attempts
+            for reduction in [_first_s6_reduction(
+                candidates, face_index, require_parity,
+                allow_even_without_neighbor=stat in ('SELECT-S8-START', 'SELECT-S8-START-TOUCHING'))]
+            if reduction is not None
+        ),
+        (None, None),
+    )
+
+    if result is None:
+        if stop_before_fallback:
+            return (), None, None, None, None
+        if perimeter_vertices:
+            logger.error("END %s: S8 found no bridge-free restart avoiding the previous perimeter's vertices", i_global_counter)
+        else:
+            logger.error("END %s: S8 found no bridge-free reduction", i_global_counter)
+        exit(-1)
+
+    edge, f1, f2, merged = result
+    stats[stat] += 1
+    if stat != 'SELECT-S8-FALLBACK' and (stat != 'SELECT-S8-F2' or principal is f2):
+        s8_principal_face = merged
+        stats['S8-MAX-PRINCIPAL'] = max(stats['S8-MAX-PRINCIPAL'], len(merged))
+    logger.info("S8 step %s: %s edge %s (case: %s, %s -> %s)",
+                i_global_counter, stat, edge, len(f1), len(f2), len(merged))
+    return edge, f1, f2, merged, None
+
+
+def _s8_cycle_cover(face_index, tracked, merged):
+    """Keep disjoint live even borders and record them when they cover every vertex."""
+    if merged is not None and len(merged) % 2 == 0:
+        tracked[id(merged)] = merged
+    covered = set()
+    cover = []
+    # The newest border takes precedence whenever two waves overlap.
+    for face_id in reversed(tuple(tracked)):
+        face = tracked[face_id]
+        vertices = {u for u, _ in face}
+        if (face_id in face_index.face_positions and len(face) % 2 == 0
+                and len(vertices) == len(face) and covered.isdisjoint(vertices)):
+            covered.update(vertices)
+            cover.append(face)
+        else:
+            del tracked[face_id]
+    if len(covered) == len(face_index.vertex_to_faces):
+        return tuple(tuple(face) for face in cover)
+    return None
 
 
 def from_graph_to_planar(the_graph):
@@ -2240,10 +2382,11 @@ def create_from_planar(planar_filename, shuffle_the_planar_representation, line_
 ######
 ######
 
-def reduce_faces(g_faces, choices, selection_strategy, perimeters=None):
+def reduce_faces(g_faces, choices, selection_strategy, perimeters=None, *, s8_cycle_covers=None,
+                 stop_before_s8_fallback=False):
     """
     Method similar to the Kempe reduction "patching" method.\n
-    For each loop remove an edge from a face <= F5, until the graph will have only three faces (an island with two lands)
+    Remove one edge per iteration until the graph has only three faces.
 
     Parameters
     ----------
@@ -2251,6 +2394,8 @@ def reduce_faces(g_faces, choices, selection_strategy, perimeters=None):
         choices: The selection method for the edges
         selection_strategy: The function to use to select the edge to remove (select_edge_to_remove_by_largest_neighbor or select_edge_to_remove_first_fit)
         perimeters: Optional list (S6 study). When given, a copy of each merged face is appended, one per Ariadne record
+        s8_cycle_covers: Optional list of S8 cycle covers, one entry per Ariadne record
+        stop_before_s8_fallback: Stop when S8 has no admissible move through the nearby restart phase
 
     Returns
     -------
@@ -2270,6 +2415,8 @@ def reduce_faces(g_faces, choices, selection_strategy, perimeters=None):
     i_global_counter = 0
     recently_modified_vertices = None
     face_index = FaceIndex(g_faces)
+    s8_tracked_faces = {} if s8_cycle_covers is not None else None
+    selection_options = {'stop_before_fallback': True} if stop_before_s8_fallback else {}
     if logger.isEnabledFor(logging.DEBUG):
         face_index.validate()
 
@@ -2299,16 +2446,20 @@ def reduce_faces(g_faces, choices, selection_strategy, perimeters=None):
 
         # Select an edge from the graph
         # This is one of the most important function to work on, to apply different strategies
-        edge_to_remove, f1, f2, f1_plus_f2_temp, selection_event = selection_strategy(g_faces, choices, i_global_counter, recently_modified_vertices, face_index)
+        edge_to_remove, f1, f2, f1_plus_f2_temp, selection_event = selection_strategy(
+            g_faces, choices, i_global_counter, recently_modified_vertices, face_index, **selection_options)
+
+        # Since Euler's formula is right :-) an edge to remove must exist, and it means that I made a programming error if I get here without finding it
+        if edge_to_remove == ():
+            if stop_before_s8_fallback:
+                logger.info("S8: no admissible move through nearby restart, ending reduction before fallback")
+                break
+            logger.error("Unexpected condition (a suitable edge has not been found). Mario you'd better go back to paper")
+            exit(-1)
 
         # The merged face is mutated by later reductions: keep a copy of its boundary as it is now
         if perimeters is not None:
             perimeters.append(list(f1_plus_f2_temp))
-
-        # Since Euler's formula is right :-) an edge to remove must exist, and it means that I made a programming error if I get here without finding it
-        if edge_to_remove == ():
-            logger.error("Unexpected condition (a suitable edge has not been found). Mario you'd better go back to paper")
-            exit(-1)
 
         # Wave frontier is owned by reduce_faces: selection strategies only read it.
         # A 'fallback' event from S4 ends the current wave (forced global F5 search).
@@ -2379,10 +2530,10 @@ def reduce_faces(g_faces, choices, selection_strategy, perimeters=None):
             # Do one thing at a time and return at the beginning of the main loop
             logger.info("END %s: Remove a multiple edge (len f1, f2: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
 
-        # Remove an F3 or F4 or F5
+        # Merge faces when f1 has at least three sides
         else:
 
-            logger.info("BEGIN %s: Remove an F3, F4 or F5 (len f1, f2: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+            logger.info("BEGIN %s: Merge faces (len f1, f2: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
 
             # Get the vertices at the ends of the edge to remove
             # And find the other four neighbors :>.---.<: (If the --- is the removed edge, the four external dots represent the vertices I'm looking for)
@@ -2472,7 +2623,15 @@ def reduce_faces(g_faces, choices, selection_strategy, perimeters=None):
             if logger.isEnabledFor(logging.DEBUG): logger.debug("ariadne_step: %s", ariadne_step)
 
             # Do one thing at a time and return at the beginning of the main loop
-            logger.info("END %s: Remove an F3, F4 or F5 (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+            logger.info("END %s: Merge faces (case: %s, %s)", i_global_counter, len_of_the_face_to_reduce_f1, len_of_the_face_to_reduce_f2)
+
+        if s8_tracked_faces is not None:
+            # Absorbing an F2 carries an existing marked boundary into its replacement.
+            track_merged = s8_principal_face is f1_plus_f2_temp or (
+                len_of_the_face_to_reduce_f1 == 2 and id(f2) in s8_tracked_faces)
+            cover = _s8_cycle_cover(face_index, s8_tracked_faces, f1_plus_f2_temp if track_merged else None)
+            s8_cycle_covers.append(cover)
+            stats['S8-CYCLE-COVER'] += int(cover is not None)
 
         if logger.isEnabledFor(logging.DEBUG):
             face_index.validate()
@@ -2495,7 +2654,6 @@ def reduce_faces(g_faces, choices, selection_strategy, perimeters=None):
             if logger.isEnabledFor(logging.DEBUG): logger.debug("The graph has been reduced")
             if logger.isEnabledFor(logging.DEBUG): logger.debug("--------------------------")
             log_faces(g_faces)
-
         # END of main loop (-1 because the counter has been just incremented)
         logger.info("F# = %s", dict(sorted(stats['F#'].items())))
         logger.info("END %s: Main loop - len(ariadne_s_thread) = %s", i_global_counter, len(ariadne_s_thread))
@@ -2582,7 +2740,51 @@ def restore_ariadne_step_s6(the_colored_graph, ariadne_step, kempe_search_limit=
         ariadne_case_any_face(the_colored_graph, ariadne_step, kempe_search_limit)
 
 
-def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None, perimeters=None, restore_step=restore_ariadne_step):
+def _s8_color_from_cycle_cover(graph, cover):
+    """Alternate red and green on each cycle and color the remaining matching blue."""
+    colored = nx.MultiGraph(graph)
+    nx.set_edge_attributes(colored, 'blue', 'color')
+    for face in cover:
+        for index, (u, v) in enumerate(face):
+            # An F2 uses both parallel edges, identified by their different keys.
+            key = next(key for key, data in colored[u][v].items() if data['color'] == 'blue')
+            colored[u][v][key]['color'] = ('red', 'green')[index % 2]
+    return colored
+
+
+def restore_ariadne_step_s8(the_colored_graph, ariadne_step, kempe_search_limit, cover):
+    """Prefer a common red–green cycle and use the existing handlers for other steps."""
+    repair = None
+    if ariadne_step[0] != 2:
+        edge_at_v1 = (ariadne_step[3], ariadne_step[5])
+        edge_at_v2 = (ariadne_step[4], ariadne_step[6])
+        # A triangle can cut two parallel copies at the same endpoints.
+        # Its dedicated handler resolves the two copies separately.
+        if set(edge_at_v1) != set(edge_at_v2):
+            pair = ('red', 'green')
+            repair = _find_common_kempe_cycle(the_colored_graph, edge_at_v1, edge_at_v2, pair)
+            if repair is None and cover is not None:
+                colored = _s8_color_from_cycle_cover(the_colored_graph, cover)
+                repair = _find_common_kempe_cycle(colored, edge_at_v1, edge_at_v2, pair)
+                if repair is not None:
+                    for u, v, key, color in colored.edges(keys=True, data='color'):
+                        the_colored_graph[u][v][key]['color'] = color
+                    stats['S8-CYCLE-RECOLORED'] += 1
+
+    if repair is None:
+        stats['S8-CYCLE-SPECIAL'] += 1
+        restore_ariadne_step_s6(the_colored_graph, ariadne_step, kempe_search_limit)
+    else:
+        colors, pair = repair
+        apply_half_kempe_loop_color_switching(the_colored_graph, ariadne_step, *colors, *pair)
+        stats['S8-CYCLE-DIRECT'] += 1
+        if ariadne_step[0] >= 5:
+            stats['REBUILD-DIRECT'] += 1
+            stats['REBUILD-MAX-FACE'] = max(stats['REBUILD-MAX-FACE'], ariadne_step[0])
+
+
+def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None, perimeters=None,
+                  restore_step=restore_ariadne_step, s8_cycle_covers=None):
     """
     Restore the edges one at a time and apply the half Kempe-cycle color switching method.\n
     Depending if the restored face is an F2, F3, F4, F5, different actions will be taken to be able to apply, at the end, the half Kempe-cycle color switching
@@ -2595,6 +2797,7 @@ def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None, perimet
             with measure_s6_reinsertion() before it is restored; colors and choices are unchanged
         restore_step: The function that restores one Ariadne step: restore_ariadne_step (default, S1-S5)
             or restore_ariadne_step_s6 (S6, faces of any size)
+        s8_cycle_covers: Optional S8 cycle covers consumed in the same order as the Ariadne records
 
     Returns
     -------
@@ -2637,6 +2840,8 @@ def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None, perimet
     if perimeters is not None and len(perimeters) != number_of_steps_to_take:
         logger.error("Unexpected condition (%s perimeters for %s Ariadne steps). Mario you'd better go back to paper", len(perimeters), number_of_steps_to_take)
         exit(-1)
+    if s8_cycle_covers is not None and len(s8_cycle_covers) != number_of_steps_to_take:
+        raise ValueError("S8 cycle covers and Ariadne records must match")
 
     # Start the rebuilding process
     while is_the_end_of_the_rebuild_process is False:
@@ -2650,7 +2855,10 @@ def rebuild_faces(g_faces, ariadne_s_thread, *, kempe_search_limit=None, perimet
         if perimeters is not None:
             measure_s6_reinsertion(the_colored_graph, ariadne_step, perimeters.pop())
 
-        restore_step(the_colored_graph, ariadne_step, kempe_search_limit)
+        if s8_cycle_covers is None:
+            restore_step(the_colored_graph, ariadne_step, kempe_search_limit)
+        else:
+            restore_ariadne_step_s8(the_colored_graph, ariadne_step, kempe_search_limit, s8_cycle_covers.pop())
 
         # Separator
         if logger.isEnabledFor(logging.DEBUG): logger.debug("")
@@ -2748,7 +2956,7 @@ def main():
     group_input.add_argument("-r2", "--random2", help="Random graph: subdivision of faces (directly planar)", type=int)
     group_input.add_argument("-e", "--edgelist", help="Load a .edgelist file (networkx)")
     group_input.add_argument("-p", "--planar", help="Load a planar embedding (json) of the graph G.faces() - Automatically saved at each run")
-    parser.add_argument("-o", "--output", help="Output prefix: saves .edgelist, .orig.dot, .dot and .colored.planar; appends .N (execution number starting at 1) only for multiple executions", required=False)
+    parser.add_argument("-o", "--output", help="Output prefix: saves .edgelist, .orig.dot, .dot and .colored.planar; appends .N for multiple executions. S8 saves .reduced.dot", required=False)
     parser.add_argument("-o2", "--output2", help="Append each colored planar embedding as one JSON line to this output filename (extension required)", required=False)
     parser.add_argument("-c", "--choices", help="Sequence of the Fs to choose (2345, 2354, 2435, 2453, 2534, 2543)", type=int, default=2345, choices=[2345, 2354, 2435, 2453, 2534, 2543], required=False)
     parser.add_argument("-s", "--shuffle", help="Shuffle the list at the beginning. Most of the times it solves the infinite loop condition", action='store_true')
@@ -2763,10 +2971,11 @@ def main():
     group_selection.add_argument("-s3", "--selection3", help="Edge selection strategy 3: for F5 faces, select edge with one shared vertex with adjacent F5/F6", action='store_true', default=False)
     group_selection.add_argument("-s4", "--selection4", help="Edge selection strategy 4: unavoidable set — max neighbor for F2/F3/F4, F5 pairs with locality", action='store_true', default=False)
     group_selection.add_argument("-s5", "--selection5", help="Edge selection strategy 5: v17 positive corners with deterministic Kempe repair (no random switches)", action='store_true', default=False)
+    group_selection.add_argument("-s8", "--selection8", help="Edge selection strategy 8: export each reduced graph in DOT at theta or when no move before structural fallback is available", action='store_true', default=False)
     group_selection.add_argument("-s7", "--selection7", help="Edge selection strategy 7: like S6 with no face-size limit and a parity lookahead that keeps an even face next to the merged face (study)", action='store_true', default=False)
     group_selection.add_argument("-s6", "--selection6", help="Edge selection strategy 6: grow an even principal face by merging it with adjacent even faces (reduced face at most F5); deterministic Kempe repair", action='store_true', default=False)
     parser.add_argument("--kempe-search-limit", type=int, default=10000,
-                        help="S5/S6: maximum distinct colorings per Kempe repair (default: 10000); stops on exhaustion")
+                        help="S5-S7: maximum distinct colorings per Kempe repair (default: 10000); stops on exhaustion")
     args = parser.parse_args()
     if args.kempe_search_limit < 1:
         parser.error("--kempe-search-limit must be positive")
@@ -2793,9 +3002,11 @@ def main():
         selection_strategy = select_edge_to_remove_even_faces
     elif args.selection7:
         selection_strategy = select_edge_to_remove_even_ring
+    elif args.selection8:
+        selection_strategy = select_edge_to_remove_even_faces_restart_away
     else:
         selection_strategy = select_edge_to_remove_first_fit
-    strategy_name = next((name for name in ('s2', 's3', 's4', 's5', 's6', 's7')
+    strategy_name = next((name for name in ('s2', 's3', 's4', 's5', 's6', 's7', 's8')
                           if getattr(args, 'selection' + name[1])), 's1')
 
     # If using planar input, cap num_executions to the number of lines in the file
@@ -2837,7 +3048,9 @@ def main():
             # Preserve input order for export before applying --shuffle.
             the_graph, g_faces = create_from_planar(args.planar, False, line_number=i_execution)
 
-        original_faces = [face[:] for face in g_faces] if args.output is not None or args.output2 is not None else None
+        original_faces = None
+        if not args.selection8 and (args.output is not None or args.output2 is not None):
+            original_faces = [face[:] for face in g_faces]
         if args.planar is not None and args.shuffle:
             shuffle(g_faces)
 
@@ -2889,7 +3102,7 @@ def main():
         ######
         ######
         # 4CT: Method similar to the Kempe reduction "patching" method
-        # 4CT: For each loop remove an edge from a face <= F5, until the graph will have only three faces (an island with two lands)
+        # 4CT: Remove one edge per iteration until the graph has only three faces
         ######
 
         logger.info("----------------------")
@@ -2899,12 +3112,25 @@ def main():
         # S6 study: keep the merged perimeters to measure them before each reinsertion
         uses_s6_rebuild = args.selection6 or args.selection7
         perimeters = [] if uses_s6_rebuild else None
-        ariadne_s_thread = reduce_faces(g_faces, args.choices, selection_strategy, perimeters)
+        ariadne_s_thread = reduce_faces(g_faces, args.choices, selection_strategy, perimeters,
+                                        stop_before_s8_fallback=args.selection8)
 
         logger.debug("----------------------")
         logger.debug("END: Reduction phase" + " (execution " + str(i_execution + 1) + ")")
         logger.debug("----------------------")
         logger.debug("")
+
+        if args.selection8:
+            reduced_graph = create_graph_from_planar_representation(g_faces)
+            output_prefix = args.output or 'debug/s8'
+            if remaining_executions > 1:
+                output_prefix = f"{output_prefix}.{i_execution + 1}"
+            dot_path = f"{output_prefix}.reduced.dot"
+            export_dot(reduced_graph, dot_path)
+            logger.info("S8 reduced graph saved to %s (%s vertices, %s edges)",
+                        dot_path, reduced_graph.number_of_nodes(), reduced_graph.number_of_edges())
+            print_stats(strategy_name)
+            continue
 
         logger.info("----------------------")
         logger.info("BEGIN: Rebuild faces" + " (execution " + str(i_execution + 1) + ")")
